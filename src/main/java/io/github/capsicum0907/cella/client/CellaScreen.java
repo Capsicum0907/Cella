@@ -2,6 +2,7 @@ package io.github.capsicum0907.cella.client;
 
 import io.github.capsicum0907.cella.Cella;
 import io.github.capsicum0907.cella.CellaMenu;
+import io.github.capsicum0907.cella.Mods;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.ChatFormatting;
@@ -117,7 +118,8 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     }
 
     /**
-     * After a label, and never off the end of the panel.
+     * After a label, and never off the end of the panel. Used when something else has
+     * the right-hand end of a row.
      *
      * <p>Measured from the label rather than fixed, so a renamed chest or a translated
      * "Inventory" pushes the buttons along instead of being written over. A label long
@@ -132,7 +134,14 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     protected void init() {
         super.init();
 
-        movers = after(playerInventoryTitle, PLAIN.length * BUTTON + (PLAIN.length - 1) * SPACE);
+        // Right-hand end, like everything else on this screen - unless the sorting mod
+        // is here, whose own buttons are in that corner of this row. Then ours go after
+        // the label instead and the corner is left alone. Two mods in one corner is what
+        // started all of this.
+        int row = PLAIN.length * BUTTON + (PLAIN.length - 1) * SPACE;
+        movers = Mods.inventoryProfiles()
+                ? after(playerInventoryTitle, row)
+                : imageWidth - TITLE_X - row;
         for (int at = 0; at < PLAIN.length; at++) {
             int plain = PLAIN[at];
             int wide = WIDE[at];

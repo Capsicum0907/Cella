@@ -80,7 +80,7 @@ chest. That is worse than not having them.
 
 So `CellaScreen` carries `@IPNPlayerSideOnly`. IPN keeps the player's half, which it
 can see all of, and leaves this one alone. In exchange this screen brings the whole
-set — sort, and four ways of moving:
+set — sort, and two ways of moving:
 
 | Button | Click | With shift |
 |---|---|---|
@@ -109,6 +109,11 @@ armour and the off hand are separate compartments, and whatever Curios keeps is 
 Sorting is ordered by registry name, not display name: a display name needs a
 language, and a chest that came out differently depending on who pressed the button
 would not be a sort.
+
+Where those two buttons sit is the one thing that looks at what else is installed:
+right-hand end like everything else here, or after the "Inventory" label when IPN is
+present, because IPN's own player-side buttons are in that corner. Two mods in one
+corner is what started all of this.
 
 **Expanded Storage did not solve this — it avoided it.** Its screen picks the layout
 with the fewest pages, going to 9×9 or 15×6 where it has to, so a 135-slot chest is
