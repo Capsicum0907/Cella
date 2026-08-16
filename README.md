@@ -4,7 +4,7 @@ A chest with more than one page.
 
 *Cella* is Latin for a storeroom, and also a compartment inside one.
 
-> **Status: the chest works.** Nine game tests, watched in a client.
+> **Status: the chest works.** Twelve game tests, watched in a client.
 
 ## Target
 
@@ -68,11 +68,36 @@ reason.
 - **Shift-click fills the whole chest**, which is now just the ordinary vanilla move
   over the menu's own slots.
 - **A comparator reads the whole chest**, including pages nobody has open.
-- **Sorting and stowing are over every page.** Both kept, even though a sorting mod
-  can now do them: a mod should not need another mod installed to be usable. Sorting
-  is ordered by registry name, not display name — a display name needs a language,
-  and a chest that came out differently depending on who pressed the button would not
-  be a sort. Stowing leaves whatever is in the player's hand alone.
+- **Sorting and moving are over every page**, and this mod does them itself.
+
+### It does its own moving, and asks IPN for the player's half only
+
+Inventory Profiles Next will not touch a slot the player cannot see: `AreaTypes.kt`
+drops anything failing `isActive` or sitting at a negative coordinate. That is a
+defensible rule and there is nothing in its API to lift it, so on a paged screen its
+container buttons move and sort one page while looking like they move and sort a
+chest. That is worse than not having them.
+
+So `CellaScreen` carries `@IPNPlayerSideOnly`. IPN keeps the player's half, which it
+can see all of, and leaves this one alone. In exchange this screen brings the whole
+set — sort, and four ways of moving:
+
+| Button | What it moves |
+|---|---|
+| Put your whole inventory in | everything except what is in hand |
+| Put in what this chest already keeps | matched against the chest |
+| Take more of what you are carrying | matched against the player, hand included |
+| Take as much as will fit | stops at the first stack that will not fit |
+
+Sorting is ordered by registry name, not display name: a display name needs a
+language, and a chest that came out differently depending on who pressed the button
+would not be a sort.
+
+**Expanded Storage did not solve this — it avoided it.** Its screen picks the layout
+with the fewest pages, going to 9×9 or 15×6 where it has to, so a 135-slot chest is
+shown all at once and IPN's rule never bites. Growing the page is the only thing that
+would make an outside sorter work here, and it costs drawing our own background: the
+vanilla chest picture is six rows tall and no more.
 
 ### The size travels with the screen
 
