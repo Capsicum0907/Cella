@@ -33,16 +33,35 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     private static final int FOOT_V = 126;
     private static final int SLOT = 18;
 
+    /** Where vanilla draws a container title, and so where ours starts. */
+    private static final int TITLE_X = 8;
+
     /**
-     * The two buttons and the number between them, measured from the right edge of the
-     * panel so the layout does not have to know how wide it is.
+     * The two buttons and the number between them, in the strip beside the title.
+     *
+     * <p><b>Beside the title, not at the right-hand end of that strip, which is where
+     * they were.</b> That end is not free: Inventory Profiles Next puts its sort buttons
+     * there — measured at 118 to 166 across a panel 176 wide — and being added second it
+     * covered these completely. Both arrows and the page number were simply not there
+     * any more.
+     *
+     * <p>So they begin after the title and are kept clear of that end. Nothing makes a
+     * corner of a container screen belong to anybody, and a mod adding a widget to
+     * somebody else's screen has nobody to ask; leaving the busy end alone is cheaper
+     * than winning it.
      */
     private static final int BUTTON = 12;
     private static final int BUTTON_Y = 3;
-    private static final int PREV_X = -58;
-    private static final int NEXT_X = -20;
+    private static final int GAP = 26;
+    private static final int AFTER_TITLE = 6;
+
+    /** Where the other mod's buttons start. These end before it. */
+    private static final int TAKEN = 114;
 
     private final int rows;
+
+    /** Left edge of the page controls, worked out once the title is known. */
+    private int controls;
 
     public CellaScreen(CellaMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
@@ -54,17 +73,31 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
         this.inventoryLabelY = this.imageHeight - 94;
     }
 
+    /**
+     * After the title, and never past what another mod has taken.
+     *
+     * <p>Measured from the title rather than fixed, so a renamed chest pushes these
+     * along instead of being written over. A name long enough to reach the clamp loses
+     * the argument to the buttons, which is the right way round: the buttons have
+     * somewhere they must be and the name does not.
+     */
+    private int controlsX() {
+        int after = TITLE_X + font.width(title) + AFTER_TITLE;
+        return Math.min(after, TAKEN - (BUTTON + GAP + BUTTON));
+    }
+
     @Override
     protected void init() {
         super.init();
         if (menu.window().pages() <= 1) {
             return;
         }
+        controls = controlsX();
         addRenderableWidget(Button.builder(Component.literal("<"), button -> turn(-1))
-                .bounds(leftPos + imageWidth + PREV_X, topPos + BUTTON_Y, BUTTON, BUTTON)
+                .bounds(leftPos + controls, topPos + BUTTON_Y, BUTTON, BUTTON)
                 .build());
         addRenderableWidget(Button.builder(Component.literal(">"), button -> turn(1))
-                .bounds(leftPos + imageWidth + NEXT_X, topPos + BUTTON_Y, BUTTON, BUTTON)
+                .bounds(leftPos + controls + BUTTON + GAP, topPos + BUTTON_Y, BUTTON, BUTTON)
                 .build());
     }
 
@@ -108,10 +141,8 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
         // One-based, because the first page is the first page and not the noughth.
         // Centred in the gap between the two buttons, which is the only place it fits.
         Component page = Component.literal((menu.window().page() + 1) + " / " + menu.window().pages());
-        int gap = NEXT_X - (PREV_X + BUTTON);
         graphics.drawString(font, page,
-                imageWidth + PREV_X + BUTTON + (gap - font.width(page)) / 2, BUTTON_Y + 2,
-                0x404040, false);
+                controls + BUTTON + (GAP - font.width(page)) / 2, BUTTON_Y + 2, 0x404040, false);
     }
 
     /**
