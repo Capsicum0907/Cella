@@ -42,12 +42,15 @@ public final class CellaRegistry {
                     () -> BlockEntityType.Builder.of(CellaBlockEntity::new, BLOCK.get()).build(null));
 
     /**
-     * The client builds its own menu from the position in the packet, which is how its
-     * slots find the block entity to write the server's answers into.
+     * The client builds its own menu from what is in the packet: where the chest is, and
+     * <b>how many slots it has</b>. The second is not derivable on the client — a chest
+     * keeps the size it was built with, and the client's copy of the block entity was
+     * made at whatever the config says now. See {@link CellaMenu#at}.
      */
     public static final DeferredHolder<MenuType<?>, MenuType<CellaMenu>> MENU =
             MENUS.register("cella", () -> IMenuTypeExtension.create(
-                    (id, inventory, buffer) -> CellaMenu.at(id, inventory, buffer.readBlockPos())));
+                    (id, inventory, buffer) -> CellaMenu.at(id, inventory,
+                            buffer.readBlockPos(), buffer.readVarInt())));
 
     private CellaRegistry() {
     }

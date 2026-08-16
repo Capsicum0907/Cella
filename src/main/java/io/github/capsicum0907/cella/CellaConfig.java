@@ -23,8 +23,12 @@ public final class CellaConfig {
             .defineInRange("rows", 6, 1, 6);
 
     public static final ModConfigSpec.IntValue PAGES = BUILDER
-            .comment("Pages in one chest. Eight pages of six rows is 432 slots.")
-            .defineInRange("pages", 8, 1, 256);
+            .comment("Pages in one chest. Eight pages of six rows is 432 slots.",
+                    "Every slot is in the menu, not just the page on show, so this is not",
+                    "free: opening a chest sends all of them and each tick walks all of",
+                    "them. That is the price of other mods being able to see the whole",
+                    "chest. 32 pages is 1728 slots, which is where this stops.")
+            .defineInRange("pages", 8, 1, 32);
 
     public static final ModConfigSpec SPEC = BUILDER.pop().build();
 

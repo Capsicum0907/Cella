@@ -26,6 +26,9 @@ import net.neoforged.neoforge.items.IItemHandler;
 public final class CellaTests {
     private static final BlockPos WHERE = new BlockPos(2, 1, 2);
 
+    /** The player's own three rows and hotbar, which every container menu ends with. */
+    private static final int PLAYER_SLOTS = 36;
+
     private CellaTests() {
     }
 
@@ -33,73 +36,103 @@ public final class CellaTests {
     private static final int LATER = 2;
 
     /**
-     * The window shows the page it was turned to, and writing through it lands where
-     * that page really is.
+     * The menu holds every slot of the chest, and slot <em>i</em> is contents <em>i</em>.
      *
-     * <p>This is the one thing the whole design rests on: slot <em>i</em> of page
-     * <em>p</em> is item <em>p × size + i</em>. If that arithmetic is wrong nothing else
-     * can be right, and every symptom would look like items moving on their own.
+     * <p>This is the whole design in one assertion, and it used to be false on purpose:
+     * the menu had one page and a window moved underneath it. Both things that went wrong
+     * with that came of the same place — a sorting mod could only ever see a page, and
+     * the game's own "has this slot changed" test was asking about a slot whose meaning
+     * had moved out from under it.
      */
     @GameTest(template = TestStructures.FLOOR)
-    public static void aPageIsAWindowOntoTheContents(GameTestHelper helper) {
+    public static void theMenuHoldsEveryPage(GameTestHelper helper) {
         CellaBlockEntity chest = place(helper);
-        Window window = new Window(chest.contents(), CellaConfig.pageSize());
+        Player player = helper.makeMockPlayer(GameType.SURVIVAL);
+        int all = chest.contents().getSlots();
+        int far = LATER * CellaConfig.pageSize() + 4;
+        chest.contents().setStackInSlot(far, new ItemStack(Items.DIAMOND, 5));
 
-        window.turnTo(LATER);
-        window.setStackInSlot(0, new ItemStack(Items.DIAMOND, 5));
+        CellaMenu menu = CellaMenu.at(1, player.getInventory(), helper.absolutePos(WHERE), all);
 
-        int expected = LATER * CellaConfig.pageSize();
-        check(chest.contents().getStackInSlot(expected).getCount() == 5,
-                "the item should be at slot " + expected + " of the contents");
-        check(chest.contents().getStackInSlot(0).isEmpty(),
-                "and page one should not have it");
-
-        window.turnTo(0);
-        check(window.getStackInSlot(0).isEmpty(), "nor should the window, turned back");
+        check(menu.slots.size() == all + PLAYER_SLOTS,
+                "the menu should hold the whole chest and the player: " + menu.slots.size());
+        check(menu.slots.get(far).getItem().getCount() == 5,
+                "and slot i should be contents i, on any page");
         helper.succeed();
     }
 
     /**
-     * Two windows onto one chest hold their own page.
+     * Only the page on show is active, and active is the only thing hiding the rest.
      *
-     * <p>Two players reading the same chest is the case, and nothing arranges it — the
-     * window belongs to the screen, so there are simply two of them. The test is here
-     * because that would stop being true the moment somebody moved the page onto the
-     * block entity to save passing it around.
+     * <p>Every page's slots sit at the same coordinates, one page deep, so this is what
+     * stops eight of them being drawn on top of one another. The screen asks
+     * {@code isActive} before it draws a slot, before it calls one hovered and before it
+     * decides which one the mouse is in.
      */
     @GameTest(template = TestStructures.FLOOR)
-    public static void twoReadersDoNotShareAPage(GameTestHelper helper) {
+    public static void onlyTheOpenPageIsActive(GameTestHelper helper) {
         CellaBlockEntity chest = place(helper);
-        Window mine = new Window(chest.contents(), CellaConfig.pageSize());
-        Window yours = new Window(chest.contents(), CellaConfig.pageSize());
+        Player player = helper.makeMockPlayer(GameType.SURVIVAL);
+        int page = CellaConfig.pageSize();
+        CellaMenu menu = CellaMenu.at(1, player.getInventory(), helper.absolutePos(WHERE),
+                chest.contents().getSlots());
 
-        mine.turnTo(LATER);
-        mine.setStackInSlot(0, new ItemStack(Items.EMERALD, 3));
-
-        check(yours.page() == 0, "the other reader should still be on the first page");
-        check(yours.getStackInSlot(0).isEmpty(), "and should not see what went onto page three");
-        yours.turnTo(LATER);
-        check(yours.getStackInSlot(0).getCount() == 3, "until it turns there too");
+        menu.turnTo(LATER);
+        for (int slot = 0; slot < chest.contents().getSlots(); slot++) {
+            boolean shown = slot / page == LATER;
+            check(menu.slots.get(slot).isActive() == shown,
+                    "slot " + slot + " should " + (shown ? "" : "not ") + "be shown on page " + LATER);
+        }
+        check(menu.slots.get(menu.slots.size() - 1).isActive(),
+                "and the player's own slots are never a page");
         helper.succeed();
     }
 
     /**
      * A page that is not there is refused rather than clamped.
      *
-     * <p>The number arrives from a packet, so it is whatever the other side said. Being
-     * moved somewhere you did not ask for is worse than not moving.
+     * <p>Nothing sends this any more — the page never leaves the client — but being moved
+     * somewhere you did not ask for is still worse than not moving.
      */
     @GameTest(template = TestStructures.FLOOR)
     public static void thereIsNoPageAfterTheLast(GameTestHelper helper) {
         CellaBlockEntity chest = place(helper);
-        Window window = new Window(chest.contents(), CellaConfig.pageSize());
+        Player player = helper.makeMockPlayer(GameType.SURVIVAL);
+        CellaMenu menu = CellaMenu.at(1, player.getInventory(), helper.absolutePos(WHERE),
+                chest.contents().getSlots());
 
-        check(window.pages() == CellaConfig.PAGES.get(),
+        check(menu.pages() == CellaConfig.PAGES.get(),
                 "a new chest should have as many pages as the config says");
-        window.turnTo(window.pages());
-        check(window.page() == 0, "a page past the end should be ignored");
-        window.turnTo(-1);
-        check(window.page() == 0, "and so should one before the start");
+        menu.turnTo(menu.pages());
+        check(menu.page() == 0, "a page past the end should be ignored");
+        menu.turnTo(-1);
+        check(menu.page() == 0, "and so should one before the start");
+        helper.succeed();
+    }
+
+    /**
+     * The menu is as big as the chest it was opened on, not as big as the config.
+     *
+     * <p>A chest keeps the size it was built with, so the two disagree in any world whose
+     * config has been turned down since. The client cannot work the real size out — its
+     * copy of the block entity was made at the config's size — which is why the number
+     * travels in the packet that opens the screen. Getting it wrong is not cosmetic now
+     * that every slot is in the menu: filling a shorter list from a longer one walks off
+     * the end of it.
+     */
+    @GameTest(template = TestStructures.FLOOR)
+    public static void theMenuIsAsBigAsTheChest(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper);
+        Player player = helper.makeMockPlayer(GameType.SURVIVAL);
+
+        // A chest from a world whose config said something else.
+        int odd = CellaConfig.pageSize() * 3;
+        chest.contents().setSize(odd);
+
+        CellaMenu menu = CellaMenu.at(1, player.getInventory(), helper.absolutePos(WHERE), odd);
+        check(menu.slots.size() == odd + PLAYER_SLOTS,
+                "the menu should have followed the chest: " + menu.slots.size());
+        check(menu.pages() == 3, "and counted its pages from it, not from the config");
         helper.succeed();
     }
 
@@ -166,7 +199,8 @@ public final class CellaTests {
             chest.contents().setStackInSlot(slot, new ItemStack(Items.STONE, 64));
         }
 
-        CellaMenu menu = CellaMenu.at(1, player.getInventory(), helper.absolutePos(WHERE));
+        CellaMenu menu = CellaMenu.at(1, player.getInventory(), helper.absolutePos(WHERE),
+                chest.contents().getSlots());
         int hand = menu.slots.size() - CellaConfig.COLUMNS;
         menu.slots.get(hand).set(new ItemStack(Items.COAL, 32));
         menu.quickMoveStack(player, hand);
@@ -239,7 +273,8 @@ public final class CellaTests {
         player.getInventory().setItem(1, new ItemStack(Items.APPLE, 12));
         player.getInventory().setItem(20, new ItemStack(Items.BONE, 5));
 
-        CellaMenu menu = CellaMenu.at(1, player.getInventory(), helper.absolutePos(WHERE));
+        CellaMenu menu = CellaMenu.at(1, player.getInventory(), helper.absolutePos(WHERE),
+                chest.contents().getSlots());
         menu.clickMenuButton(player, CellaMenu.STOW);
 
         check(player.getInventory().getItem(0).is(Items.IRON_PICKAXE),

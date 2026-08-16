@@ -4,7 +4,7 @@ A chest with more than one page.
 
 *Cella* is Latin for a storeroom, and also a compartment inside one.
 
-> **Status: the chest works.** Six game tests, no client-side testing yet.
+> **Status: the chest works.** Nine game tests, watched in a client.
 
 ## Target
 
@@ -20,72 +20,68 @@ A chest with more than one page.
 
 A chest whose contents are divided into pages, one shown at a time.
 
-**The page belongs to the view, not to the slot.** A slot cannot be told to point
-somewhere else: vanilla's `Slot` reads a private field directly in `getItem`,
-`set`, `remove` and `mayPlace`, and `getSlotIndex()` is not consulted by any of
-them. NeoForge's `SlotItemHandler` reads its own index the same way.
+**Every slot is in the menu. What a page decides is what gets drawn.** The slots are
+`SlotItemHandler`s over the whole contents, numbered as the contents are, all of a
+page sitting at the same coordinates as all of every other page. A slot answers
+`isActive()` with whether its page is the one on show, and the screen asks that
+before it draws a slot, before it calls one hovered and before it works out which
+one the mouse is in. Nothing else is needed to hide the rest.
 
-So the whole of the paging lives one layer down. The chest's contents are a single
-handler holding every page; what the screen is given is a window onto it that shows
-one page's worth of slots and reads slot *i* as *page × size + i*. The slot numbers
-never change — only what is behind them — so the ordinary slot class is used
-unmodified.
+Three things follow, and none of them had to be arranged:
 
-Two consequences fall out of that rather than being arranged:
+- **Other mods see the whole chest.** A sorting mod works on the slots the menu has,
+  and that is every slot. It does not need to know this mod exists.
+- **A page turn sends nothing.** `isActive` appears nowhere in
+  `AbstractContainerMenu` and the server's click path never consults it, so which
+  page is on show is a client-side fact with no packet to its name.
+- **Slot *i* is contents *i*, always.** The game decides what to send a client by
+  comparing each slot with what it last said that slot held — sound exactly when
+  nothing moves underneath a slot.
 
-- The window belongs to one open screen, so two people can have the same chest open
-  on different pages.
-- What the block offers to hoppers and pipes is the whole handler, not the window.
-  A hopper being restricted to whichever page somebody happens to be looking at
-  would be nonsense.
+### The road not taken
 
-Turning the page rides on `clickMenuButton`, which is a packet the game already
-has, so there is nothing to send of our own. The button id *is* the page wanted
-rather than "next" or "previous", because a difference would need both sides to
-agree about where they already were, and only the client knows that.
+The first version did the opposite: fifty-four fixed slots with a *window* sliding
+underneath them, reading slot *i* as *page × size + i*. It works, and it has one real
+advantage — the menu stays one page wide however big the chest is, so nothing grows
+with the number of pages.
 
-That packet runs on the server only, so the screen turns its own window as well as
-sending. Otherwise it would sit on the old page until something else forced a
-refresh.
+It was abandoned for what falls out of it. A sorting mod could only ever reach the
+page on screen, because a page was all the menu had; so this mod had to grow its own
+sort and stow buttons to do what an installed mod was already trying to do. And the
+game's "has this slot changed" test became a lie: two pages holding the same thing in
+the same place sent nothing, and the client — which had only been told about pages it
+had looked at — drew a hole. That needed a full resend on every page turn to paper
+over.
 
-**A page turn resends every slot.** The game works out what to send by comparing
-each slot with what it last told the client that slot held, which is right as long
-as a slot only changes when something is put in it. Here the slot stays still and
-the storage under it moves, so two pages that happen to hold the same thing in the
-same place send nothing — and the client, which has only ever been told about pages
-it has looked at, draws that part of the new page empty. A whole page is a chest's
-worth of packet, which is what opening a chest costs anyway.
+The idea of keeping every slot comes from Expanded Storage, which hid the pages that
+were not on show by moving their slots two thousand pixels off screen. Asking
+`isActive` is the same thought without the coordinates having to lie.
+
+The price is real and is not hidden: the menu is as big as the chest, so opening one
+sends every stack and each tick walks every slot. `pages` is capped at 32 for that
+reason.
 
 ### What the paging does *not* touch
 
-- **Shift-click fills the whole chest.** An item can land on a page that is not on
-  screen. Same answer as the hopper gets, for the same reason: which page somebody
+- **What a hopper or a pipe is offered** is the whole contents. Which page somebody
   has open is not a fact about the chest.
-- **Sorting is over every page.** A sorting mod works on the slots the open screen
-  has, which is one page — right for a chest, wrong for this one, and nothing
-  outside can do better because nothing outside can see past the window. Hence the
-  third button. Ordered by registry name, not display name: a display name needs a
-  language, and a chest that came out differently depending on who pressed the
-  button would not be a sort.
-- **Stowing puts the player's inventory into the whole chest**, minus whatever is in
-  their hand. Same reason as sorting: the version a sorting mod offers can only fill
-  the page on show and hands the rest back.
-
-### Why sorting mods only reach one page
-
-Because that is all this screen has. The menu holds one page of slots and the rest
-is behind the window, and a mod working on somebody else's container has nothing to
-work on but its slots.
-
-The other way round exists: put *every* slot in the menu and page in the drawing
-instead, hiding the rows that are not on show. Then an outside sorter sees the whole
-chest for free. It costs a menu that grows with the chest rather than staying one
-page wide, and a screen that has to filter what it draws and what it lets you click.
-This mod took the first road, which is why it brings its own buttons.
+- **Shift-click fills the whole chest**, which is now just the ordinary vanilla move
+  over the menu's own slots.
 - **A comparator reads the whole chest**, including pages nobody has open.
-- **The screen only ever holds one page's worth of slots**, so how much is sent when
-  something changes does not grow with the number of pages. A chest of eight pages
-  costs a chest to keep in sync.
+- **Sorting and stowing are over every page.** Both kept, even though a sorting mod
+  can now do them: a mod should not need another mod installed to be usable. Sorting
+  is ordered by registry name, not display name — a display name needs a language,
+  and a chest that came out differently depending on who pressed the button would not
+  be a sort. Stowing leaves whatever is in the player's hand alone.
+
+### The size travels with the screen
+
+A chest keeps the size it was built with, so any world whose config has been turned
+down since holds chests bigger than the config says. The client cannot work that out
+— its own copy of the block entity was made at the config's size — so the number is
+written into the packet that opens the screen. This mattered less when the menu was
+one page wide; now a client whose menu is shorter than what the server sends walks
+off the end of its own list.
 
 ### The contents drop
 

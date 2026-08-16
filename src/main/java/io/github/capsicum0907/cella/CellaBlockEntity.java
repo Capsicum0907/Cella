@@ -93,6 +93,6 @@ public class CellaBlockEntity extends BlockEntity implements MenuProvider {
 
     @Override
     public AbstractContainerMenu createMenu(int id, Inventory inventory, Player player) {
-        return CellaMenu.at(id, inventory, getBlockPos());
+        return CellaMenu.at(id, inventory, getBlockPos(), contents.getSlots());
     }
 }

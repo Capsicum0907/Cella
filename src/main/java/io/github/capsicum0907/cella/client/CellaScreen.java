@@ -95,10 +95,10 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
 
     public CellaScreen(CellaMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
-        // Asked of the window rather than of the config: the screen draws what it was
-        // given, and the panel is as tall as that. imageWidth is left at the 176 the
-        // superclass already has, which is what the picture is.
-        this.rows = menu.window().getSlots() / CellaConfig.COLUMNS;
+        // A page's worth of rows, not the chest's. The menu now holds every slot, so
+        // asking it how many it has would size the panel to forty-eight rows.
+        // imageWidth is left at the 176 the superclass already has.
+        this.rows = menu.rows();
         this.imageHeight = 114 + rows * SLOT;
         this.inventoryLabelY = this.imageHeight - 94;
     }
@@ -134,7 +134,7 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
                 .bounds(leftPos + stowX, topPos + inventoryLabelY - 2, BUTTON, BUTTON)
                 .build());
 
-        if (menu.window().pages() <= 1) {
+        if (menu.pages() <= 1) {
             return;
         }
         controls = controlsX();
@@ -152,19 +152,13 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     }
 
     /**
-     * Both sides, in that order.
-     *
-     * <p>The page wanted is worked out here and sent as the button id, so the two sides
-     * never have to agree about where they were — only about where to go.
+     * Nothing is sent. The page is which slots this screen draws, and the server never
+     * asks: {@code isActive} appears nowhere in {@code AbstractContainerMenu} and the
+     * click path does not consult it. Under the old design this had to travel, and
+     * arriving late was how a page turn drew a hole in itself.
      */
     private void turn(int by) {
-        int pages = menu.window().pages();
-        int wanted = Math.floorMod(menu.window().page() + by, pages);
-        Minecraft client = Minecraft.getInstance();
-        if (client.gameMode != null) {
-            client.gameMode.handleInventoryButtonClick(menu.containerId, wanted);
-        }
-        menu.clickMenuButton(client.player, wanted);
+        menu.turnTo(Math.floorMod(menu.page() + by, menu.pages()));
     }
 
     /**
@@ -196,12 +190,12 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     @Override
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
         super.renderLabels(graphics, mouseX, mouseY);
-        if (menu.window().pages() <= 1) {
+        if (menu.pages() <= 1) {
             return;
         }
         // One-based, because the first page is the first page and not the noughth.
         // Centred in the gap between the two buttons, which is the only place it fits.
-        Component page = Component.literal((menu.window().page() + 1) + " / " + menu.window().pages());
+        Component page = Component.literal((menu.page() + 1) + " / " + menu.pages());
         graphics.drawString(font, page,
                 controls + BUTTON + (GAP - font.width(page)) / 2, TEXT_Y, 0x404040, false);
     }
@@ -216,7 +210,7 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partial) {
         super.render(graphics, mouseX, mouseY, partial);
         icon(graphics, STOW_ICON, stowX, inventoryLabelY - 2);
-        if (menu.window().pages() > 1) {
+        if (menu.pages() > 1) {
             // After the widgets, because the button draws its own face first. Centred
             // by the pixel: eleven in thirteen leaves one either side.
             icon(graphics, SORT_ICON, controls + width() - BUTTON, BUTTON_Y);

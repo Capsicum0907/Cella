@@ -48,7 +48,10 @@ public class CellaBlock extends BaseEntityBlock {
         }
         if (level.getBlockEntity(pos) instanceof CellaBlockEntity chest
                 && player instanceof ServerPlayer server) {
-            server.openMenu(chest, buffer -> buffer.writeBlockPos(pos));
+            server.openMenu(chest, buffer -> {
+                buffer.writeBlockPos(pos);
+                buffer.writeVarInt(chest.contents().getSlots());
+            });
         }
         return InteractionResult.CONSUME;
     }
