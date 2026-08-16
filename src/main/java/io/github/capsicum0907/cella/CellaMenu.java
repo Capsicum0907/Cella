@@ -109,11 +109,38 @@ public class CellaMenu extends AbstractContainerMenu {
         if (id == SORT) {
             if (!player.level().isClientSide) {
                 Tidy.everything(contents);
+                resend();
             }
             return true;
         }
         window.turnTo(id);
+        if (!player.level().isClientSide) {
+            resend();
+        }
         return true;
+    }
+
+    /**
+     * Says every slot again, whether it looks changed or not.
+     *
+     * <p><b>This is the price of moving what is behind a slot.</b> The game decides what
+     * to send by comparing each slot with what it last told the client that slot held —
+     * {@code synchronizeSlotToRemote} against {@code remoteSlots} — which is exactly
+     * right as long as a slot only changes when somebody puts something in it. Here the
+     * slot can stay still while the storage underneath it moves, and then the comparison
+     * is asking the wrong question.
+     *
+     * <p>What that looked like: page two full of iron blocks, page three also beginning
+     * with iron blocks, and turning from one to the other sent nothing for those slots,
+     * because to the server they had not changed. The client's own copy of the contents
+     * had never been told anything about page three, so it drew them empty — a chest
+     * with a hole in it that filled itself in as soon as anything was moved.
+     *
+     * <p>A whole page of slots is a chest's worth of packet, which is what opening any
+     * chest costs, so there is nothing to save by being cleverer here.
+     */
+    private void resend() {
+        sendAllDataToRemote();
     }
 
     @Override

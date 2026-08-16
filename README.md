@@ -48,6 +48,14 @@ That packet runs on the server only, so the screen turns its own window as well 
 sending. Otherwise it would sit on the old page until something else forced a
 refresh.
 
+**A page turn resends every slot.** The game works out what to send by comparing
+each slot with what it last told the client that slot held, which is right as long
+as a slot only changes when something is put in it. Here the slot stays still and
+the storage under it moves, so two pages that happen to hold the same thing in the
+same place send nothing — and the client, which has only ever been told about pages
+it has looked at, draws that part of the new page empty. A whole page is a chest's
+worth of packet, which is what opening a chest costs anyway.
+
 ### What the paging does *not* touch
 
 - **Shift-click fills the whole chest.** An item can land on a page that is not on
