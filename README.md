@@ -82,10 +82,16 @@ So `CellaScreen` carries `@IPNPlayerSideOnly`. IPN keeps the player's half, whic
 can see all of, and leaves this one alone. In exchange this screen brings the whole
 set — sort, and four ways of moving:
 
-| Button | What it moves | With shift |
+| Button | Click | With shift |
 |---|---|---|
-| Put your inventory in | everything except what is in hand | only kinds the chest already keeps |
-| Take as much as will fit | stops at the first stack that will not fit | only kinds you are carrying |
+| ↑ | in: only kinds the chest already keeps | in: everything except what is in hand |
+| ↓ | out: only kinds you are carrying | out: as much as will fit |
+
+Shift is the wide one, the way this game already uses it — shift-click moves the
+stack rather than the item. It also leaves the careful answer on the plain click,
+which is the right way round for a button that can empty a pack. The arrows point the
+way the items go: these two sit beside the player's inventory, and the chest is the
+half above them.
 
 The wheel turns the page as well, over the frame — the lid, the margins, the strip
 above the inventory — but never over a slot. The wheel above a slot belongs to

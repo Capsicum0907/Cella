@@ -3,8 +3,8 @@
   "gui.cella.next": "Next page",
   "gui.cella.prev": "Previous page",
   "gui.cella.sort": "Sort every page",
-  "gui.cella.stow": "Put your inventory in",
-  "gui.cella.stow.shift": "Shift: only what this chest already keeps",
-  "gui.cella.take": "Take as much as will fit",
-  "gui.cella.take.shift": "Shift: only more of what you are carrying"
+  "gui.cella.stow": "Put in what this chest already keeps",
+  "gui.cella.stow.shift": "Shift: your whole inventory",
+  "gui.cella.take": "Take more of what you are carrying",
+  "gui.cella.take.shift": "Shift: as much as will fit"
 }

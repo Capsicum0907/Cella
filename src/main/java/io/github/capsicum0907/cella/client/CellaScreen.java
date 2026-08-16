@@ -74,12 +74,13 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
      * for them could not say what they were a day later. Four buttons meant two things to
      * tell apart at once, direction and reach, and six pixels of picture will carry one.
      *
-     * <p>So reach moved onto <b>shift</b>, which in this game already means "the same
-     * thing, done the other way": shift-click to move a stack, shift to place, shift to
-     * take the lot. Nobody has to be taught it, and the tooltip says it anyway.
+     * <p>So reach moved onto <b>shift</b>, and <b>shift is the wide one</b>. That is the
+     * way round this game already uses it: shift-click moves the stack rather than the
+     * item, shift-craft takes every one it can make. It also puts the careful answer on
+     * the plain click, which is the right way for a button that empties a pack.
      */
-    private static final int[] MOVES = { CellaMenu.STOW, CellaMenu.TAKE };
-    private static final int[] PICKED = { CellaMenu.MATCHING, CellaMenu.TAKING };
+    private static final int[] PLAIN = { CellaMenu.MATCHING, CellaMenu.TAKING };
+    private static final int[] WIDE = { CellaMenu.STOW, CellaMenu.TAKE };
     private static final String[] NAMES = { "stow", "take" };
 
     private final int rows;
@@ -131,14 +132,14 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     protected void init() {
         super.init();
 
-        movers = after(playerInventoryTitle, MOVES.length * BUTTON + (MOVES.length - 1) * SPACE);
-        for (int at = 0; at < MOVES.length; at++) {
-            int whole = MOVES[at];
-            int picked = PICKED[at];
+        movers = after(playerInventoryTitle, PLAIN.length * BUTTON + (PLAIN.length - 1) * SPACE);
+        for (int at = 0; at < PLAIN.length; at++) {
+            int plain = PLAIN[at];
+            int wide = WIDE[at];
             addRenderableWidget(new IconButton(
                     leftPos + movers + at * (BUTTON + SPACE), topPos + inventoryLabelY - 2,
                     icon(NAMES[at]), told(NAMES[at]),
-                    () -> send(Screen.hasShiftDown() ? picked : whole)));
+                    () -> send(Screen.hasShiftDown() ? wide : plain)));
         }
 
         // Anchored to the right-hand end of the lid, which is the corner a sorting mod

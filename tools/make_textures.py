@@ -100,9 +100,13 @@ def crate() -> list[list[tuple[int, int, int, int]]]:
 #
 # Ten and two are measured off the buttons the sorting mod puts on the same screen,
 # not chosen. Six pixels is very little, so these are made to be told apart rather
-# than read: the shelf is low for going in and high for coming out, and that is the
-# only thing they have to say. Narrowing either one to matching kinds is shift, which
-# needs no picture of its own - which is why there are two of these and not four.
+# than read, and they say one thing: which way the items go.
+#
+# Up is into the chest and down is towards the player, because these two sit beside
+# the player's inventory and the chest is the half above them. They had a shelf drawn
+# in as well, which cost the arrow half its height and pointed the wrong way for
+# where the buttons are. Widening either one to everything is shift, which needs no
+# picture at all - which is why there are two of these and not four.
 ICON = 6
 INK = (0xEE, 0xEE, 0xEE, 0xFF)
 CLEAR = (0x00, 0x00, 0x00, 0x00)
@@ -120,13 +124,10 @@ def _flip(cells):
     return {(x, ICON - 1 - y) for (x, y) in cells}
 
 
-def _arrow():
-    """Shaft at the top, head under it, pointing down."""
-    return _row(0, 2) | _row(1, 2) | _row(2, 6) | _row(3, 4)
-
-
-SHELF_LOW = _row(5, ICON)
-SHELF_HIGH = _row(0, ICON)
+def _down():
+    """Shaft, then a head tapering to a point. Six rows exactly, so it is centred."""
+    return (_row(0, 2) | _row(1, 2) | _row(2, 2)
+            | _row(3, 6) | _row(4, 4) | _row(5, 2))
 
 
 def sort_icon():
@@ -141,13 +142,13 @@ def sort_icon():
 
 
 def stow_icon():
-    """Down into the shelf: everything."""
-    return _rows(SHELF_LOW | _arrow())
+    """Up, because the chest is the half above and this button is beside the pack."""
+    return _rows(_flip(_down()))
 
 
 def take_icon():
-    """Out of the shelf and down, because the chest is the half above."""
-    return _rows(SHELF_HIGH | _flip(_arrow()))
+    """Down, towards the player, for the same reason."""
+    return _rows(_down())
 
 
 def _chevron(pointing_left):
