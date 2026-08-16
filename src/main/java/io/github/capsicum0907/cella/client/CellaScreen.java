@@ -29,8 +29,9 @@ import org.anti_ad.mc.ipn.api.IPNPlayerSideOnly;
  * one alone. Compile-time only: an annotation whose class is absent is simply not read,
  * so nothing here needs IPN installed.
  *
- * <p>Five controls, all {@link IconButton}: the two page arrows and sort in the lid,
- * and beside the inventory the two ways of moving - in and out, with shift narrowing
+ * <p>Five controls, all {@link IconButton}. Paging and sorting sit at the right-hand
+ * end of the lid, the corner a sorting mod would otherwise have taken; the two ways
+ * of moving sit beside the inventory they move to and from, with shift narrowing
  * either to the kinds already on the other side.
  */
 @IPNPlayerSideOnly
@@ -58,10 +59,13 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     private static final int DIGITS = 7;
     private static final int TEXT_Y = BUTTON_Y + (BUTTON - DIGITS + 1) / 2;
 
-    /** Room for "8 / 32" between the arrows; two apart is the neighbours' spacing. */
-    private static final int GAP = 28;
+    /** Two apart is the neighbours' spacing; four sets sorting off from paging. */
     private static final int SPACE = 2;
+    private static final int APART = 4;
     private static final int AFTER_TITLE = 6;
+
+    /** Space between the page number and the arrow it belongs to. */
+    private static final int BESIDE = 3;
 
     /**
      * Two movers, not four: in and out.
@@ -111,11 +115,6 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
         return ResourceLocation.fromNamespaceAndPath(Cella.MODID, "textures/gui/" + name + ".png");
     }
 
-    /** Prev, the number, next, a space, and sort. */
-    private static int lidWidth() {
-        return BUTTON + GAP + BUTTON + SPACE + BUTTON;
-    }
-
     /**
      * After a label, and never off the end of the panel.
      *
@@ -142,17 +141,26 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
                     () -> send(Screen.hasShiftDown() ? picked : whole)));
         }
 
+        // Anchored to the right-hand end of the lid, which is the corner a sorting mod
+        // would have used and has been asked not to. Anchored rather than laid out from
+        // the left so that the page number, which is the only thing here that changes
+        // width, grows into the space beside them instead of pushing them about.
+        int sort = imageWidth - TITLE_X - BUTTON;
+        addRenderableWidget(new IconButton(leftPos + sort, topPos + BUTTON_Y,
+                icon("sort"), Component.translatable("gui.cella.sort"),
+                () -> send(CellaMenu.SORT)));
+
         if (menu.pages() <= 1) {
             return;
         }
-        controls = after(title, lidWidth());
+        // The two arrows next to each other. They were either side of the number, which
+        // put fifty pixels between them - a long way to travel to press one twice.
+        int next = sort - APART - BUTTON;
+        controls = next - SPACE - BUTTON;
         addRenderableWidget(new IconButton(leftPos + controls, topPos + BUTTON_Y,
                 icon("prev"), Component.translatable("gui.cella.prev"), () -> turn(-1)));
-        addRenderableWidget(new IconButton(leftPos + controls + BUTTON + GAP, topPos + BUTTON_Y,
+        addRenderableWidget(new IconButton(leftPos + next, topPos + BUTTON_Y,
                 icon("next"), Component.translatable("gui.cella.next"), () -> turn(1)));
-        addRenderableWidget(new IconButton(leftPos + controls + lidWidth() - BUTTON,
-                topPos + BUTTON_Y, icon("sort"), Component.translatable("gui.cella.sort"),
-                () -> send(CellaMenu.SORT)));
     }
 
     /**
@@ -223,9 +231,11 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
             return;
         }
         // One-based, because the first page is the first page and not the noughth.
+        // Right-aligned against the arrows, so it grows leftwards into empty lid rather
+        // than moving them when it goes from "9 / 32" to "10 / 32".
         Component page = Component.literal((menu.page() + 1) + " / " + menu.pages());
-        graphics.drawString(font, page,
-                controls + BUTTON + (GAP - font.width(page)) / 2, TEXT_Y, 0x404040, false);
+        graphics.drawString(font, page, controls - BESIDE - font.width(page), TEXT_Y,
+                0x404040, false);
     }
 
     /**
