@@ -4,7 +4,7 @@ A chest with more than one page.
 
 *Cella* is Latin for a storeroom, and also a compartment inside one.
 
-> **Status: scaffold only.** The mod loads and does nothing.
+> **Status: the chest works.** Six game tests, no client-side testing yet.
 
 ## Target
 
@@ -40,7 +40,38 @@ Two consequences fall out of that rather than being arranged:
   would be nonsense.
 
 Turning the page rides on `clickMenuButton`, which is a packet the game already
-has, so there is nothing to send of our own.
+has, so there is nothing to send of our own. The button id *is* the page wanted
+rather than "next" or "previous", because a difference would need both sides to
+agree about where they already were, and only the client knows that.
+
+That packet runs on the server only, so the screen turns its own window as well as
+sending. Otherwise it would sit on the old page until something else forced a
+refresh.
+
+### What the paging does *not* touch
+
+- **Shift-click fills the whole chest.** An item can land on a page that is not on
+  screen. Same answer as the hopper gets, for the same reason: which page somebody
+  has open is not a fact about the chest.
+- **A comparator reads the whole chest**, including pages nobody has open.
+- **The screen only ever holds one page's worth of slots**, so how much is sent when
+  something changes does not grow with the number of pages. A chest of eight pages
+  costs a chest to keep in sync.
+
+### The contents drop
+
+Broken, it spills onto the floor the way a chest does — rather than carrying its
+contents on the item the way a shulker box does. Both work; this one is chosen
+because a chest holds an amount a floor can take, and because contents kept in an
+item component are shared by every item in a stack, which is a whole family of
+duplication bugs this mod then cannot have.
+
+### Size is decided when the chest is made
+
+`rows` and `pages` are server config. A chest that already exists keeps the size it
+was built with: `ItemStackHandler` restores the `Size` it saved, so turning the
+numbers down never reaches back into a world and throws away the pages that would
+no longer fit.
 
 ## Build
 
@@ -56,8 +87,9 @@ gradlew runData           # regenerate models, recipes and language
 ## Roadmap
 
 - [x] **0** — scaffold; the mod loads
-- [ ] **1** — the feature above, in a form that can be watched
-- [ ] **2** — checked by game tests rather than by eye
+- [x] **1** — the feature above, in a form that can be watched
+- [x] **2** — checked by game tests rather than by eye
+- [ ] **3** — watched in a client
 
 ## Related
 
