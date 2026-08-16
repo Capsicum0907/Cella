@@ -216,6 +216,42 @@ public final class CellaTests {
         helper.succeed();
     }
 
+    /**
+     * Stowing empties the player into the chest, past the page on screen.
+     *
+     * <p>Page one is filled first so the only room is out of sight — the case a sorting
+     * mod's version of this button cannot do, which is why there is one here.
+     *
+     * <p>What is in the player's hand stays there. A button meant to save time that
+     * takes the tool you are holding costs more than it saves.
+     */
+    @GameTest(template = TestStructures.FLOOR)
+    public static void stowingReachesPastThePage(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper);
+        Player player = helper.makeMockPlayer(GameType.SURVIVAL);
+        int page = CellaConfig.pageSize();
+        for (int slot = 0; slot < page; slot++) {
+            chest.contents().setStackInSlot(slot, new ItemStack(Items.STONE, 64));
+        }
+
+        player.getInventory().setItem(0, new ItemStack(Items.IRON_PICKAXE));
+        player.getInventory().selected = 0;
+        player.getInventory().setItem(1, new ItemStack(Items.APPLE, 12));
+        player.getInventory().setItem(20, new ItemStack(Items.BONE, 5));
+
+        CellaMenu menu = CellaMenu.at(1, player.getInventory(), helper.absolutePos(WHERE));
+        menu.clickMenuButton(player, CellaMenu.STOW);
+
+        check(player.getInventory().getItem(0).is(Items.IRON_PICKAXE),
+                "the pickaxe in hand should have been left alone");
+        check(player.getInventory().getItem(1).isEmpty() && player.getInventory().getItem(20).isEmpty(),
+                "everything else should have gone in");
+        check(chest.contents().getStackInSlot(page).is(Items.APPLE)
+                        && chest.contents().getStackInSlot(page + 1).is(Items.BONE),
+                "and landed on page two, which is where the room was");
+        helper.succeed();
+    }
+
     private static CellaBlockEntity place(GameTestHelper helper) {
         helper.setBlock(WHERE, CellaRegistry.BLOCK.get());
         return (CellaBlockEntity) helper.getBlockEntity(WHERE);

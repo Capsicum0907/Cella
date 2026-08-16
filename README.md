@@ -67,6 +67,21 @@ worth of packet, which is what opening a chest costs anyway.
   third button. Ordered by registry name, not display name: a display name needs a
   language, and a chest that came out differently depending on who pressed the
   button would not be a sort.
+- **Stowing puts the player's inventory into the whole chest**, minus whatever is in
+  their hand. Same reason as sorting: the version a sorting mod offers can only fill
+  the page on show and hands the rest back.
+
+### Why sorting mods only reach one page
+
+Because that is all this screen has. The menu holds one page of slots and the rest
+is behind the window, and a mod working on somebody else's container has nothing to
+work on but its slots.
+
+The other way round exists: put *every* slot in the menu and page in the drawing
+instead, hiding the rows that are not on show. Then an outside sorter sees the whole
+chest for free. It costs a menu that grows with the chest rather than staying one
+page wide, and a screen that has to filter what it draws and what it lets you click.
+This mod took the first road, which is why it brings its own buttons.
 - **A comparator reads the whole chest**, including pages nobody has open.
 - **The screen only ever holds one page's worth of slots**, so how much is sent when
   something changes does not grow with the number of pages. A chest of eight pages

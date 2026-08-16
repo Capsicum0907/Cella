@@ -85,6 +85,7 @@ public final class CellaDataGen {
         protected void addTranslations() {
             add(CellaRegistry.BLOCK.get(), "Cella");
             add("gui.cella.sort", "Sort every page");
+            add("gui.cella.stow", "Put your inventory in");
         }
     }
 

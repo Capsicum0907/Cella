@@ -27,6 +27,7 @@ SIZE = 16
 ASSETS = pathlib.Path(__file__).resolve().parents[1] / "src/main/resources/assets/cella/textures"
 OUT = ASSETS / "block/cella.png"
 SORT_OUT = ASSETS / "gui/sort.png"
+STOW_OUT = ASSETS / "gui/stow.png"
 
 # One place for every colour. Body, and the two derived from it.
 WOOD = (0x8A, 0x66, 0x3C, 0xFF)
@@ -111,6 +112,24 @@ def sort_icon() -> list[list[tuple[int, int, int, int]]]:
             for y in range(ICON)]
 
 
+# The stow icon: an arrow going down into a shelf. Same eleven square as the sort
+# icon, drawn the same way, so the two sit together as a pair.
+SHAFT = {(x, y) for x in range(4, 7) for y in range(0, 4)}
+HEAD = ({(x, 4) for x in range(2, 9)}
+        | {(x, 5) for x in range(3, 8)}
+        | {(x, 6) for x in range(4, 7)})
+SHELF = {(x, y) for x in range(0, 11) for y in range(8, 10)}
+
+
+def stow_icon() -> list[list[tuple[int, int, int, int]]]:
+    """Down into a shelf: what the button does, in the direction it does it."""
+    ink = SHAFT | HEAD | SHELF
+    shadow = {(x + 1, y + 1) for (x, y) in ink} - ink
+    return [[FACE if (x, y) in ink else SHADOW if (x, y) in shadow else CLEAR
+             for x in range(ICON)]
+            for y in range(ICON)]
+
+
 def _chunk(kind: bytes, data: bytes) -> bytes:
     return (struct.pack(">I", len(data)) + kind + data
             + struct.pack(">I", zlib.crc32(kind + data) & 0xFFFFFFFF))
@@ -138,3 +157,4 @@ def write(path: pathlib.Path, pixels) -> None:
 if __name__ == "__main__":
     write(OUT, crate())
     write(SORT_OUT, sort_icon())
+    write(STOW_OUT, stow_icon())

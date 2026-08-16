@@ -39,6 +39,10 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
      */
     private static final ResourceLocation SORT_ICON =
             ResourceLocation.fromNamespaceAndPath(Cella.MODID, "textures/gui/sort.png");
+
+    /** An arrow going down into a shelf, drawn to pair with the one above. */
+    private static final ResourceLocation STOW_ICON =
+            ResourceLocation.fromNamespaceAndPath(Cella.MODID, "textures/gui/stow.png");
     private static final int ICON = 11;
 
     /** The strip of background above the slots, and the part below them. */
@@ -86,6 +90,9 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     /** Left edge of the page controls, worked out once the title is known. */
     private int controls;
 
+    /** Left edge of the stow button, which lives beside the inventory it empties. */
+    private int stowX;
+
     public CellaScreen(CellaMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
         // Asked of the window rather than of the config: the screen draws what it was
@@ -117,6 +124,16 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     @Override
     protected void init() {
         super.init();
+
+        // Beside the label of the thing it moves, and in the one row of this screen no
+        // other mod has claimed. Measured from the label so a translation pushes it
+        // along rather than being written over.
+        stowX = TITLE_X + font.width(playerInventoryTitle) + AFTER_TITLE;
+        addRenderableWidget(Button.builder(Component.empty(), button -> click(CellaMenu.STOW))
+                .tooltip(Tooltip.create(Component.translatable("gui.cella.stow")))
+                .bounds(leftPos + stowX, topPos + inventoryLabelY - 2, BUTTON, BUTTON)
+                .build());
+
         if (menu.window().pages() <= 1) {
             return;
         }
@@ -128,7 +145,7 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
                 .bounds(leftPos + controls + BUTTON + GAP, topPos + BUTTON_Y, BUTTON, BUTTON)
                 .build());
         // Sorting is the chest's own, not the page's: see Tidy.
-        addRenderableWidget(Button.builder(Component.empty(), button -> sort())
+        addRenderableWidget(Button.builder(Component.empty(), button -> click(CellaMenu.SORT))
                 .tooltip(Tooltip.create(Component.translatable("gui.cella.sort")))
                 .bounds(leftPos + controls + width() - BUTTON, topPos + BUTTON_Y, BUTTON, BUTTON)
                 .build());
@@ -161,12 +178,12 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
      */
     /**
      * Sent, not done here. The server owns the contents; this side only has the pages it
-     * has been shown, so it waits to be told what the new order is.
+     * has been shown, so it waits to be told what the answer is.
      */
-    private void sort() {
+    private void click(int id) {
         Minecraft client = Minecraft.getInstance();
         if (client.gameMode != null) {
-            client.gameMode.handleInventoryButtonClick(menu.containerId, CellaMenu.SORT);
+            client.gameMode.handleInventoryButtonClick(menu.containerId, id);
         }
     }
 
@@ -198,13 +215,21 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partial) {
         super.render(graphics, mouseX, mouseY, partial);
+        icon(graphics, STOW_ICON, stowX, inventoryLabelY - 2);
         if (menu.window().pages() > 1) {
             // After the widgets, because the button draws its own face first. Centred
             // by the pixel: eleven in thirteen leaves one either side.
-            int inset = (BUTTON - ICON) / 2;
-            graphics.blit(SORT_ICON, leftPos + controls + width() - BUTTON + inset,
-                    topPos + BUTTON_Y + inset, 0, 0, ICON, ICON, ICON, ICON);
+            icon(graphics, SORT_ICON, controls + width() - BUTTON, BUTTON_Y);
         }
         renderTooltip(graphics, mouseX, mouseY);
+    }
+
+    /**
+     * An icon in the middle of a button, drawn after it because the button draws its own
+     * face first. Eleven in thirteen leaves one either side, which is why both are odd.
+     */
+    private void icon(GuiGraphics graphics, ResourceLocation which, int x, int y) {
+        int inset = (BUTTON - ICON) / 2;
+        graphics.blit(which, leftPos + x + inset, topPos + y + inset, 0, 0, ICON, ICON, ICON, ICON);
     }
 }

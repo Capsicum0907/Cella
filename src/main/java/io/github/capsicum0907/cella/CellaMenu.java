@@ -91,6 +91,9 @@ public class CellaMenu extends AbstractContainerMenu {
      */
     public static final int SORT = -1;
 
+    /** Everything the player is carrying, into the chest. */
+    public static final int STOW = -2;
+
     /**
      * Turning the page, or the one thing that is not turning the page.
      *
@@ -106,9 +109,13 @@ public class CellaMenu extends AbstractContainerMenu {
      */
     @Override
     public boolean clickMenuButton(Player player, int id) {
-        if (id == SORT) {
+        if (id == SORT || id == STOW) {
             if (!player.level().isClientSide) {
-                Tidy.everything(contents);
+                if (id == SORT) {
+                    Tidy.everything(contents);
+                } else {
+                    stow(player);
+                }
                 resend();
             }
             return true;
@@ -118,6 +125,32 @@ public class CellaMenu extends AbstractContainerMenu {
             resend();
         }
         return true;
+    }
+
+    /**
+     * The player's own storage, into the chest, wherever there is room for it.
+     *
+     * <p>Into the <em>contents</em> and not the page, which is the whole reason this
+     * button exists: a sorting mod's version of it can only reach the slots the screen
+     * has, so it fills the page on show and gives the rest back.
+     *
+     * <p><b>Except what is in their hand.</b> That is the one slot to keep something a
+     * container would otherwise swallow, and without it a button meant to save time
+     * takes the pickaxe you were holding.
+     */
+    private void stow(Player player) {
+        Inventory inventory = player.getInventory();
+        for (int slot = 0; slot < Inventory.INVENTORY_SIZE; slot++) {
+            if (slot == inventory.selected) {
+                continue;
+            }
+            ItemStack stack = inventory.getItem(slot);
+            if (stack.isEmpty()) {
+                continue;
+            }
+            inventory.setItem(slot, ItemHandlerHelper.insertItemStacked(contents, stack, false));
+        }
+        inventory.setChanged();
     }
 
     /**
