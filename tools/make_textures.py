@@ -95,79 +95,76 @@ def crate() -> list[list[tuple[int, int, int, int]]]:
 
 # --- the gui icons -----------------------------------------------------------
 #
-# Nine square, flat, and drawn in one light grey. They sit in an eleven-pixel button
-# (see IconButton), which leaves a pixel of its face all round - the reason both
-# numbers are odd.
+# Six square. They sit in a ten-pixel button (see IconButton), which leaves two
+# pixels of face all round - both even, so the centring is exact, and the room round
+# the picture is the point: a button with its picture pressed against the frame reads
+# as a picture with a frame.
 #
-# No drop shadow. There was one while these were white on a raised vanilla button;
-# on a flat dark face it only muddied a picture that has nine pixels to say anything
-# in. What tells the four movers apart is direction - the shelf is at the bottom for
-# going in and at the top for coming out - and a single dot for the two that pick.
-# The tooltip carries the rest; an icon this size can only be told apart, not read.
-ICON = 9
-INK = (0xC6, 0xC6, 0xC6, 0xFF)
+# Ten and two are measured off the buttons the sorting mod puts on the same screen,
+# not chosen. Six pixels is very little, so these are made to be told apart rather
+# than read: the shelf is low for going in and high for coming out, and the two that
+# pick by kind carry a dot. The tooltip says the rest.
+ICON = 6
+INK = (0xEE, 0xEE, 0xEE, 0xFF)
 CLEAR = (0x00, 0x00, 0x00, 0x00)
+
+DOT = {(5, 0)}
 
 
 def _rows(ink):
     return [[INK if (x, y) in ink else CLEAR for x in range(ICON)] for y in range(ICON)]
 
 
-def _bar(y, x0, length, depth=2):
-    return {(x0 + dx, y + dy) for dx in range(length) for dy in range(depth)}
-
-
-def _arrow(top, wide):
-    """A shaft with a head under it, pointing down, growing from `top`."""
-    shaft = 3 if wide else 1
-    left = (ICON - shaft) // 2
-    stem = {(left + dx, top + dy) for dx in range(shaft) for dy in range(3)}
-    head = set()
-    for step, width in enumerate((7, 5, 3) if wide else (5, 3, 1)):
-        head |= {((ICON - width) // 2 + dx, top + 3 + step) for dx in range(width)}
-    return stem | head
+def _row(y, length):
+    """A centred horizontal run, one pixel deep."""
+    return {((ICON - length) // 2 + dx, y) for dx in range(length)}
 
 
 def _flip(cells):
     return {(x, ICON - 1 - y) for (x, y) in cells}
 
 
-DOT = {(x, y) for x in range(7, 9) for y in range(1, 3)}
+def _arrow(wide):
+    """Shaft at the top, head under it, pointing down."""
+    stem = _row(0, 2) | _row(1, 2)
+    head = (_row(2, 6) | _row(3, 4)) if wide else (_row(2, 4) | _row(3, 2))
+    return stem | head
 
-SHELF_LOW = _bar(7, 0, ICON)
-SHELF_HIGH = _bar(0, 0, ICON)
+
+SHELF_LOW = _row(5, ICON)
+SHELF_HIGH = _row(0, ICON)
 
 
 def sort_icon():
     """Three bars, longest first, which is what a sort button looks like everywhere."""
-    return _rows(_bar(0, 1, 7) | _bar(3, 1, 5) | _bar(6, 1, 3))
+    return _rows(_row(0, 6) | _row(2, 4) | _row(4, 2))
 
 
 def stow_icon():
     """Down into the shelf: everything."""
-    return _rows(SHELF_LOW | _arrow(0, True))
+    return _rows(SHELF_LOW | _arrow(True))
 
 
 def matching_icon():
-    """The same with a dot: only the kinds already there."""
-    return _rows(SHELF_LOW | _arrow(0, False) | DOT)
+    """The same, narrower, with a dot: only the kinds already there."""
+    return _rows(SHELF_LOW | _arrow(False) | DOT)
 
 
 def take_icon():
     """Out of the shelf and down, because the chest is the half above."""
-    return _rows(SHELF_HIGH | _flip(_arrow(0, True)))
+    return _rows(SHELF_HIGH | _flip(_arrow(True)))
 
 
 def taking_icon():
     """The same with a dot."""
-    return _rows(SHELF_HIGH | _flip(_arrow(0, False)) | _flip(DOT))
+    return _rows(SHELF_HIGH | _flip(_arrow(False)) | _flip(DOT))
 
 
 def _chevron(pointing_left):
     """A two-pixel arrowhead, so the page arrows are drawn like everything else here."""
     cells = set()
     for y in range(ICON):
-        reach = 2 + abs(y - ICON // 2)
+        reach = abs(2 * y - (ICON - 1)) // 2
         for dx in range(2):
             x = reach + dx
             cells.add((x if pointing_left else ICON - 1 - x, y))

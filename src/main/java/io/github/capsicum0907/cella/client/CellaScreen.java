@@ -46,13 +46,17 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     private static final int BUTTON = IconButton.SIZE;
     private static final int BUTTON_Y = 3;
 
-    /** A digit is seven pixels of ink; seven in eleven leaves two either side. */
+    /**
+     * A digit is seven pixels of ink in a box of ten, so the two centres are half a
+     * pixel apart whichever way it is rounded - the price of matching a size that is
+     * even. Rounded down, because a number sitting high is what was noticed before.
+     */
     private static final int DIGITS = 7;
-    private static final int TEXT_Y = BUTTON_Y + (BUTTON - DIGITS) / 2;
+    private static final int TEXT_Y = BUTTON_Y + (BUTTON - DIGITS + 1) / 2;
 
-    /** Room for "8 / 32" between the arrows, and a hair between neighbours. */
+    /** Room for "8 / 32" between the arrows; two apart is the neighbours' spacing. */
     private static final int GAP = 28;
-    private static final int SPACE = 3;
+    private static final int SPACE = 2;
     private static final int AFTER_TITLE = 6;
 
     /** The four movers, left to right: in, in-matching, out-matching, out. */

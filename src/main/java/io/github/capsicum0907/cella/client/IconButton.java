@@ -19,13 +19,27 @@ import net.minecraft.resources.ResourceLocation;
  * lighter face under the pointer. They live here and nowhere else.
  */
 public class IconButton extends AbstractWidget {
-    /** Eleven, which is what the neighbouring mod's are, and odd so a nine fits centred. */
-    public static final int SIZE = 11;
-    public static final int ICON = 9;
+    /**
+     * Ten, and the picture six, which leaves two pixels of face all round.
+     *
+     * <p>Both measured off the buttons the sorting mod puts on the same screen rather
+     * than chosen: ten wide, two apart. Eleven and three looked close enough written
+     * down and did not look close at all beside them - a row of four came out a fifth
+     * wider, which is what carried.
+     */
+    public static final int SIZE = 10;
+    public static final int ICON = 6;
 
-    private static final int EDGE = 0xFF373737;
-    private static final int FACE = 0xFF6F6F6F;
-    private static final int LIT = 0xFF8B8B8B;
+    /**
+     * A raised square: light along the top and left, dark along the bottom and right,
+     * face between. It is how every button in the game is lit, and the reason it reads
+     * as something to press rather than a picture with a line round it - which is what
+     * the first version of this was.
+     */
+    private static final int LIGHT = 0xFFC6C6C6;
+    private static final int FACE = 0xFF8B8B8B;
+    private static final int DARK = 0xFF373737;
+    private static final int LIT = 0xFFA0A0A0;
 
     private final ResourceLocation icon;
     private final Runnable pressed;
@@ -39,14 +53,20 @@ public class IconButton extends AbstractWidget {
 
     @Override
     protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partial) {
-        graphics.fill(getX(), getY(), getX() + SIZE, getY() + SIZE, EDGE);
-        graphics.fill(getX() + 1, getY() + 1, getX() + SIZE - 1, getY() + SIZE - 1,
-                isHovered() ? LIT : FACE);
+        int x = getX();
+        int y = getY();
+        graphics.fill(x, y, x + SIZE, y + SIZE, isHovered() ? LIT : FACE);
+        // The light two first, then the dark two over them, so the corners belong to the
+        // shadow - which is how a raised edge actually looks.
+        graphics.fill(x, y, x + SIZE, y + 1, LIGHT);
+        graphics.fill(x, y, x + 1, y + SIZE, LIGHT);
+        graphics.fill(x, y + SIZE - 1, x + SIZE, y + SIZE, DARK);
+        graphics.fill(x + SIZE - 1, y, x + SIZE, y + SIZE, DARK);
 
-        // Centred by the pixel: nine in eleven leaves one either side, which is why both
+        // Centred by the pixel: seven in eleven leaves two either side, which is why both
         // are odd. The size passed is the file's own, the lesson from the background.
         int inset = (SIZE - ICON) / 2;
-        graphics.blit(icon, getX() + inset, getY() + inset, 0, 0, ICON, ICON, ICON, ICON);
+        graphics.blit(icon, x + inset, y + inset, 0, 0, ICON, ICON, ICON, ICON);
     }
 
     @Override
