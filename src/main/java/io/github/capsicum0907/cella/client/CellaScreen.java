@@ -1,5 +1,6 @@
 package io.github.capsicum0907.cella.client;
 
+import io.github.capsicum0907.cella.CellaConfig;
 import io.github.capsicum0907.cella.CellaMenu;
 
 import net.minecraft.client.Minecraft;
@@ -25,8 +26,6 @@ import net.minecraft.world.entity.player.Inventory;
 public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     private static final ResourceLocation BACKGROUND =
             ResourceLocation.withDefaultNamespace("textures/gui/container/generic_54.png");
-    private static final int TEXTURE_WIDTH = 176;
-    private static final int TEXTURE_HEIGHT = 222;
 
     /** The strip of background above the slots, and the part below them. */
     private static final int LID = 17;
@@ -34,15 +33,23 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     private static final int FOOT_V = 126;
     private static final int SLOT = 18;
 
+    /**
+     * The two buttons and the number between them, measured from the right edge of the
+     * panel so the layout does not have to know how wide it is.
+     */
     private static final int BUTTON = 12;
     private static final int BUTTON_Y = 3;
+    private static final int PREV_X = -58;
+    private static final int NEXT_X = -20;
 
     private final int rows;
 
     public CellaScreen(CellaMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
-        this.rows = menu.window().getSlots() / 9;
-        this.imageWidth = TEXTURE_WIDTH;
+        // Asked of the window rather than of the config: the screen draws what it was
+        // given, and the panel is as tall as that. imageWidth is left at the 176 the
+        // superclass already has, which is what the picture is.
+        this.rows = menu.window().getSlots() / CellaConfig.COLUMNS;
         this.imageHeight = 114 + rows * SLOT;
         this.inventoryLabelY = this.imageHeight - 94;
     }
@@ -54,10 +61,10 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
             return;
         }
         addRenderableWidget(Button.builder(Component.literal("<"), button -> turn(-1))
-                .bounds(leftPos + imageWidth - 58, topPos + BUTTON_Y, BUTTON, BUTTON)
+                .bounds(leftPos + imageWidth + PREV_X, topPos + BUTTON_Y, BUTTON, BUTTON)
                 .build());
         addRenderableWidget(Button.builder(Component.literal(">"), button -> turn(1))
-                .bounds(leftPos + imageWidth - 20, topPos + BUTTON_Y, BUTTON, BUTTON)
+                .bounds(leftPos + imageWidth + NEXT_X, topPos + BUTTON_Y, BUTTON, BUTTON)
                 .build());
     }
 
@@ -77,12 +84,19 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
         menu.clickMenuButton(client.player, wanted);
     }
 
+    /**
+     * <p><b>The six-argument blit, which is the one that assumes 256 by 256 — and the
+     * file is 256 by 256.</b> Saying so explicitly with the nine-argument version is
+     * what broke this the first time: the numbers passed were 176 by 222, which is the
+     * size of the <em>picture</em> inside the file and not the size of the file. Every
+     * texture coordinate is divided by what is declared, so the background came out
+     * scaled by 176/256 across and 222/256 down while the slots stayed where they
+     * belonged, and the two drifted apart towards the bottom right.
+     */
     @Override
     protected void renderBg(GuiGraphics graphics, float partial, int mouseX, int mouseY) {
-        graphics.blit(BACKGROUND, leftPos, topPos, 0, 0, imageWidth, rows * SLOT + LID,
-                TEXTURE_WIDTH, TEXTURE_HEIGHT);
-        graphics.blit(BACKGROUND, leftPos, topPos + rows * SLOT + LID, 0, FOOT_V, imageWidth, FOOT,
-                TEXTURE_WIDTH, TEXTURE_HEIGHT);
+        graphics.blit(BACKGROUND, leftPos, topPos, 0, 0, imageWidth, rows * SLOT + LID);
+        graphics.blit(BACKGROUND, leftPos, topPos + rows * SLOT + LID, 0, FOOT_V, imageWidth, FOOT);
     }
 
     @Override
@@ -92,15 +106,22 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
             return;
         }
         // One-based, because the first page is the first page and not the noughth.
+        // Centred in the gap between the two buttons, which is the only place it fits.
         Component page = Component.literal((menu.window().page() + 1) + " / " + menu.window().pages());
+        int gap = NEXT_X - (PREV_X + BUTTON);
         graphics.drawString(font, page,
-                imageWidth - 44 + (BUTTON + 26 - font.width(page)) / 2 - 12, BUTTON_Y + 2,
+                imageWidth + PREV_X + BUTTON + (gap - font.width(page)) / 2, BUTTON_Y + 2,
                 0x404040, false);
     }
 
+    /**
+     * The same two lines vanilla's chest screen has, and no more.
+     *
+     * <p>{@code AbstractContainerScreen#render} already dims the world behind it. Doing
+     * it again here as well darkened the whole screen twice over.
+     */
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partial) {
-        renderBackground(graphics, mouseX, mouseY, partial);
         super.render(graphics, mouseX, mouseY, partial);
         renderTooltip(graphics, mouseX, mouseY);
     }
