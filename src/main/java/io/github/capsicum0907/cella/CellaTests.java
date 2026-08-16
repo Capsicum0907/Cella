@@ -177,6 +177,45 @@ public final class CellaTests {
         helper.succeed();
     }
 
+    /**
+     * Sorting reaches every page, which is the thing a sorting mod cannot do.
+     *
+     * <p>The setup is the case that made it worth having: partial stacks of one item
+     * scattered across pages that are never open at the same time. Nothing outside can
+     * put them together, because nothing outside can see past the window.
+     */
+    @GameTest(template = TestStructures.FLOOR)
+    public static void sortingReachesEveryPage(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper);
+        int page = CellaConfig.pageSize();
+
+        // Seventy in three pieces on three pages, so merging leaves a remainder to
+        // place as well as a full stack - the two cases that can differ.
+        chest.contents().setStackInSlot(3, new ItemStack(Items.COBBLESTONE, 20));
+        chest.contents().setStackInSlot(page + 7, new ItemStack(Items.COBBLESTONE, 30));
+        chest.contents().setStackInSlot(page * 4 + 1, new ItemStack(Items.COBBLESTONE, 20));
+        chest.contents().setStackInSlot(page * 2 + 5, new ItemStack(Items.DIAMOND, 9));
+
+        Tidy.everything(chest.contents());
+
+        // 64 of cobblestone, then the remainder, then the diamonds - and nothing left
+        // anywhere else.
+        check(chest.contents().getStackInSlot(0).is(Items.COBBLESTONE)
+                        && chest.contents().getStackInSlot(0).getCount() == 64,
+                "the first slot should be a full stack of cobblestone");
+        check(chest.contents().getStackInSlot(1).is(Items.COBBLESTONE)
+                        && chest.contents().getStackInSlot(1).getCount() == 6,
+                "the second should be the six left over");
+        check(chest.contents().getStackInSlot(2).is(Items.DIAMOND)
+                        && chest.contents().getStackInSlot(2).getCount() == 9,
+                "and the diamonds should follow, cobblestone sorting before diamond");
+        for (int slot = 3; slot < chest.contents().getSlots(); slot++) {
+            check(chest.contents().getStackInSlot(slot).isEmpty(),
+                    "slot " + slot + " should have been emptied into the front");
+        }
+        helper.succeed();
+    }
+
     private static CellaBlockEntity place(GameTestHelper helper) {
         helper.setBlock(WHERE, CellaRegistry.BLOCK.get());
         return (CellaBlockEntity) helper.getBlockEntity(WHERE);

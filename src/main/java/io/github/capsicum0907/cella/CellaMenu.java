@@ -84,15 +84,34 @@ public class CellaMenu extends AbstractContainerMenu {
     }
 
     /**
-     * Turning the page.
+     * The one id that is not a page.
+     *
+     * <p>Negative, so it cannot collide with a page however many pages there are, and
+     * so {@code turnTo} would refuse it anyway if this test were ever removed.
+     */
+    public static final int SORT = -1;
+
+    /**
+     * Turning the page, or the one thing that is not turning the page.
      *
      * <p>Rides on {@code clickMenuButton}, which the game already has a packet for, so
      * there is nothing of our own to send. The id <em>is</em> the page wanted rather
      * than "next" or "previous": a difference would depend on both sides agreeing about
      * where they already were, and they do not have to.
+     *
+     * <p>Sorting runs on the server only. The client's copy of the contents holds
+     * whatever pages it has been shown and nothing else, so sorting it would shuffle a
+     * chest that is mostly holes; what comes back from the server's own sort arrives as
+     * the ordinary slot updates.
      */
     @Override
     public boolean clickMenuButton(Player player, int id) {
+        if (id == SORT) {
+            if (!player.level().isClientSide) {
+                Tidy.everything(contents);
+            }
+            return true;
+        }
         window.turnTo(id);
         return true;
     }

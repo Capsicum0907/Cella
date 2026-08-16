@@ -6,6 +6,7 @@ import io.github.capsicum0907.cella.CellaMenu;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -50,9 +51,18 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
      * somebody else's screen has nobody to ask; leaving the busy end alone is cheaper
      * than winning it.
      */
-    private static final int BUTTON = 12;
+    /**
+     * <b>Odd on purpose.</b> A digit is seven pixels of ink; a box of twelve has its
+     * centre at eight and a half, so nothing can sit in the middle of it and the number
+     * came out a pixel high. Thirteen puts the box's middle and the digits' middle both
+     * on nine.
+     */
+    private static final int BUTTON = 13;
+    private static final int DIGITS = 7;
     private static final int BUTTON_Y = 3;
+    private static final int TEXT_Y = BUTTON_Y + (BUTTON - DIGITS) / 2;
     private static final int GAP = 26;
+    private static final int SPACE = 3;
     private static final int AFTER_TITLE = 6;
 
     /** Where the other mod's buttons start. These end before it. */
@@ -83,7 +93,12 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
      */
     private int controlsX() {
         int after = TITLE_X + font.width(title) + AFTER_TITLE;
-        return Math.min(after, TAKEN - (BUTTON + GAP + BUTTON));
+        return Math.min(after, TAKEN - width());
+    }
+
+    /** Prev, the number, next, a space, and sort. */
+    private static int width() {
+        return BUTTON + GAP + BUTTON + SPACE + BUTTON;
     }
 
     @Override
@@ -98,6 +113,11 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
                 .build());
         addRenderableWidget(Button.builder(Component.literal(">"), button -> turn(1))
                 .bounds(leftPos + controls + BUTTON + GAP, topPos + BUTTON_Y, BUTTON, BUTTON)
+                .build());
+        // Sorting is the chest's own, not the page's: see Tidy.
+        addRenderableWidget(Button.builder(Component.literal("⇅"), button -> sort())
+                .tooltip(Tooltip.create(Component.translatable("gui.cella.sort")))
+                .bounds(leftPos + controls + width() - BUTTON, topPos + BUTTON_Y, BUTTON, BUTTON)
                 .build());
     }
 
@@ -126,6 +146,17 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
      * scaled by 176/256 across and 222/256 down while the slots stayed where they
      * belonged, and the two drifted apart towards the bottom right.
      */
+    /**
+     * Sent, not done here. The server owns the contents; this side only has the pages it
+     * has been shown, so it waits to be told what the new order is.
+     */
+    private void sort() {
+        Minecraft client = Minecraft.getInstance();
+        if (client.gameMode != null) {
+            client.gameMode.handleInventoryButtonClick(menu.containerId, CellaMenu.SORT);
+        }
+    }
+
     @Override
     protected void renderBg(GuiGraphics graphics, float partial, int mouseX, int mouseY) {
         graphics.blit(BACKGROUND, leftPos, topPos, 0, 0, imageWidth, rows * SLOT + LID);
@@ -142,7 +173,7 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
         // Centred in the gap between the two buttons, which is the only place it fits.
         Component page = Component.literal((menu.window().page() + 1) + " / " + menu.window().pages());
         graphics.drawString(font, page,
-                controls + BUTTON + (GAP - font.width(page)) / 2, BUTTON_Y + 2, 0x404040, false);
+                controls + BUTTON + (GAP - font.width(page)) / 2, TEXT_Y, 0x404040, false);
     }
 
     /**

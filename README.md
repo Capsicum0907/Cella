@@ -53,6 +53,12 @@ refresh.
 - **Shift-click fills the whole chest.** An item can land on a page that is not on
   screen. Same answer as the hopper gets, for the same reason: which page somebody
   has open is not a fact about the chest.
+- **Sorting is over every page.** A sorting mod works on the slots the open screen
+  has, which is one page — right for a chest, wrong for this one, and nothing
+  outside can do better because nothing outside can see past the window. Hence the
+  third button. Ordered by registry name, not display name: a display name needs a
+  language, and a chest that came out differently depending on who pressed the
+  button would not be a sort.
 - **A comparator reads the whole chest**, including pages nobody has open.
 - **The screen only ever holds one page's worth of slots**, so how much is sent when
   something changes does not grow with the number of pages. A chest of eight pages
@@ -89,7 +95,7 @@ gradlew runData           # regenerate models, recipes and language
 - [x] **0** — scaffold; the mod loads
 - [x] **1** — the feature above, in a form that can be watched
 - [x] **2** — checked by game tests rather than by eye
-- [ ] **3** — watched in a client
+- [x] **3** — watched in a client
 
 ## Related
 

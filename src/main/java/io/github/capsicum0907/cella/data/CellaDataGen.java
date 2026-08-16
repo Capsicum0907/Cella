@@ -84,6 +84,7 @@ public final class CellaDataGen {
         @Override
         protected void addTranslations() {
             add(CellaRegistry.BLOCK.get(), "Cella");
+            add("gui.cella.sort", "Sort every page");
         }
     }
 
