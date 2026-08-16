@@ -28,23 +28,47 @@ import net.neoforged.neoforge.items.SlotItemHandler;
  *       a hole. There is nothing to be careful about here any more.
  * </ul>
  *
- * <p>All the pages' slots sit at the same coordinates on top of one another, which is
- * harmless because the screen looks at {@code isActive} before it draws one, before it
- * calls it hovered, and before it decides which one the mouse is in.
+ * <p><b>The pages are also kept apart on screen, and that is not belt and braces.</b>
+ * They were stacked at the same coordinates at first, on the reasoning that
+ * {@code isActive} already answers every question vanilla asks — which is true, and was
+ * not enough. Shift-clicking an empty slot fetched an item from the same square on
+ * another page, because a mod that works out which slot the mouse is over from where it
+ * is finds eight candidates in one square and is entitled to any of them. Vanilla's own
+ * lookup asks {@code isActive} first; nothing obliges anyone else's to.
  *
- * <p>Expanded Storage, which is where the idea of keeping every slot came from, hid the
- * other pages by moving them two thousand pixels away instead. That works and it is why
- * sorting mods handled it; asking the question directly is the same thought without the
- * coordinates having to lie.
+ * <p>So Expanded Storage moving its off-page slots two thousand pixels away was not
+ * laziness — it is what keeps a position honest, and this does the same. {@code isActive}
+ * hides; {@link #place} makes the coordinates distinct. They are different jobs.
  */
 public class PagedSlot extends SlotItemHandler {
+    /**
+     * How far apart the pages are stacked.
+     *
+     * <p>Only has to be more than a screen is tall, so that no page's slots can ever be
+     * mistaken for another's by anything measuring in pixels. It is not a hiding place —
+     * {@link #isActive} does the hiding — it is what makes the coordinates <em>distinct</em>.
+     */
+    private static final int SPREAD = 1000;
+
     private final CellaMenu menu;
     private final int page;
+    private final int homeY;
 
     public PagedSlot(CellaMenu menu, IItemHandler contents, int index, int x, int y) {
         super(contents, index, x, y);
         this.menu = menu;
         this.page = index / menu.pageSize();
+        this.homeY = y;
+    }
+
+    /**
+     * Puts this slot where it belongs relative to the page being shown.
+     *
+     * <p>The open page sits at home and every other page is a screen-height away, up or
+     * down. So no two slots share a position, ever.
+     */
+    public void place(int shown) {
+        this.y = homeY + (page - shown) * SPREAD;
     }
 
     @Override

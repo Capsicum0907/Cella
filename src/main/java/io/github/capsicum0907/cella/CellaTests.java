@@ -7,6 +7,7 @@ import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestAssertException;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.GameType;
@@ -133,6 +134,39 @@ public final class CellaTests {
         check(menu.slots.size() == odd + PLAYER_SLOTS,
                 "the menu should have followed the chest: " + menu.slots.size());
         check(menu.pages() == 3, "and counted its pages from it, not from the config");
+        helper.succeed();
+    }
+
+    /**
+     * No two slots share a position, on any page.
+     *
+     * <p>The reason is a bug that {@code isActive} did not prevent: shift-clicking an
+     * empty slot fetched an item from the same square on another page. Vanilla's own
+     * "which slot is the mouse over" asks {@code isActive} first and was never wrong;
+     * a mod's need not, and with eight slots in one square it can pick any of them.
+     *
+     * <p>So this asserts the property rather than the fix — anything that puts two slots
+     * in one place fails here, however it does it.
+     */
+    @GameTest(template = TestStructures.FLOOR)
+    public static void noTwoSlotsShareAPlace(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper);
+        Player player = helper.makeMockPlayer(GameType.SURVIVAL);
+        CellaMenu menu = CellaMenu.at(1, player.getInventory(), helper.absolutePos(WHERE),
+                chest.contents().getSlots());
+
+        for (int on = 0; on < menu.pages(); on++) {
+            menu.turnTo(on);
+            java.util.Set<Long> taken = new java.util.HashSet<>();
+            for (Slot slot : menu.slots) {
+                long place = ((long) slot.x << 32) ^ (slot.y & 0xFFFFFFFFL);
+                check(taken.add(place),
+                        "two slots at " + slot.x + "," + slot.y + " with page " + on + " open");
+            }
+            // And the page being shown is the one at the coordinates the screen draws.
+            check(menu.slots.get(on * CellaConfig.pageSize()).y == 18,
+                    "the open page should be where the screen draws it");
+        }
         helper.succeed();
     }
 

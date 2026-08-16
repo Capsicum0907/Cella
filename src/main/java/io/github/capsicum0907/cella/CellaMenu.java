@@ -98,6 +98,21 @@ public class CellaMenu extends AbstractContainerMenu {
         for (int column = 0; column < HOTBAR; column++) {
             addSlot(new Slot(inventory, column, FIRST_X + column * SLOT, 161 + below));
         }
+        layOut();
+    }
+
+    /**
+     * Puts every page where it belongs relative to the one being shown.
+     *
+     * <p>Called whenever that changes, which is what stops two slots ever sharing a
+     * position. See {@link PagedSlot} for what went wrong when they did.
+     */
+    private void layOut() {
+        for (Slot slot : slots) {
+            if (slot instanceof PagedSlot paged) {
+                paged.place(page);
+            }
+        }
     }
 
     public int pageSize() {
@@ -128,6 +143,7 @@ public class CellaMenu extends AbstractContainerMenu {
     public void turnTo(int wanted) {
         if (wanted >= 0 && wanted < pages()) {
             page = wanted;
+            layOut();
         }
     }
 
