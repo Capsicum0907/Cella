@@ -130,8 +130,14 @@ SHELF_HIGH = _row(0, ICON)
 
 
 def sort_icon():
-    """Three bars, longest first, which is what a sort button looks like everywhere."""
-    return _rows(_row(0, 6) | _row(2, 4) | _row(4, 2))
+    """Three bars, longest first, which is what a sort button looks like everywhere.
+
+    The top bar is two deep and the others one, which is not decoration: three
+    one-pixel bars with a gap between them fill five rows of six, leaving the spare
+    row at the bottom and the picture looking stuck to the top. Thickening the longest
+    one fills the sixth, keeps the gaps even, and reads as weight going with length.
+    """
+    return _rows(_row(0, 6) | _row(1, 6) | _row(3, 4) | _row(5, 2))
 
 
 def stow_icon():
@@ -145,10 +151,17 @@ def take_icon():
 
 
 def _chevron(pointing_left):
-    """A two-pixel arrowhead, so the page arrows are drawn like everything else here."""
+    """A two-pixel arrowhead, so the page arrows are drawn like everything else here.
+
+    The MARGIN is the whole of the difference between an arrow in a button and an arrow
+    stuck to the side of one. Without it the ink runs 0..3 of six, whose middle is 1.5
+    against the picture's 2.5 - a pixel out, and out is exactly the direction that
+    reads as wrong on a pair pointing away from each other.
+    """
+    MARGIN = 1
     cells = set()
     for y in range(ICON):
-        reach = abs(2 * y - (ICON - 1)) // 2
+        reach = MARGIN + abs(2 * y - (ICON - 1)) // 2
         for dx in range(2):
             x = reach + dx
             cells.add((x if pointing_left else ICON - 1 - x, y))
