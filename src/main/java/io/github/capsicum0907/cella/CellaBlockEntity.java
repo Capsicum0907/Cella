@@ -7,11 +7,17 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.Containers;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.ChestLidController;
+import net.minecraft.world.level.block.entity.ContainerOpenersCounter;
+import net.minecraft.world.level.block.entity.LidBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.items.ItemStackHandler;
 
@@ -22,10 +28,50 @@ import net.neoforged.neoforge.items.ItemStackHandler;
  * {@link Window}. What is here is a flat handler and the two things that have to be
  * true of it — that it is saved, and that everyone who is not a screen sees all of it.
  */
-public class CellaBlockEntity extends BlockEntity implements MenuProvider {
+public class CellaBlockEntity extends BlockEntity implements MenuProvider, LidBlockEntity {
     private static final String CONTENTS = "Contents";
 
     private final ItemStackHandler contents;
+
+    /** How far the lid has swung, on the client. */
+    private final ChestLidController lidController = new ChestLidController();
+
+    /**
+     * <b>How many people have it open, not whether anybody does.</b>
+     *
+     * <p>A flag is the obvious thing and it is wrong: two players open the chest, one
+     * walks away, and the lid shuts in the other one's face. Counting is also what makes
+     * the sound play once when the first arrives and once when the last leaves, rather
+     * than on every screen.
+     *
+     * <p>{@code isOwnContainer} has to recognise <em>this</em> chest rather than any of
+     * them, or a player standing in one with another open somewhere would be counted
+     * twice. The contents are the identity: there is one handler per block entity.
+     */
+    private final ContainerOpenersCounter openers = new ContainerOpenersCounter() {
+        @Override
+        protected void onOpen(Level level, BlockPos pos, BlockState state) {
+            said(level, pos, SoundEvents.CHEST_OPEN);
+        }
+
+        @Override
+        protected void onClose(Level level, BlockPos pos, BlockState state) {
+            said(level, pos, SoundEvents.CHEST_CLOSE);
+        }
+
+        @Override
+        protected void openerCountChanged(Level level, BlockPos pos, BlockState state,
+                int was, int now) {
+            // A block event is how the server tells everyone who can see the block; the
+            // lid is drawn from it and nothing else.
+            level.blockEvent(pos, state.getBlock(), 1, now);
+        }
+
+        @Override
+        protected boolean isOwnContainer(Player player) {
+            return player.containerMenu instanceof CellaMenu menu && menu.isFor(contents);
+        }
+    };
 
     public CellaBlockEntity(BlockPos pos, BlockState state) {
         super(CellaRegistry.BLOCK_ENTITY.get(), pos, state);
@@ -84,6 +130,62 @@ public class CellaBlockEntity extends BlockEntity implements MenuProvider {
                 contents.setStackInSlot(slot, ItemStack.EMPTY);
             }
         }
+    }
+
+    /**
+     * Opening and closing, counted. Called by the block when a screen is asked for and
+     * by the menu when one goes away.
+     */
+    public void opened(Player player) {
+        if (level != null && !player.isSpectator()) {
+            openers.incrementOpeners(player, level, getBlockPos(), getBlockState());
+        }
+    }
+
+    public void closed(Player player) {
+        if (level != null && !player.isSpectator()) {
+            openers.decrementOpeners(player, level, getBlockPos(), getBlockState());
+        }
+    }
+
+    /** How many have it open. Read by the test that this is a count and not a flag. */
+    public int openers() {
+        return openers.getOpenerCount();
+    }
+
+    /**
+     * Asked every so often because a player can stop having it open without saying so —
+     * dying, going through a portal, losing their connection. Without this the lid stays
+     * up and the count never comes back down.
+     */
+    public void recheck() {
+        if (level != null && !remove) {
+            openers.recheckOpeners(level, getBlockPos(), getBlockState());
+        }
+    }
+
+    /** The client's half: the lid swings towards where the block event said it should be. */
+    public static void lidTick(Level level, BlockPos pos, BlockState state, CellaBlockEntity chest) {
+        chest.lidController.tickLid();
+    }
+
+    @Override
+    public boolean triggerEvent(int id, int value) {
+        if (id == 1) {
+            lidController.shouldBeOpen(value > 0);
+            return true;
+        }
+        return super.triggerEvent(id, value);
+    }
+
+    @Override
+    public float getOpenNess(float partial) {
+        return lidController.getOpenness(partial);
+    }
+
+    private static void said(Level level, BlockPos pos, SoundEvent sound) {
+        level.playSound(null, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, sound,
+                SoundSource.BLOCKS, 0.5F, level.getRandom().nextFloat() * 0.1F + 0.9F);
     }
 
     @Override

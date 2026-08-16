@@ -411,6 +411,34 @@ public final class CellaTests {
         helper.succeed();
     }
 
+    /**
+     * The lid stays up while anybody still has it open.
+     *
+     * <p>The whole reason the block entity counts openers instead of holding a flag. Two
+     * players open the chest, one walks away: a flag shuts the lid in the other one's
+     * face, and the sound plays twice on the way in and twice on the way out.
+     *
+     * <p>The lid itself cannot be checked here — it swings on the client and a game test
+     * has none — so this asks the count, which is what the lid is drawn from.
+     */
+    @GameTest(template = TestStructures.FLOOR)
+    public static void theLidWaitsForTheLastOneOut(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper);
+        Player first = helper.makeMockPlayer(GameType.SURVIVAL);
+        Player second = helper.makeMockPlayer(GameType.SURVIVAL);
+
+        check(chest.openers() == 0, "a chest nobody has opened is shut");
+        chest.opened(first);
+        chest.opened(second);
+        check(chest.openers() == 2, "two of them should be counted, not one");
+
+        chest.closed(first);
+        check(chest.openers() == 1, "and one leaving should leave it open for the other");
+        chest.closed(second);
+        check(chest.openers() == 0, "until the last one goes");
+        helper.succeed();
+    }
+
     private static CellaBlockEntity place(GameTestHelper helper) {
         helper.setBlock(WHERE, CellaRegistry.BLOCK.get());
         return (CellaBlockEntity) helper.getBlockEntity(WHERE);

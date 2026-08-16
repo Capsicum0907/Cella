@@ -117,6 +117,29 @@ public class CellaMenu extends AbstractContainerMenu {
         }
     }
 
+    /**
+     * Whether this menu is the one open on that chest.
+     *
+     * <p>Asked by the opener count, which has to tell one chest from another: a player
+     * standing in this one with a different one open must not be counted here. The
+     * contents are the identity - one handler per block entity, and the menu was built
+     * from it.
+     */
+    public boolean isFor(IItemHandlerModifiable other) {
+        return contents == other;
+    }
+
+    /** The screen has gone away; the lid can come down if nobody else has it up. */
+    @Override
+    public void removed(Player player) {
+        super.removed(player);
+        access.execute((level, pos) -> {
+            if (level.getBlockEntity(pos) instanceof CellaBlockEntity chest) {
+                chest.closed(player);
+            }
+        });
+    }
+
     public int pageSize() {
         return pageSize;
     }

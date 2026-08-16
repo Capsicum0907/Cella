@@ -20,6 +20,8 @@ import net.minecraft.world.level.block.Mirror;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityTicker;
+import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.DirectionProperty;
@@ -110,6 +112,7 @@ public class CellaBlock extends BaseEntityBlock {
                 buffer.writeBlockPos(pos);
                 buffer.writeVarInt(chest.contents().getSlots());
             });
+            chest.opened(player);
         }
         return InteractionResult.CONSUME;
     }
@@ -142,6 +145,31 @@ public class CellaBlock extends BaseEntityBlock {
     @Override
     public List<ItemStack> getDrops(BlockState state, LootParams.Builder params) {
         return List.of(new ItemStack(this));
+    }
+
+    /**
+     * The client swings the lid; the server keeps the count honest.
+     *
+     * <p>The server side is a recheck rather than any work of its own: a player can stop
+     * having a chest open without saying so - dying, stepping through a portal, losing
+     * their connection - and without asking now and again the lid would stay up forever.
+     */
+    @Override
+    public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState state,
+            BlockEntityType<T> type) {
+        return level.isClientSide
+                ? createTickerHelper(type, CellaRegistry.BLOCK_ENTITY.get(),
+                        CellaBlockEntity::lidTick)
+                : createTickerHelper(type, CellaRegistry.BLOCK_ENTITY.get(),
+                        (l, p, s, chest) -> chest.recheck());
+    }
+
+    /** A block event is how the server tells everyone watching that the lid moved. */
+    @Override
+    protected boolean triggerEvent(BlockState state, Level level, BlockPos pos, int id, int value) {
+        super.triggerEvent(state, level, pos, id, value);
+        BlockEntity entity = level.getBlockEntity(pos);
+        return entity != null && entity.triggerEvent(id, value);
     }
 
     @Override

@@ -31,9 +31,8 @@ import net.minecraft.resources.ResourceLocation;
  * <p>The transform is vanilla's too — turn about the middle of the block by the facing,
  * then put the origin back — because the parts are built in the coordinates that expects.
  *
- * <p><b>The lid does not open.</b> That wants an opener count rather than a flag, so that
- * a chest two people have open stays open when one of them leaves, and it is a piece of
- * work on its own. Until then the angle is nought and the lock sits with it.
+ * <p>How far the lid has swung comes from the block entity, which is told by a block
+ * event and counts openers rather than holding a flag - see {@code CellaBlockEntity}.
  */
 public class CellaRenderer implements BlockEntityRenderer<CellaBlockEntity> {
     private static final Material SHEET = new Material(Sheets.CHEST_SHEET,
@@ -59,7 +58,12 @@ public class CellaRenderer implements BlockEntityRenderer<CellaBlockEntity> {
                 -chest.getBlockState().getValue(CellaBlock.FACING).toYRot()));
         pose.translate(-0.5F, -0.5F, -0.5F);
 
-        lid.xRot = 0.0F;
+        // Vanilla's easing: the lid leaves fast and settles slowly, which is what makes
+        // it look hinged rather than driven.
+        float swung = chest.getOpenNess(partial);
+        swung = 1.0F - swung;
+        swung = 1.0F - swung * swung * swung;
+        lid.xRot = -(swung * (float) (Math.PI / 2));
         lock.xRot = lid.xRot;
 
         VertexConsumer buffer = SHEET.buffer(buffers, RenderType::entityCutout);

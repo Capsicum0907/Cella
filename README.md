@@ -4,7 +4,7 @@ A chest with more than one page.
 
 *Cella* is Latin for a storeroom, and also a compartment inside one.
 
-> **Status: the chest works.** Thirteen game tests, watched in a client.
+> **Status: the chest works.** Fourteen game tests, watched in a client.
 
 ## Target
 
@@ -129,6 +129,22 @@ down since holds chests bigger than the config says. The client cannot work that
 written into the packet that opens the screen. This mattered less when the menu was
 one page wide; now a client whose menu is shorter than what the server sends walks
 off the end of its own list.
+
+### It is drawn as a chest, and the lid opens
+
+A block entity renderer, not a model: the three parts come from
+`ModelLayers.CHEST`, so the shape and its unwrap are vanilla's and correct. The sheet
+is ours, added to the chest atlas by `assets/minecraft/atlases/chests.json` — that
+path is merged across packs rather than overridden, so vanilla's chests are
+untouched. Recolouring Mojang's own chest texture would have been easier and would
+also have been shipping their art with its hue turned; the rects are read off
+`ChestRenderer`, the pixels are drawn here, and they are red.
+
+**The lid counts openers rather than holding a flag.** Two players open it, one walks
+away — a flag shuts the lid in the other one's face, and plays the sound twice each
+way. `ContainerOpenersCounter` is what that is for, `blockEvent` carries the count to
+everyone watching, and the server rechecks periodically because a player can stop
+having a chest open without saying so: dying, a portal, a lost connection.
 
 ### The contents drop
 
