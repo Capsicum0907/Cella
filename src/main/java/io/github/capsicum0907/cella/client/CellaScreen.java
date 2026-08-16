@@ -43,6 +43,10 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     /** An arrow going down into a shelf, drawn to pair with the one above. */
     private static final ResourceLocation STOW_ICON =
             ResourceLocation.fromNamespaceAndPath(Cella.MODID, "textures/gui/stow.png");
+
+    /** The same shelf with one item standing beside the arrow. */
+    private static final ResourceLocation MATCHING_ICON =
+            ResourceLocation.fromNamespaceAndPath(Cella.MODID, "textures/gui/matching.png");
     private static final int ICON = 11;
 
     /** The strip of background above the slots, and the part below them. */
@@ -129,9 +133,14 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
         // other mod has claimed. Measured from the label so a translation pushes it
         // along rather than being written over.
         stowX = TITLE_X + font.width(playerInventoryTitle) + AFTER_TITLE;
+        addRenderableWidget(Button.builder(Component.empty(), button -> click(CellaMenu.MATCHING))
+                .tooltip(Tooltip.create(Component.translatable("gui.cella.matching")))
+                .bounds(leftPos + stowX, topPos + inventoryLabelY - 2, BUTTON, BUTTON)
+                .build());
         addRenderableWidget(Button.builder(Component.empty(), button -> click(CellaMenu.STOW))
                 .tooltip(Tooltip.create(Component.translatable("gui.cella.stow")))
-                .bounds(leftPos + stowX, topPos + inventoryLabelY - 2, BUTTON, BUTTON)
+                .bounds(leftPos + stowX + BUTTON + SPACE, topPos + inventoryLabelY - 2,
+                        BUTTON, BUTTON)
                 .build());
 
         if (menu.pages() <= 1) {
@@ -209,7 +218,8 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partial) {
         super.render(graphics, mouseX, mouseY, partial);
-        icon(graphics, STOW_ICON, stowX, inventoryLabelY - 2);
+        icon(graphics, MATCHING_ICON, stowX, inventoryLabelY - 2);
+        icon(graphics, STOW_ICON, stowX + BUTTON + SPACE, inventoryLabelY - 2);
         if (menu.pages() > 1) {
             // After the widgets, because the button draws its own face first. Centred
             // by the pixel: eleven in thirteen leaves one either side.

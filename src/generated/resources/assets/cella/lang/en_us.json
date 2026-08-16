@@ -1,5 +1,6 @@
 {
   "block.cella.cella": "Cella",
+  "gui.cella.matching": "Put in what this chest already keeps",
   "gui.cella.sort": "Sort every page",
-  "gui.cella.stow": "Put your inventory in"
+  "gui.cella.stow": "Put your whole inventory in"
 }

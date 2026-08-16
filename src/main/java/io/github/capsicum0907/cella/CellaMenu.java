@@ -1,5 +1,8 @@
 package io.github.capsicum0907.cella;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -34,6 +37,7 @@ public class CellaMenu extends AbstractContainerMenu {
     /** The button ids that are not a page: there is no page for them to collide with. */
     public static final int SORT = -1;
     public static final int STOW = -2;
+    public static final int MATCHING = -3;
 
     private final ContainerLevelAccess access;
     private final IItemHandlerModifiable contents;
@@ -138,14 +142,14 @@ public class CellaMenu extends AbstractContainerMenu {
      */
     @Override
     public boolean clickMenuButton(Player player, int id) {
-        if (id != SORT && id != STOW) {
+        if (id != SORT && id != STOW && id != MATCHING) {
             return false;
         }
         if (!player.level().isClientSide) {
-            if (id == SORT) {
-                Tidy.everything(contents);
-            } else {
-                stow(player);
+            switch (id) {
+                case SORT -> Tidy.everything(contents);
+                case STOW -> stow(player, false);
+                default -> stow(player, true);
             }
         }
         return true;
@@ -154,23 +158,63 @@ public class CellaMenu extends AbstractContainerMenu {
     /**
      * The player's own storage, into the chest, wherever there is room for it.
      *
-     * <p><b>Except what is in their hand.</b> That is the one slot to keep something a
-     * container would otherwise swallow, and without it a button meant to save time takes
-     * the pickaxe you were holding.
+     * <p>Two buttons, one method, and the difference is one question asked per stack.
+     * <b>Matching</b> only sends what the chest already keeps — the thing you want when
+     * coming home with a full inventory and a place for half of it. <b>Everything</b>
+     * asks nothing and sends the lot.
+     *
+     * <p><b>Except what is in their hand</b>, either way. That is the one slot to keep
+     * something a container would otherwise swallow, and without it a button meant to
+     * save time takes the pickaxe you were holding.
+     *
+     * @param matchingOnly whether a stack has to be one the chest already holds
      */
-    private void stow(Player player) {
+    private void stow(Player player, boolean matchingOnly) {
         Inventory inventory = player.getInventory();
+        List<ItemStack> kept = matchingOnly ? kinds() : List.of();
+
         for (int slot = 0; slot < Inventory.INVENTORY_SIZE; slot++) {
             if (slot == inventory.selected) {
                 continue;
             }
             ItemStack stack = inventory.getItem(slot);
-            if (stack.isEmpty()) {
+            if (stack.isEmpty() || (matchingOnly && !isOneOf(kept, stack))) {
                 continue;
             }
             inventory.setItem(slot, ItemHandlerHelper.insertItemStacked(contents, stack, false));
         }
         inventory.setChanged();
+    }
+
+    /**
+     * One of each kind the chest holds, gathered once.
+     *
+     * <p>Once rather than per stack: the alternative walks the whole chest thirty-six
+     * times, and the chest can be seventeen hundred slots.
+     */
+    private List<ItemStack> kinds() {
+        List<ItemStack> kept = new ArrayList<>();
+        for (int slot = 0; slot < contents.getSlots(); slot++) {
+            ItemStack stack = contents.getStackInSlot(slot);
+            if (!stack.isEmpty() && !isOneOf(kept, stack)) {
+                kept.add(stack);
+            }
+        }
+        return kept;
+    }
+
+    /**
+     * Same item <em>and</em> same components, which is what "matching" has to mean: an
+     * enchanted pickaxe is not one of the plain ones, and putting it in with them because
+     * the button said "matching" would be a quiet way to lose it.
+     */
+    private static boolean isOneOf(List<ItemStack> kinds, ItemStack stack) {
+        for (ItemStack kind : kinds) {
+            if (ItemStack.isSameItemSameComponents(kind, stack)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override

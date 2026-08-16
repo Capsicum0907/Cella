@@ -28,6 +28,7 @@ ASSETS = pathlib.Path(__file__).resolve().parents[1] / "src/main/resources/asset
 OUT = ASSETS / "block/cella.png"
 SORT_OUT = ASSETS / "gui/sort.png"
 STOW_OUT = ASSETS / "gui/stow.png"
+MATCHING_OUT = ASSETS / "gui/matching.png"
 
 # One place for every colour. Body, and the two derived from it.
 WOOD = (0x8A, 0x66, 0x3C, 0xFF)
@@ -130,6 +131,26 @@ def stow_icon() -> list[list[tuple[int, int, int, int]]]:
             for y in range(ICON)]
 
 
+# The matching icon: the same shelf, a narrower arrow, and one item standing beside
+# it - "put in the ones that are like this". Drawn from the stow icon's parts so the
+# three buttons read as a family.
+NARROW_SHAFT = {(x, y) for x in range(3, 6) for y in range(0, 3)}
+NARROW_HEAD = ({(x, 3) for x in range(1, 8)}
+               | {(x, 4) for x in range(2, 7)}
+               | {(x, 5) for x in range(3, 6)})
+SAMPLE = ({(x, y) for x in range(7, 11) for y in (2, 5)}
+          | {(x, y) for x in (7, 10) for y in range(2, 6)})
+
+
+def matching_icon() -> list[list[tuple[int, int, int, int]]]:
+    """One kind of thing, and the arrow that sends its like into the shelf."""
+    ink = NARROW_SHAFT | NARROW_HEAD | SAMPLE | SHELF
+    shadow = {(x + 1, y + 1) for (x, y) in ink} - ink
+    return [[FACE if (x, y) in ink else SHADOW if (x, y) in shadow else CLEAR
+             for x in range(ICON)]
+            for y in range(ICON)]
+
+
 def _chunk(kind: bytes, data: bytes) -> bytes:
     return (struct.pack(">I", len(data)) + kind + data
             + struct.pack(">I", zlib.crc32(kind + data) & 0xFFFFFFFF))
@@ -158,3 +179,4 @@ if __name__ == "__main__":
     write(OUT, crate())
     write(SORT_OUT, sort_icon())
     write(STOW_OUT, stow_icon())
+    write(MATCHING_OUT, matching_icon())
