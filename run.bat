@@ -17,7 +17,7 @@ where java >nul 2>&1
 if errorlevel 1 goto :nojava
 
 :run
-call gradlew.bat runClient %*
+call "%~dp0gradlew.bat" runClient %*
 set EXITCODE=%ERRORLEVEL%
 if not "%EXITCODE%"=="0" goto :failed
 exit /b 0
