@@ -89,6 +89,8 @@ public final class CellaDataGen {
             add("gui.cella.stow", "Put your whole inventory in");
             add("gui.cella.taking", "Take more of what you are carrying");
             add("gui.cella.take", "Take as much as will fit");
+            add("gui.cella.prev", "Previous page");
+            add("gui.cella.next", "Next page");
         }
     }
 

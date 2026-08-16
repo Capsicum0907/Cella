@@ -22,7 +22,7 @@ import pathlib
 import struct
 import zlib
 
-SIZE = 16
+SIZE = 16  # the block texture; the gui icons are ICON square
 
 ASSETS = pathlib.Path(__file__).resolve().parents[1] / "src/main/resources/assets/cella/textures"
 OUT = ASSETS / "block/cella.png"
@@ -31,6 +31,8 @@ STOW_OUT = ASSETS / "gui/stow.png"
 MATCHING_OUT = ASSETS / "gui/matching.png"
 TAKE_OUT = ASSETS / "gui/take.png"
 TAKING_OUT = ASSETS / "gui/taking.png"
+PREV_OUT = ASSETS / "gui/prev.png"
+NEXT_OUT = ASSETS / "gui/next.png"
 
 # One place for every colour. Body, and the two derived from it.
 WOOD = (0x8A, 0x66, 0x3C, 0xFF)
@@ -91,97 +93,93 @@ def crate() -> list[list[tuple[int, int, int, int]]]:
     return rows
 
 
-# The sort icon: three bars, longest first, which is what a sort button looks like
-# everywhere else. Odd-sized so it sits in the middle of an odd-sized button - the
-# same parity problem the page number had.
-ICON = 11
-BARS = ((1, 1, 9), (1, 4, 6), (1, 7, 3))  # x, y, length; each two pixels deep
-BAR_DEPTH = 2
-
-FACE = (0xEE, 0xEE, 0xEE, 0xFF)
-SHADOW = (0x3F, 0x3F, 0x3F, 0xFF)
+# --- the gui icons -----------------------------------------------------------
+#
+# Nine square, flat, and drawn in one light grey. They sit in an eleven-pixel button
+# (see IconButton), which leaves a pixel of its face all round - the reason both
+# numbers are odd.
+#
+# No drop shadow. There was one while these were white on a raised vanilla button;
+# on a flat dark face it only muddied a picture that has nine pixels to say anything
+# in. What tells the four movers apart is direction - the shelf is at the bottom for
+# going in and at the top for coming out - and a single dot for the two that pick.
+# The tooltip carries the rest; an icon this size can only be told apart, not read.
+ICON = 9
+INK = (0xC6, 0xC6, 0xC6, 0xFF)
 CLEAR = (0x00, 0x00, 0x00, 0x00)
 
 
-def sort_icon() -> list[list[tuple[int, int, int, int]]]:
-    """White bars over a one-pixel shadow, the way the game draws its own labels."""
-    bars = {(x + dx, y + dy)
-            for (x, y, length) in BARS
-            for dx in range(length)
-            for dy in range(BAR_DEPTH)}
-    shadow = {(x + 1, y + 1) for (x, y) in bars} - bars
-    return [[FACE if (x, y) in bars else SHADOW if (x, y) in shadow else CLEAR
-             for x in range(ICON)]
-            for y in range(ICON)]
+def _rows(ink):
+    return [[INK if (x, y) in ink else CLEAR for x in range(ICON)] for y in range(ICON)]
 
 
-# The stow icon: an arrow going down into a shelf. Same eleven square as the sort
-# icon, drawn the same way, so the two sit together as a pair.
-SHAFT = {(x, y) for x in range(4, 7) for y in range(0, 4)}
-HEAD = ({(x, 4) for x in range(2, 9)}
-        | {(x, 5) for x in range(3, 8)}
-        | {(x, 6) for x in range(4, 7)})
-SHELF = {(x, y) for x in range(0, 11) for y in range(8, 10)}
+def _bar(y, x0, length, depth=2):
+    return {(x0 + dx, y + dy) for dx in range(length) for dy in range(depth)}
 
 
-def stow_icon() -> list[list[tuple[int, int, int, int]]]:
-    """Down into a shelf: what the button does, in the direction it does it."""
-    ink = SHAFT | HEAD | SHELF
-    shadow = {(x + 1, y + 1) for (x, y) in ink} - ink
-    return [[FACE if (x, y) in ink else SHADOW if (x, y) in shadow else CLEAR
-             for x in range(ICON)]
-            for y in range(ICON)]
+def _arrow(top, wide):
+    """A shaft with a head under it, pointing down, growing from `top`."""
+    shaft = 3 if wide else 1
+    left = (ICON - shaft) // 2
+    stem = {(left + dx, top + dy) for dx in range(shaft) for dy in range(3)}
+    head = set()
+    for step, width in enumerate((7, 5, 3) if wide else (5, 3, 1)):
+        head |= {((ICON - width) // 2 + dx, top + 3 + step) for dx in range(width)}
+    return stem | head
 
 
-# The matching icon: the same shelf, a narrower arrow, and one item standing beside
-# it - "put in the ones that are like this". Drawn from the stow icon's parts so the
-# three buttons read as a family.
-NARROW_SHAFT = {(x, y) for x in range(3, 6) for y in range(0, 3)}
-NARROW_HEAD = ({(x, 3) for x in range(1, 8)}
-               | {(x, 4) for x in range(2, 7)}
-               | {(x, 5) for x in range(3, 6)})
-SAMPLE = ({(x, y) for x in range(7, 11) for y in (2, 5)}
-          | {(x, y) for x in (7, 10) for y in range(2, 6)})
+def _flip(cells):
+    return {(x, ICON - 1 - y) for (x, y) in cells}
 
 
-def matching_icon() -> list[list[tuple[int, int, int, int]]]:
-    """One kind of thing, and the arrow that sends its like into the shelf."""
-    ink = NARROW_SHAFT | NARROW_HEAD | SAMPLE | SHELF
-    shadow = {(x + 1, y + 1) for (x, y) in ink} - ink
-    return [[FACE if (x, y) in ink else SHADOW if (x, y) in shadow else CLEAR
-             for x in range(ICON)]
-            for y in range(ICON)]
+DOT = {(x, y) for x in range(7, 9) for y in range(1, 3)}
+
+SHELF_LOW = _bar(7, 0, ICON)
+SHELF_HIGH = _bar(0, 0, ICON)
 
 
-# The two that come the other way. On this screen the chest is above and the player
-# below, so out of the chest is downwards: the shelf goes to the top and the arrow
-# leaves it. Built from the same parts moved, rather than drawn again, so the four
-# icons cannot drift apart.
-def _fall(cells, by):
-    return {(x, y + by) for (x, y) in cells}
+def sort_icon():
+    """Three bars, longest first, which is what a sort button looks like everywhere."""
+    return _rows(_bar(0, 1, 7) | _bar(3, 1, 5) | _bar(6, 1, 3))
 
 
-SHELF_TOP = {(x, y) for x in range(0, 11) for y in (0, 1)}
+def stow_icon():
+    """Down into the shelf: everything."""
+    return _rows(SHELF_LOW | _arrow(0, True))
 
 
-def take_icon() -> list[list[tuple[int, int, int, int]]]:
-    """Out of the shelf and down: everything, the way stow is everything."""
-    ink = SHELF_TOP | _fall(SHAFT, 3) | _fall(HEAD, 4)
-    return _drawn(ink)
+def matching_icon():
+    """The same with a dot: only the kinds already there."""
+    return _rows(SHELF_LOW | _arrow(0, False) | DOT)
 
 
-def taking_icon() -> list[list[tuple[int, int, int, int]]]:
-    """The same, for the kinds the player already carries."""
-    ink = SHELF_TOP | _fall(NARROW_SHAFT, 4) | _fall(NARROW_HEAD, 5) | _fall(SAMPLE, 3)
-    return _drawn(ink)
+def take_icon():
+    """Out of the shelf and down, because the chest is the half above."""
+    return _rows(SHELF_HIGH | _flip(_arrow(0, True)))
 
 
-def _drawn(ink) -> list[list[tuple[int, int, int, int]]]:
-    """Ink, its one-pixel shadow, and nothing else - shared by all four icons."""
-    shadow = {(x + 1, y + 1) for (x, y) in ink} - ink
-    return [[FACE if (x, y) in ink else SHADOW if (x, y) in shadow else CLEAR
-             for x in range(ICON)]
-            for y in range(ICON)]
+def taking_icon():
+    """The same with a dot."""
+    return _rows(SHELF_HIGH | _flip(_arrow(0, False)) | _flip(DOT))
+
+
+def _chevron(pointing_left):
+    """A two-pixel arrowhead, so the page arrows are drawn like everything else here."""
+    cells = set()
+    for y in range(ICON):
+        reach = 2 + abs(y - ICON // 2)
+        for dx in range(2):
+            x = reach + dx
+            cells.add((x if pointing_left else ICON - 1 - x, y))
+    return cells
+
+
+def prev_icon():
+    return _rows(_chevron(True))
+
+
+def next_icon():
+    return _rows(_chevron(False))
 
 
 def _chunk(kind: bytes, data: bytes) -> bytes:
@@ -215,3 +213,5 @@ if __name__ == "__main__":
     write(MATCHING_OUT, matching_icon())
     write(TAKE_OUT, take_icon())
     write(TAKING_OUT, taking_icon())
+    write(PREV_OUT, prev_icon())
+    write(NEXT_OUT, next_icon())
