@@ -29,6 +29,8 @@ OUT = ASSETS / "block/cella.png"
 SORT_OUT = ASSETS / "gui/sort.png"
 STOW_OUT = ASSETS / "gui/stow.png"
 MATCHING_OUT = ASSETS / "gui/matching.png"
+TAKE_OUT = ASSETS / "gui/take.png"
+TAKING_OUT = ASSETS / "gui/taking.png"
 
 # One place for every colour. Body, and the two derived from it.
 WOOD = (0x8A, 0x66, 0x3C, 0xFF)
@@ -151,6 +153,37 @@ def matching_icon() -> list[list[tuple[int, int, int, int]]]:
             for y in range(ICON)]
 
 
+# The two that come the other way. On this screen the chest is above and the player
+# below, so out of the chest is downwards: the shelf goes to the top and the arrow
+# leaves it. Built from the same parts moved, rather than drawn again, so the four
+# icons cannot drift apart.
+def _fall(cells, by):
+    return {(x, y + by) for (x, y) in cells}
+
+
+SHELF_TOP = {(x, y) for x in range(0, 11) for y in (0, 1)}
+
+
+def take_icon() -> list[list[tuple[int, int, int, int]]]:
+    """Out of the shelf and down: everything, the way stow is everything."""
+    ink = SHELF_TOP | _fall(SHAFT, 3) | _fall(HEAD, 4)
+    return _drawn(ink)
+
+
+def taking_icon() -> list[list[tuple[int, int, int, int]]]:
+    """The same, for the kinds the player already carries."""
+    ink = SHELF_TOP | _fall(NARROW_SHAFT, 4) | _fall(NARROW_HEAD, 5) | _fall(SAMPLE, 3)
+    return _drawn(ink)
+
+
+def _drawn(ink) -> list[list[tuple[int, int, int, int]]]:
+    """Ink, its one-pixel shadow, and nothing else - shared by all four icons."""
+    shadow = {(x + 1, y + 1) for (x, y) in ink} - ink
+    return [[FACE if (x, y) in ink else SHADOW if (x, y) in shadow else CLEAR
+             for x in range(ICON)]
+            for y in range(ICON)]
+
+
 def _chunk(kind: bytes, data: bytes) -> bytes:
     return (struct.pack(">I", len(data)) + kind + data
             + struct.pack(">I", zlib.crc32(kind + data) & 0xFFFFFFFF))
@@ -180,3 +213,5 @@ if __name__ == "__main__":
     write(SORT_OUT, sort_icon())
     write(STOW_OUT, stow_icon())
     write(MATCHING_OUT, matching_icon())
+    write(TAKE_OUT, take_icon())
+    write(TAKING_OUT, taking_icon())

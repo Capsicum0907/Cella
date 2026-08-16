@@ -13,6 +13,8 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 
+import org.anti_ad.mc.ipn.api.IPNPlayerSideOnly;
+
 /**
  * The chest screen, drawn on the vanilla chest background.
  *
@@ -25,6 +27,7 @@ import net.minecraft.world.entity.player.Inventory;
  * screen would otherwise sit on the old page until something else forced it to
  * refresh.
  */
+@IPNPlayerSideOnly
 public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     private static final ResourceLocation BACKGROUND =
             ResourceLocation.withDefaultNamespace("textures/gui/container/generic_54.png");
@@ -47,6 +50,12 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     /** The same shelf with one item standing beside the arrow. */
     private static final ResourceLocation MATCHING_ICON =
             ResourceLocation.fromNamespaceAndPath(Cella.MODID, "textures/gui/matching.png");
+
+    /** The same two coming the other way: the shelf on top and the arrow leaving it. */
+    private static final ResourceLocation TAKE_ICON =
+            ResourceLocation.fromNamespaceAndPath(Cella.MODID, "textures/gui/take.png");
+    private static final ResourceLocation TAKING_ICON =
+            ResourceLocation.fromNamespaceAndPath(Cella.MODID, "textures/gui/taking.png");
     private static final int ICON = 11;
 
     /** The strip of background above the slots, and the part below them. */
@@ -88,6 +97,11 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
 
     /** Where the other mod's buttons start. These end before it. */
     private static final int TAKEN = 114;
+
+    /** The four movers, in the order they are drawn, and what each is called. */
+    private static final int[] MOVES = {
+            CellaMenu.STOW, CellaMenu.MATCHING, CellaMenu.TAKING, CellaMenu.TAKE };
+    private static final String[] NAMES = { "stow", "matching", "taking", "take" };
 
     private final int rows;
 
@@ -132,16 +146,18 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
         // Beside the label of the thing it moves, and in the one row of this screen no
         // other mod has claimed. Measured from the label so a translation pushes it
         // along rather than being written over.
+        // Four, in the row beside the inventory they move to and from. Left to right
+        // they go into the chest and then back out of it, so the two either side of the
+        // middle are the two that think about what they are moving.
         stowX = TITLE_X + font.width(playerInventoryTitle) + AFTER_TITLE;
-        addRenderableWidget(Button.builder(Component.empty(), button -> click(CellaMenu.MATCHING))
-                .tooltip(Tooltip.create(Component.translatable("gui.cella.matching")))
-                .bounds(leftPos + stowX, topPos + inventoryLabelY - 2, BUTTON, BUTTON)
-                .build());
-        addRenderableWidget(Button.builder(Component.empty(), button -> click(CellaMenu.STOW))
-                .tooltip(Tooltip.create(Component.translatable("gui.cella.stow")))
-                .bounds(leftPos + stowX + BUTTON + SPACE, topPos + inventoryLabelY - 2,
-                        BUTTON, BUTTON)
-                .build());
+        for (int at = 0; at < MOVES.length; at++) {
+            int id = MOVES[at];
+            addRenderableWidget(Button.builder(Component.empty(), button -> click(id))
+                    .tooltip(Tooltip.create(Component.translatable("gui.cella." + NAMES[at])))
+                    .bounds(leftPos + stowX + at * (BUTTON + SPACE), topPos + inventoryLabelY - 2,
+                            BUTTON, BUTTON)
+                    .build());
+        }
 
         if (menu.pages() <= 1) {
             return;
@@ -218,8 +234,10 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partial) {
         super.render(graphics, mouseX, mouseY, partial);
-        icon(graphics, MATCHING_ICON, stowX, inventoryLabelY - 2);
-        icon(graphics, STOW_ICON, stowX + BUTTON + SPACE, inventoryLabelY - 2);
+        ResourceLocation[] icons = { STOW_ICON, MATCHING_ICON, TAKING_ICON, TAKE_ICON };
+        for (int at = 0; at < icons.length; at++) {
+            icon(graphics, icons[at], stowX + at * (BUTTON + SPACE), inventoryLabelY - 2);
+        }
         if (menu.pages() > 1) {
             // After the widgets, because the button draws its own face first. Centred
             // by the pixel: eleven in thirteen leaves one either side.

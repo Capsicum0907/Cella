@@ -38,6 +38,8 @@ public class CellaMenu extends AbstractContainerMenu {
     public static final int SORT = -1;
     public static final int STOW = -2;
     public static final int MATCHING = -3;
+    public static final int TAKE = -4;
+    public static final int TAKING = -5;
 
     private final ContainerLevelAccess access;
     private final IItemHandlerModifiable contents;
@@ -158,17 +160,64 @@ public class CellaMenu extends AbstractContainerMenu {
      */
     @Override
     public boolean clickMenuButton(Player player, int id) {
-        if (id != SORT && id != STOW && id != MATCHING) {
+        if (id > SORT || id < TAKING) {
             return false;
         }
         if (!player.level().isClientSide) {
             switch (id) {
                 case SORT -> Tidy.everything(contents);
                 case STOW -> stow(player, false);
-                default -> stow(player, true);
+                case MATCHING -> stow(player, true);
+                case TAKE -> take(player, false);
+                default -> take(player, true);
             }
         }
         return true;
+    }
+
+    /**
+     * The chest, back into the player, until one of them runs out.
+     *
+     * <p>The mirror of {@link #stow}, and it exists for the same reason: what a sorting
+     * mod can move is what its screen can see, and this screen shows a page.
+     *
+     * <p><b>Matching</b> means the kinds the player is already carrying - coming back for
+     * more of what you have. It reads their slots including the one in hand, which is the
+     * difference from stowing: your hand says what you want, it is only not a place to
+     * put things.
+     *
+     * <p>Stops at the first stack that will not fit rather than stepping over it, so what
+     * comes out is the front of the chest and not a scattering from the middle of it.
+     */
+    private void take(Player player, boolean matchingOnly) {
+        Inventory inventory = player.getInventory();
+        List<ItemStack> carried = matchingOnly ? carried(inventory) : List.of();
+
+        for (int slot = 0; slot < contents.getSlots(); slot++) {
+            ItemStack stack = contents.getStackInSlot(slot);
+            if (stack.isEmpty() || (matchingOnly && !isOneOf(carried, stack))) {
+                continue;
+            }
+            ItemStack moving = stack.copy();
+            inventory.add(moving);
+            contents.setStackInSlot(slot, moving);
+            if (!moving.isEmpty()) {
+                break;
+            }
+        }
+        inventory.setChanged();
+    }
+
+    /** One of each kind the player has, the hand included. */
+    private static List<ItemStack> carried(Inventory inventory) {
+        List<ItemStack> kinds = new ArrayList<>();
+        for (int slot = 0; slot < Inventory.INVENTORY_SIZE; slot++) {
+            ItemStack stack = inventory.getItem(slot);
+            if (!stack.isEmpty() && !isOneOf(kinds, stack)) {
+                kinds.add(stack);
+            }
+        }
+        return kinds;
     }
 
     /**

@@ -19,6 +19,16 @@ group = mod_group_id
 
 repositories {
     mavenLocal()
+
+    // Inventory Profiles Next, for its annotation API and nothing else. Scoped to the
+    // one group so nothing can start resolving from here by accident.
+    maven {
+        name = 'Modrinth'
+        url = 'https://api.modrinth.com/maven'
+        content {
+            includeGroup 'maven.modrinth'
+        }
+    }
 }
 
 base {
@@ -120,6 +130,13 @@ configurations {
 }
 
 dependencies {
+    // One annotation: @IPNPlayerSideOnly, which asks Inventory Profiles Next to treat
+    // this screen as the player's inventory only. Its buttons for a container sort what
+    // it can see, and what it can see here is one page - a half-working copy of a button
+    // this mod already has. Compile time only; a missing annotation class is simply not
+    // read, so nothing needs IPN to be installed.
+    compileOnly "maven.modrinth:inventory-profiles-next:${ipn_version}"
+
     // Example optional mod dependency with JEI
     // The JEI API is declared for compile time use, while the full JEI artifact is used at runtime
     // compileOnly "mezz.jei:jei-${mc_version}-common-api:${jei_version}"

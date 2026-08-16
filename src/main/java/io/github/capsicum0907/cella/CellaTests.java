@@ -321,6 +321,62 @@ public final class CellaTests {
         helper.succeed();
     }
 
+    /**
+     * Taking reaches past the page too, and stops when the player is full.
+     *
+     * <p>The mirror of stowing, and the same reason for existing: a sorting mod can only
+     * move what its screen shows it.
+     */
+    @GameTest(template = TestStructures.FLOOR)
+    public static void takingReachesPastThePage(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper);
+        Player player = helper.makeMockPlayer(GameType.SURVIVAL);
+        int page = CellaConfig.pageSize();
+
+        // One stack on the first page, one three pages in where nothing can see it.
+        chest.contents().setStackInSlot(0, new ItemStack(Items.STONE, 64));
+        chest.contents().setStackInSlot(page * 3 + 6, new ItemStack(Items.GOLD_INGOT, 12));
+
+        CellaMenu menu = CellaMenu.at(1, player.getInventory(), helper.absolutePos(WHERE),
+                chest.contents().getSlots());
+        menu.clickMenuButton(player, CellaMenu.TAKE);
+
+        check(chest.contents().getStackInSlot(0).isEmpty()
+                        && chest.contents().getStackInSlot(page * 3 + 6).isEmpty(),
+                "both should have left the chest, including the one three pages in");
+        check(player.getInventory().countItem(Items.GOLD_INGOT) == 12,
+                "and the gold should be on the player");
+        helper.succeed();
+    }
+
+    /**
+     * Taking what matches brings back more of what the player already carries.
+     *
+     * <p>The hand counts here, unlike stowing. Your hand says what you want; it is only
+     * not a place to put things.
+     */
+    @GameTest(template = TestStructures.FLOOR)
+    public static void takingWhatMatchesLeavesTheRest(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper);
+        Player player = helper.makeMockPlayer(GameType.SURVIVAL);
+        int page = CellaConfig.pageSize();
+
+        chest.contents().setStackInSlot(page * 2, new ItemStack(Items.COBBLESTONE, 40));
+        chest.contents().setStackInSlot(page * 2 + 1, new ItemStack(Items.DIAMOND, 3));
+        player.getInventory().setItem(player.getInventory().selected,
+                new ItemStack(Items.COBBLESTONE, 1));
+
+        CellaMenu menu = CellaMenu.at(1, player.getInventory(), helper.absolutePos(WHERE),
+                chest.contents().getSlots());
+        menu.clickMenuButton(player, CellaMenu.TAKING);
+
+        check(chest.contents().getStackInSlot(page * 2).isEmpty(),
+                "the cobblestone matches what is in hand and should have come out");
+        check(chest.contents().getStackInSlot(page * 2 + 1).getCount() == 3,
+                "the diamonds match nothing the player has and should have stayed");
+        helper.succeed();
+    }
+
     private static CellaBlockEntity place(GameTestHelper helper) {
         helper.setBlock(WHERE, CellaRegistry.BLOCK.get());
         return (CellaBlockEntity) helper.getBlockEntity(WHERE);

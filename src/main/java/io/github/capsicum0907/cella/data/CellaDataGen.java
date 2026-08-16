@@ -87,6 +87,8 @@ public final class CellaDataGen {
             add("gui.cella.sort", "Sort every page");
             add("gui.cella.matching", "Put in what this chest already keeps");
             add("gui.cella.stow", "Put your whole inventory in");
+            add("gui.cella.taking", "Take more of what you are carrying");
+            add("gui.cella.take", "Take as much as will fit");
         }
     }
 
