@@ -4,8 +4,11 @@ import io.github.capsicum0907.cella.Cella;
 import io.github.capsicum0907.cella.CellaMenu;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
@@ -26,8 +29,9 @@ import org.anti_ad.mc.ipn.api.IPNPlayerSideOnly;
  * one alone. Compile-time only: an annotation whose class is absent is simply not read,
  * so nothing here needs IPN installed.
  *
- * <p>Seven controls, all {@link IconButton}: the two page arrows and sort in the lid,
- * the four ways of moving beside the inventory they move to and from.
+ * <p>Five controls, all {@link IconButton}: the two page arrows and sort in the lid,
+ * and beside the inventory the two ways of moving - in and out, with shift narrowing
+ * either to the kinds already on the other side.
  */
 @IPNPlayerSideOnly
 public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
@@ -59,10 +63,20 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     private static final int SPACE = 2;
     private static final int AFTER_TITLE = 6;
 
-    /** The four movers, left to right: in, in-matching, out-matching, out. */
-    private static final int[] MOVES = {
-            CellaMenu.STOW, CellaMenu.MATCHING, CellaMenu.TAKING, CellaMenu.TAKE };
-    private static final String[] NAMES = { "stow", "matching", "taking", "take" };
+    /**
+     * Two movers, not four: in and out.
+     *
+     * <p>There were four - in, in-matching, out-matching, out - and the person who asked
+     * for them could not say what they were a day later. Four buttons meant two things to
+     * tell apart at once, direction and reach, and six pixels of picture will carry one.
+     *
+     * <p>So reach moved onto <b>shift</b>, which in this game already means "the same
+     * thing, done the other way": shift-click to move a stack, shift to place, shift to
+     * take the lot. Nobody has to be taught it, and the tooltip says it anyway.
+     */
+    private static final int[] MOVES = { CellaMenu.STOW, CellaMenu.TAKE };
+    private static final int[] PICKED = { CellaMenu.MATCHING, CellaMenu.TAKING };
+    private static final String[] NAMES = { "stow", "take" };
 
     private final int rows;
 
@@ -78,6 +92,19 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
         this.rows = menu.rows();
         this.imageHeight = 114 + rows * SLOT;
         this.inventoryLabelY = this.imageHeight - 94;
+    }
+
+    /**
+     * What a mover says: what it does, and underneath what shift makes it do.
+     *
+     * <p>Both lines always, rather than swapping as the key is held. A tooltip is where
+     * you go to find out, and finding out is exactly what the second line is for.
+     */
+    private static Component told(String name) {
+        return Component.translatable("gui.cella." + name)
+                .append(CommonComponents.NEW_LINE)
+                .append(Component.translatable("gui.cella." + name + ".shift")
+                        .withStyle(ChatFormatting.GRAY));
     }
 
     private static ResourceLocation icon(String name) {
@@ -107,11 +134,12 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
 
         movers = after(playerInventoryTitle, MOVES.length * BUTTON + (MOVES.length - 1) * SPACE);
         for (int at = 0; at < MOVES.length; at++) {
-            int id = MOVES[at];
+            int whole = MOVES[at];
+            int picked = PICKED[at];
             addRenderableWidget(new IconButton(
                     leftPos + movers + at * (BUTTON + SPACE), topPos + inventoryLabelY - 2,
-                    icon(NAMES[at]), Component.translatable("gui.cella." + NAMES[at]),
-                    () -> send(id)));
+                    icon(NAMES[at]), told(NAMES[at]),
+                    () -> send(Screen.hasShiftDown() ? picked : whole)));
         }
 
         if (menu.pages() <= 1) {

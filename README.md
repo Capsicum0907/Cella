@@ -4,7 +4,7 @@ A chest with more than one page.
 
 *Cella* is Latin for a storeroom, and also a compartment inside one.
 
-> **Status: the chest works.** Twelve game tests, watched in a client.
+> **Status: the chest works.** Thirteen game tests, watched in a client.
 
 ## Target
 
@@ -82,12 +82,18 @@ So `CellaScreen` carries `@IPNPlayerSideOnly`. IPN keeps the player's half, whic
 can see all of, and leaves this one alone. In exchange this screen brings the whole
 set — sort, and four ways of moving:
 
-| Button | What it moves |
-|---|---|
-| Put your whole inventory in | everything except what is in hand |
-| Put in what this chest already keeps | matched against the chest |
-| Take more of what you are carrying | matched against the player, hand included |
-| Take as much as will fit | stops at the first stack that will not fit |
+| Button | What it moves | With shift |
+|---|---|---|
+| Put your inventory in | everything except what is in hand | only kinds the chest already keeps |
+| Take as much as will fit | stops at the first stack that will not fit | only kinds you are carrying |
+
+Two buttons, not four. Four meant two things to tell apart at once — direction and
+reach — and six pixels of picture will carry one. Reach is shift, which in this game
+already means "the same thing, done the other way".
+
+**Nothing worn is ever moved.** `Inventory.INVENTORY_SIZE` is the pack and the hotbar;
+armour and the off hand are separate compartments, and whatever Curios keeps is not in
+`Inventory` at all. That is structural, not careful.
 
 Sorting is ordered by registry name, not display name: a display name needs a
 language, and a chest that came out differently depending on who pressed the button

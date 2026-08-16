@@ -377,6 +377,40 @@ public final class CellaTests {
         helper.succeed();
     }
 
+    /**
+     * What is being worn stays on.
+     *
+     * <p>Asked because of Curios, whose slots hold things a player would very much rather
+     * not post into a chest by pressing one button. It cannot happen, and not by care:
+     * {@code Inventory.INVENTORY_SIZE} is the pack and the hotbar, armour and the off
+     * hand are other compartments, and anything Curios keeps is not in {@code Inventory}
+     * at all. Armour and the off hand stand in for that here — they fail the same way if
+     * the loop ever grows past thirty-six.
+     */
+    @GameTest(template = TestStructures.FLOOR)
+    public static void whatIsWornStaysOn(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper);
+        Player player = helper.makeMockPlayer(GameType.SURVIVAL);
+
+        player.setItemSlot(net.minecraft.world.entity.EquipmentSlot.CHEST,
+                new ItemStack(Items.DIAMOND_CHESTPLATE));
+        player.setItemSlot(net.minecraft.world.entity.EquipmentSlot.OFFHAND,
+                new ItemStack(Items.SHIELD));
+        player.getInventory().setItem(5, new ItemStack(Items.APPLE, 3));
+
+        CellaMenu menu = CellaMenu.at(1, player.getInventory(), helper.absolutePos(WHERE),
+                chest.contents().getSlots());
+        menu.clickMenuButton(player, CellaMenu.STOW);
+
+        check(player.getInventory().getItem(5).isEmpty(), "the apples should have gone in");
+        check(player.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.CHEST)
+                        .is(Items.DIAMOND_CHESTPLATE),
+                "the chestplate should still be worn");
+        check(player.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.OFFHAND)
+                        .is(Items.SHIELD), "and the shield should still be held");
+        helper.succeed();
+    }
+
     private static CellaBlockEntity place(GameTestHelper helper) {
         helper.setBlock(WHERE, CellaRegistry.BLOCK.get());
         return (CellaBlockEntity) helper.getBlockEntity(WHERE);

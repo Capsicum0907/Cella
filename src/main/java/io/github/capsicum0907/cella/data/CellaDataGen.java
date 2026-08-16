@@ -85,10 +85,10 @@ public final class CellaDataGen {
         protected void addTranslations() {
             add(CellaRegistry.BLOCK.get(), "Cella");
             add("gui.cella.sort", "Sort every page");
-            add("gui.cella.matching", "Put in what this chest already keeps");
-            add("gui.cella.stow", "Put your whole inventory in");
-            add("gui.cella.taking", "Take more of what you are carrying");
+            add("gui.cella.stow", "Put your inventory in");
+            add("gui.cella.stow.shift", "Shift: only what this chest already keeps");
             add("gui.cella.take", "Take as much as will fit");
+            add("gui.cella.take.shift", "Shift: only more of what you are carrying");
             add("gui.cella.prev", "Previous page");
             add("gui.cella.next", "Next page");
         }

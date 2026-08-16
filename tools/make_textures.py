@@ -28,9 +28,7 @@ ASSETS = pathlib.Path(__file__).resolve().parents[1] / "src/main/resources/asset
 OUT = ASSETS / "block/cella.png"
 SORT_OUT = ASSETS / "gui/sort.png"
 STOW_OUT = ASSETS / "gui/stow.png"
-MATCHING_OUT = ASSETS / "gui/matching.png"
 TAKE_OUT = ASSETS / "gui/take.png"
-TAKING_OUT = ASSETS / "gui/taking.png"
 PREV_OUT = ASSETS / "gui/prev.png"
 NEXT_OUT = ASSETS / "gui/next.png"
 
@@ -102,14 +100,12 @@ def crate() -> list[list[tuple[int, int, int, int]]]:
 #
 # Ten and two are measured off the buttons the sorting mod puts on the same screen,
 # not chosen. Six pixels is very little, so these are made to be told apart rather
-# than read: the shelf is low for going in and high for coming out, and the two that
-# pick by kind carry a dot. The tooltip says the rest.
+# than read: the shelf is low for going in and high for coming out, and that is the
+# only thing they have to say. Narrowing either one to matching kinds is shift, which
+# needs no picture of its own - which is why there are two of these and not four.
 ICON = 6
 INK = (0xEE, 0xEE, 0xEE, 0xFF)
 CLEAR = (0x00, 0x00, 0x00, 0x00)
-
-DOT = {(5, 0)}
-
 
 def _rows(ink):
     return [[INK if (x, y) in ink else CLEAR for x in range(ICON)] for y in range(ICON)]
@@ -124,11 +120,9 @@ def _flip(cells):
     return {(x, ICON - 1 - y) for (x, y) in cells}
 
 
-def _arrow(wide):
+def _arrow():
     """Shaft at the top, head under it, pointing down."""
-    stem = _row(0, 2) | _row(1, 2)
-    head = (_row(2, 6) | _row(3, 4)) if wide else (_row(2, 4) | _row(3, 2))
-    return stem | head
+    return _row(0, 2) | _row(1, 2) | _row(2, 6) | _row(3, 4)
 
 
 SHELF_LOW = _row(5, ICON)
@@ -142,22 +136,12 @@ def sort_icon():
 
 def stow_icon():
     """Down into the shelf: everything."""
-    return _rows(SHELF_LOW | _arrow(True))
-
-
-def matching_icon():
-    """The same, narrower, with a dot: only the kinds already there."""
-    return _rows(SHELF_LOW | _arrow(False) | DOT)
+    return _rows(SHELF_LOW | _arrow())
 
 
 def take_icon():
     """Out of the shelf and down, because the chest is the half above."""
-    return _rows(SHELF_HIGH | _flip(_arrow(True)))
-
-
-def taking_icon():
-    """The same with a dot."""
-    return _rows(SHELF_HIGH | _flip(_arrow(False)) | _flip(DOT))
+    return _rows(SHELF_HIGH | _flip(_arrow()))
 
 
 def _chevron(pointing_left):
@@ -207,8 +191,6 @@ if __name__ == "__main__":
     write(OUT, crate())
     write(SORT_OUT, sort_icon())
     write(STOW_OUT, stow_icon())
-    write(MATCHING_OUT, matching_icon())
     write(TAKE_OUT, take_icon())
-    write(TAKING_OUT, taking_icon())
     write(PREV_OUT, prev_icon())
     write(NEXT_OUT, next_icon())
