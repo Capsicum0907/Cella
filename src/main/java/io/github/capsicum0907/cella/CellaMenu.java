@@ -49,7 +49,11 @@ public class CellaMenu extends AbstractContainerMenu {
     /**
      * Opened at a block, on both sides.
      *
-     * <p><b>The size comes over the wire, not out of the config.</b> A chest keeps the
+     * <p><b>The size and the page height come over the wire, not out of the config.</b>
+     * How tall a page is could be read off the block at that position instead, and the
+     * one branch below where there is no block would then have nothing to ask. One more
+     * number in a packet that is already being sent is cheaper than a clever answer with
+     * a hole in it. A chest keeps the
      * size it was built with, so a world whose config has since been turned down holds
      * chests bigger than the config says. The client builds its menu from its own copy of
      * the block entity, which was made at the config's size and knows nothing about the
@@ -57,7 +61,7 @@ public class CellaMenu extends AbstractContainerMenu {
      * end of its own list while it is being filled. Under the old design that mismatch
      * was invisible; here it is a crash, so the number is sent.
      */
-    public static CellaMenu at(int id, Inventory inventory, BlockPos pos, int size) {
+    public static CellaMenu at(int id, Inventory inventory, BlockPos pos, int size, int page) {
         Level level = inventory.player.level();
         IItemHandlerModifiable contents;
         if (level.getBlockEntity(pos) instanceof CellaBlockEntity chest) {
@@ -70,15 +74,15 @@ public class CellaMenu extends AbstractContainerMenu {
         } else {
             contents = new ItemStackHandler(size);
         }
-        return new CellaMenu(id, inventory, contents, ContainerLevelAccess.create(level, pos));
+        return new CellaMenu(id, inventory, contents, page, ContainerLevelAccess.create(level, pos));
     }
 
     private CellaMenu(int id, Inventory inventory, IItemHandlerModifiable contents,
-            ContainerLevelAccess access) {
+            int pageSize, ContainerLevelAccess access) {
         super(CellaRegistry.MENU.get(), id);
         this.access = access;
         this.contents = contents;
-        this.pageSize = CellaConfig.pageSize();
+        this.pageSize = pageSize;
 
         // Every page's slots, all at the same coordinates, stacked one page deep. Only
         // the page on show answers isActive, so only it is drawn or clicked.
@@ -307,7 +311,11 @@ public class CellaMenu extends AbstractContainerMenu {
 
     @Override
     public boolean stillValid(Player player) {
-        return AbstractContainerMenu.stillValid(access, player, CellaRegistry.BLOCK.get());
+        // Any of them, because a menu does not care which kind it was opened on - only
+        // that the player is still standing at one.
+        return access.evaluate((level, pos) ->
+                level.getBlockState(pos).getBlock() instanceof CellaBlock
+                        && player.canInteractWithBlock(pos, 4.0), true);
     }
 
     /**

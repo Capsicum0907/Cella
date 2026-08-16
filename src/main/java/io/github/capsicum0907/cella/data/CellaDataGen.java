@@ -4,6 +4,7 @@ import java.util.concurrent.CompletableFuture;
 
 import io.github.capsicum0907.cella.Cella;
 import io.github.capsicum0907.cella.CellaRegistry;
+import io.github.capsicum0907.cella.Kind;
 
 import net.minecraft.core.HolderLookup;
 import net.minecraft.data.DataGenerator;
@@ -47,6 +48,8 @@ public final class CellaDataGen {
         generator.addProvider(event.includeClient(), new Language(output));
         generator.addProvider(event.includeServer(), new Recipes(output, event.getLookupProvider()));
         generator.addProvider(event.includeServer(), new TestStructures(output));
+        generator.addProvider(event.includeClient(), new ChestSheets(output));
+        generator.addProvider(event.includeClient(), new ChestAtlas(output));
         generator.addProvider(event.includeServer(),
                 new Tags(output, event.getLookupProvider(), event.getExistingFileHelper()));
     }
@@ -60,7 +63,9 @@ public final class CellaDataGen {
 
         @Override
         protected void addTags(HolderLookup.Provider registries) {
-            tag(BlockTags.MINEABLE_WITH_AXE).add(CellaRegistry.BLOCK.get());
+            for (Kind kind : Kind.values()) {
+                tag(BlockTags.MINEABLE_WITH_AXE).add(CellaRegistry.block(kind).get());
+            }
         }
     }
 
@@ -82,25 +87,35 @@ public final class CellaDataGen {
          * block entity renderer without a whole other client hook, and it does not need
          * to be - nobody turns a chest over in their hand.
          */
+        /**
+         * The block's model has no geometry at all - only a particle, for the dust when
+         * it breaks and the crack overlay while it is being mined. What is seen is
+         * {@code CellaRenderer}. Leaving a cube here would draw one inside the chest.
+         *
+         * <p>Per kind, and named per kind: one builder reused under one name would leave
+         * every chest looking like whichever was generated last.
+         */
         @Override
         protected void registerStatesAndModels() {
-            String name = CellaRegistry.BLOCK.getId().getPath();
-            horizontalBlock(CellaRegistry.BLOCK.get(),
-                    models().getBuilder(name).texture("particle", modLoc("block/" + name)));
+            for (Kind kind : Kind.values()) {
+                String name = kind.id();
+                horizontalBlock(CellaRegistry.block(kind).get(),
+                        models().getBuilder(name).texture("particle", modLoc("block/crate")));
 
-            // block/block for the parent, which carries the display transforms a block
-            // is held and dropped with. item/generated is for a flat sprite and would
-            // lay this on its side in the hand.
-            itemModels().getBuilder(name)
-                    .parent(new ModelFile.UncheckedModelFile("block/block"))
-                    .texture("all", modLoc("block/" + name))
-                    .texture("particle", modLoc("block/" + name))
-                    .element().from(1, 0, 1).to(15, 10, 15)
-                            .allFaces((face, builder) -> builder.texture("#all")).end()
-                    .element().from(1, 10, 1).to(15, 14, 15)
-                            .allFaces((face, builder) -> builder.texture("#all")).end()
-                    .element().from(7, 7, 0).to(9, 11, 1)
-                            .allFaces((face, builder) -> builder.texture("#all")).end();
+                // block/block for the parent, which carries the display transforms a
+                // block is held and dropped with. item/generated is for a flat sprite and
+                // would lay this on its side in the hand.
+                itemModels().getBuilder(name)
+                        .parent(new ModelFile.UncheckedModelFile("block/block"))
+                        .texture("all", modLoc("block/crate"))
+                        .texture("particle", modLoc("block/crate"))
+                        .element().from(1, 0, 1).to(15, 10, 15)
+                                .allFaces((face, builder) -> builder.texture("#all")).end()
+                        .element().from(1, 10, 1).to(15, 14, 15)
+                                .allFaces((face, builder) -> builder.texture("#all")).end()
+                        .element().from(7, 7, 0).to(9, 11, 1)
+                                .allFaces((face, builder) -> builder.texture("#all")).end();
+            }
         }
     }
 
@@ -111,7 +126,9 @@ public final class CellaDataGen {
 
         @Override
         protected void addTranslations() {
-            add(CellaRegistry.BLOCK.get(), "Cella");
+            for (Kind kind : Kind.values()) {
+                add(CellaRegistry.block(kind).get(), kind.displayName());
+            }
             add("gui.cella.sort", "Sort every page");
             add("gui.cella.stow", "Put in what this chest already keeps");
             add("gui.cella.stow.shift", "Shift: your whole inventory");
@@ -133,17 +150,21 @@ public final class CellaDataGen {
             super(output, registries);
         }
 
+        /** The middle is what makes it one kind rather than another; the rest is shared. */
         @Override
         protected void buildRecipes(RecipeOutput output) {
-            ShapedRecipeBuilder.shaped(RecipeCategory.DECORATIONS, CellaRegistry.BLOCK.get())
-                    .pattern("PCP")
-                    .pattern("CIC")
-                    .pattern("PCP")
-                    .define('P', Items.IRON_NUGGET)
-                    .define('C', Blocks.CHEST)
-                    .define('I', Items.IRON_INGOT)
-                    .unlockedBy("has_chest", has(Blocks.CHEST))
-                    .save(output);
+            for (Kind kind : Kind.values()) {
+                ShapedRecipeBuilder.shaped(RecipeCategory.DECORATIONS,
+                                CellaRegistry.block(kind).get())
+                        .pattern("PCP")
+                        .pattern("CIC")
+                        .pattern("PCP")
+                        .define('P', Items.IRON_NUGGET)
+                        .define('C', Blocks.CHEST)
+                        .define('I', kind.core())
+                        .unlockedBy("has_chest", has(Blocks.CHEST))
+                        .save(output);
+            }
         }
     }
 }

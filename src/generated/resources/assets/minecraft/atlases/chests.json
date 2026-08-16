@@ -1,0 +1,9 @@
+{
+  "__comment": "Adds cella to the chest atlas.",
+  "sources": [
+    {
+      "type": "minecraft:single",
+      "resource": "cella:entity/chest/cella"
+    }
+  ]
+}

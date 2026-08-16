@@ -2,7 +2,9 @@ package io.github.capsicum0907.cella;
 
 import java.util.List;
 
+import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -40,7 +42,20 @@ import net.minecraft.world.phys.shapes.VoxelShape;
  * inside the chest.
  */
 public class CellaBlock extends BaseEntityBlock {
-    public static final MapCodec<CellaBlock> CODEC = simpleCodec(CellaBlock::new);
+    /**
+     * <b>Not simpleCodec.</b> That one rebuilds a block from its properties alone, and a
+     * kind is not a property - it is which block this is. The codec has to carry it or a
+     * world reloads every chest as the first kind.
+     */
+    public static final MapCodec<CellaBlock> CODEC = RecordCodecBuilder.mapCodec(
+            instance -> instance.group(
+                            Codec.STRING.fieldOf("kind")
+                                    .forGetter(block -> block.kind.id()),
+                            propertiesCodec())
+                    .apply(instance, (id, properties) -> new CellaBlock(Kind.valueOf(
+                            id.toUpperCase(java.util.Locale.ROOT)), properties)));
+
+    private final Kind kind;
 
     /** Which way it was put down, the same property a vanilla chest uses. */
     public static final DirectionProperty FACING = HorizontalDirectionalBlock.FACING;
@@ -48,9 +63,15 @@ public class CellaBlock extends BaseEntityBlock {
     /** A chest is not a full block: one sixteenth in on each side, and two short. */
     private static final VoxelShape SHAPE = Block.box(1.0, 0.0, 1.0, 15.0, 14.0, 15.0);
 
-    public CellaBlock(Properties properties) {
+    public CellaBlock(Kind kind, Properties properties) {
         super(properties);
+        this.kind = kind;
         registerDefaultState(stateDefinition.any().setValue(FACING, Direction.NORTH));
+    }
+
+    /** Which of them this is. Everything that differs between chests is asked of this. */
+    public Kind kind() {
+        return kind;
     }
 
     @Override
@@ -111,6 +132,7 @@ public class CellaBlock extends BaseEntityBlock {
             server.openMenu(chest, buffer -> {
                 buffer.writeBlockPos(pos);
                 buffer.writeVarInt(chest.contents().getSlots());
+                buffer.writeVarInt(kind.pageSize());
             });
             chest.opened(player);
         }

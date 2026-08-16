@@ -130,6 +130,25 @@ written into the packet that opens the screen. This mattered less when the menu 
 one page wide; now a client whose menu is shorter than what the server sends walks
 off the end of its own list.
 
+### There is a list of kinds, and it is the only one
+
+`Kind` is an enum, and every column in it is something that differs between one chest
+and the next: the id, the name it is called, how many rows and pages it is made with,
+the one colour its texture is derived from, and the ingredient in the middle of its
+recipe. Adding a chest is a line there. Registration, the block entity's size, the
+renderer's sheet, the recipe, the language file, the config section and the texture
+itself are all read from it.
+
+**The texture is generated in Java for that reason.** It used to be drawn by a script
+under `tools/`, which would have put each kind's colour in one language and everything
+else about it in another — two lists to keep in step. `ChestSheets` writes the sheets
+at data generation, `ChestAtlas` writes the atlas entry that puts them on the chest
+sheet, and what is left in `tools/` is the pictures that belong to no kind.
+
+One block entity type serves them all, and one menu. A type per kind would buy
+nothing: the block entity behaves the same whatever it is in, and asks the block it
+sits in how big it should be.
+
 ### It is drawn as a chest, and the lid opens
 
 A block entity renderer, not a model: the three parts come from

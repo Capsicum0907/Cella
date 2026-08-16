@@ -70,7 +70,9 @@ public class Cella {
      */
     private static void creativeTab(BuildCreativeModeTabContentsEvent event) {
         if (event.getTabKey() == CreativeModeTabs.FUNCTIONAL_BLOCKS) {
-            event.accept(CellaRegistry.ITEM.get());
+            for (Kind kind : Kind.values()) {
+                event.accept(CellaRegistry.item(kind).get());
+            }
         }
     }
 

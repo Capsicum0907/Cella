@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Draw the Cella block texture.
+"""Draw the pictures that belong to no kind of chest.
+
+The chest sheets are not here: they differ per kind, and the list of kinds is
+in Java. Generating them from a second list in a second language would be two
+lists to keep in step. See ChestSheets.
 
 This script is the source of the sprite; the PNG under src/main/resources is its
 output and is not edited by hand.
@@ -25,13 +29,12 @@ import zlib
 SIZE = 16  # the block texture; the gui icons are ICON square
 
 ASSETS = pathlib.Path(__file__).resolve().parents[1] / "src/main/resources/assets/cella/textures"
-OUT = ASSETS / "block/cella.png"
+OUT = ASSETS / "block/crate.png"
 SORT_OUT = ASSETS / "gui/sort.png"
 STOW_OUT = ASSETS / "gui/stow.png"
 TAKE_OUT = ASSETS / "gui/take.png"
 PREV_OUT = ASSETS / "gui/prev.png"
 NEXT_OUT = ASSETS / "gui/next.png"
-CHEST_OUT = ASSETS / "entity/chest/cella.png"
 
 # One place for every colour. Body, and the two derived from it.
 WOOD = (0x8A, 0x66, 0x3C, 0xFF)
@@ -198,114 +201,6 @@ def next_icon():
 # ship however it is generated.
 SHEET = 64
 
-# Red, because a chest that is not a vanilla chest should not read as one from across
-# a room.
-#
-# The *structure* is vanilla's and was read off its own file rather than guessed at.
-# What that file is, counted: no bands and no clean lines. Each face is a wash of six
-# or so shades a step apart, scattered pixel by pixel; every fourth row leans darker,
-# which is where a board meets the next; and every face carries a one-pixel near-black
-# edge. The lock is four shades of grey and hardly any of them.
-#
-# The first version here drew tidy bands every four pixels, which is what a person
-# assumes wood looks like and is nothing like what is actually in the file. Beside a
-# real chest it read as a striped box.
-#
-# The shades are ours and the arrangement is theirs. Reading how a texture is built is
-# not the same as shipping it.
-BODY = (
-    (0xC4, 0x4E, 0x44, 0xFF),
-    (0xB8, 0x43, 0x3A, 0xFF),
-    (0xAE, 0x3C, 0x33, 0xFF),
-    (0xA6, 0x36, 0x2E, 0xFF),
-    (0x9C, 0x30, 0x29, 0xFF),
-    (0x92, 0x2B, 0x24, 0xFF),
-)
-#: The shades a board takes where it meets the next one. Named apart from the crate's
-#: single SEAM colour above, which is a different picture's idea of the same word.
-JOINT = (
-    (0x86, 0x25, 0x1F, 0xFF),
-    (0x7C, 0x21, 0x1B, 0xFF),
-    (0x72, 0x1D, 0x18, 0xFF),
-)
-EDGE = (0x33, 0x14, 0x10, 0xFF)
-NOTHING = (0x00, 0x00, 0x00, 0x00)
-
-LATCH = (0x8C, 0x8C, 0x94, 0xFF)
-LATCH_LIT = (0xC2, 0xC2, 0xCA, 0xFF)
-LATCH_DARK = (0x5C, 0x5C, 0x64, 0xFF)
-
-#: How often a board meets the next one, counted off vanilla's own faces.
-BOARD_EVERY = 4
-
-
-def _scatter(x, y, choices):
-    """A shade for this pixel, the same one every time this runs.
-
-    Deliberately not random: the file has to come out identical from one run to the
-    next or every regeneration is a diff. A hash of the position gives the disorder
-    without the irreproducibility.
-    """
-    mixed = (x * 73_856_093) ^ (y * 19_349_663)
-    mixed ^= mixed >> 13
-    return choices[(mixed & 0x7FFFFFFF) % len(choices)]
-
-
-def _faces(u, v, w, h, d):
-    """Where the six faces of a box land, as (x, y, width, height, is_lengthwise)."""
-    return [
-        (u + d, v, w, d, True),           # down
-        (u + d + w, v, w, d, True),       # up
-        (u, v + d, d, h, False),          # east
-        (u + d, v + d, w, h, False),      # north
-        (u + d + w, v + d, d, h, False),  # west
-        (u + d + w + d, v + d, w, h, False),  # south
-    ]
-
-
-def _board(sheet, x, y, w, h, across):
-    """A face: near-black all the way round, a wash inside, darker where boards meet.
-
-    `across` turns the boards a quarter: the faces you look down at have them running
-    the length of the box, the ones you look at have them stacked.
-    """
-    for dy in range(h):
-        for dx in range(w):
-            if dx == 0 or dx == w - 1 or dy == 0 or dy == h - 1:
-                sheet[y + dy][x + dx] = EDGE
-                continue
-            along = dx if across else dy
-            joint = along % BOARD_EVERY == BOARD_EVERY - 1
-            sheet[y + dy][x + dx] = _scatter(x + dx, y + dy, JOINT if joint else BODY)
-
-
-def _metal(sheet, x, y, w, h):
-    for dy in range(h):
-        for dx in range(w):
-            if dy == 0 or dx == 0:
-                colour = LATCH_LIT
-            elif dy == h - 1 or dx == w - 1:
-                colour = LATCH_DARK
-            else:
-                colour = LATCH
-            sheet[y + dy][x + dx] = colour
-
-
-def chest_texture():
-    sheet = [[NOTHING for _ in range(SHEET)] for _ in range(SHEET)]
-
-    # The lid, then the bottom. Same treatment: the top and bottom faces get grooves
-    # running the length of the boards, the sides get them across.
-    for u, v, w, h, d in ((0, 0, 14, 5, 14), (0, 19, 14, 10, 14)):
-        for x, y, fw, fh, lengthwise in _faces(u, v, w, h, d):
-            _board(sheet, x, y, fw, fh, across=lengthwise)
-
-    # The lock last: it sits in the corner of the sheet the lid's faces leave empty.
-    for x, y, fw, fh, _ in _faces(0, 0, 2, 4, 1):
-        _metal(sheet, x, y, fw, fh)
-    return sheet
-
-
 def _chunk(kind: bytes, data: bytes) -> bytes:
     return (struct.pack(">I", len(data)) + kind + data
             + struct.pack(">I", zlib.crc32(kind + data) & 0xFFFFFFFF))
@@ -337,4 +232,3 @@ if __name__ == "__main__":
     write(TAKE_OUT, take_icon())
     write(PREV_OUT, prev_icon())
     write(NEXT_OUT, next_icon())
-    write(CHEST_OUT, chest_texture())

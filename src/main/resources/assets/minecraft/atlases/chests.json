@@ -1,9 +1,0 @@
-{
-  "__comment": "Adds this mod's chest sheet to the atlas the chest renderer draws from. Every pack contributing this path is merged rather than overriding, so vanilla's own chests are untouched.",
-  "sources": [
-    {
-      "type": "minecraft:single",
-      "resource": "cella:entity/chest/cella"
-    }
-  ]
-}

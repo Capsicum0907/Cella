@@ -99,7 +99,7 @@
     }
   ],
   "textures": {
-    "all": "cella:block/cella",
-    "particle": "cella:block/cella"
+    "all": "cella:block/crate",
+    "particle": "cella:block/crate"
   }
 }

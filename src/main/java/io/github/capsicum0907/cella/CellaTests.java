@@ -30,6 +30,9 @@ public final class CellaTests {
     /** The player's own three rows and hotbar, which every container menu ends with. */
     private static final int PLAYER_SLOTS = 36;
 
+    /** The kind these tests are written about. Any of them would do. */
+    private static final Kind KIND = Kind.values()[0];
+
     private CellaTests() {
     }
 
@@ -50,10 +53,10 @@ public final class CellaTests {
         CellaBlockEntity chest = place(helper);
         Player player = helper.makeMockPlayer(GameType.SURVIVAL);
         int all = chest.contents().getSlots();
-        int far = LATER * CellaConfig.pageSize() + 4;
+        int far = LATER * KIND.pageSize() + 4;
         chest.contents().setStackInSlot(far, new ItemStack(Items.DIAMOND, 5));
 
-        CellaMenu menu = CellaMenu.at(1, player.getInventory(), helper.absolutePos(WHERE), all);
+        CellaMenu menu = CellaMenu.at(1, player.getInventory(), helper.absolutePos(WHERE), all, KIND.pageSize());
 
         check(menu.slots.size() == all + PLAYER_SLOTS,
                 "the menu should hold the whole chest and the player: " + menu.slots.size());
@@ -74,9 +77,9 @@ public final class CellaTests {
     public static void onlyTheOpenPageIsActive(GameTestHelper helper) {
         CellaBlockEntity chest = place(helper);
         Player player = helper.makeMockPlayer(GameType.SURVIVAL);
-        int page = CellaConfig.pageSize();
+        int page = KIND.pageSize();
         CellaMenu menu = CellaMenu.at(1, player.getInventory(), helper.absolutePos(WHERE),
-                chest.contents().getSlots());
+                chest.contents().getSlots(), KIND.pageSize());
 
         menu.turnTo(LATER);
         for (int slot = 0; slot < chest.contents().getSlots(); slot++) {
@@ -100,9 +103,9 @@ public final class CellaTests {
         CellaBlockEntity chest = place(helper);
         Player player = helper.makeMockPlayer(GameType.SURVIVAL);
         CellaMenu menu = CellaMenu.at(1, player.getInventory(), helper.absolutePos(WHERE),
-                chest.contents().getSlots());
+                chest.contents().getSlots(), KIND.pageSize());
 
-        check(menu.pages() == CellaConfig.PAGES.get(),
+        check(menu.pages() == CellaConfig.pages(KIND),
                 "a new chest should have as many pages as the config says");
         menu.turnTo(menu.pages());
         check(menu.page() == 0, "a page past the end should be ignored");
@@ -127,10 +130,10 @@ public final class CellaTests {
         Player player = helper.makeMockPlayer(GameType.SURVIVAL);
 
         // A chest from a world whose config said something else.
-        int odd = CellaConfig.pageSize() * 3;
+        int odd = KIND.pageSize() * 3;
         chest.contents().setSize(odd);
 
-        CellaMenu menu = CellaMenu.at(1, player.getInventory(), helper.absolutePos(WHERE), odd);
+        CellaMenu menu = CellaMenu.at(1, player.getInventory(), helper.absolutePos(WHERE), odd, KIND.pageSize());
         check(menu.slots.size() == odd + PLAYER_SLOTS,
                 "the menu should have followed the chest: " + menu.slots.size());
         check(menu.pages() == 3, "and counted its pages from it, not from the config");
@@ -153,7 +156,7 @@ public final class CellaTests {
         CellaBlockEntity chest = place(helper);
         Player player = helper.makeMockPlayer(GameType.SURVIVAL);
         CellaMenu menu = CellaMenu.at(1, player.getInventory(), helper.absolutePos(WHERE),
-                chest.contents().getSlots());
+                chest.contents().getSlots(), KIND.pageSize());
 
         for (int on = 0; on < menu.pages(); on++) {
             menu.turnTo(on);
@@ -164,7 +167,7 @@ public final class CellaTests {
                         "two slots at " + slot.x + "," + slot.y + " with page " + on + " open");
             }
             // And the page being shown is the one at the coordinates the screen draws.
-            check(menu.slots.get(on * CellaConfig.pageSize()).y == 18,
+            check(menu.slots.get(on * KIND.pageSize()).y == 18,
                     "the open page should be where the screen draws it");
         }
         helper.succeed();
@@ -183,11 +186,11 @@ public final class CellaTests {
                 helper.absolutePos(WHERE), null);
 
         check(offered != null, "the chest should offer an item handler");
-        check(offered.getSlots() == CellaConfig.pageSize() * CellaConfig.PAGES.get(),
+        check(offered.getSlots() == KIND.pageSize() * CellaConfig.pages(KIND),
                 "and it should be every page, not one: " + offered.getSlots());
 
         // Reaching past the first page has to work, not merely be counted.
-        int far = CellaConfig.pageSize() * (CellaConfig.PAGES.get() - 1);
+        int far = KIND.pageSize() * (CellaConfig.pages(KIND) - 1);
         offered.insertItem(far, new ItemStack(Items.REDSTONE, 7), false);
         check(offered.getStackInSlot(far).getCount() == 7, "and the last page should take items");
         helper.succeed();
@@ -202,7 +205,7 @@ public final class CellaTests {
     @GameTest(template = TestStructures.FLOOR)
     public static void breakingItSpillsEveryPage(GameTestHelper helper) {
         CellaBlockEntity chest = place(helper);
-        chest.contents().setStackInSlot(LATER * CellaConfig.pageSize(),
+        chest.contents().setStackInSlot(LATER * KIND.pageSize(),
                 new ItemStack(Items.GOLD_INGOT, 11));
 
         helper.destroyBlock(WHERE);
@@ -228,13 +231,13 @@ public final class CellaTests {
     public static void shiftClickReachesPastThePage(GameTestHelper helper) {
         CellaBlockEntity chest = place(helper);
         Player player = helper.makeMockPlayer(GameType.SURVIVAL);
-        int page = CellaConfig.pageSize();
+        int page = KIND.pageSize();
         for (int slot = 0; slot < page; slot++) {
             chest.contents().setStackInSlot(slot, new ItemStack(Items.STONE, 64));
         }
 
         CellaMenu menu = CellaMenu.at(1, player.getInventory(), helper.absolutePos(WHERE),
-                chest.contents().getSlots());
+                chest.contents().getSlots(), KIND.pageSize());
         int hand = menu.slots.size() - CellaConfig.COLUMNS;
         menu.slots.get(hand).set(new ItemStack(Items.COAL, 32));
         menu.quickMoveStack(player, hand);
@@ -255,7 +258,7 @@ public final class CellaTests {
     @GameTest(template = TestStructures.FLOOR)
     public static void sortingReachesEveryPage(GameTestHelper helper) {
         CellaBlockEntity chest = place(helper);
-        int page = CellaConfig.pageSize();
+        int page = KIND.pageSize();
 
         // Seventy in three pieces on three pages, so merging leaves a remainder to
         // place as well as a full stack - the two cases that can differ.
@@ -297,7 +300,7 @@ public final class CellaTests {
     public static void stowingReachesPastThePage(GameTestHelper helper) {
         CellaBlockEntity chest = place(helper);
         Player player = helper.makeMockPlayer(GameType.SURVIVAL);
-        int page = CellaConfig.pageSize();
+        int page = KIND.pageSize();
         for (int slot = 0; slot < page; slot++) {
             chest.contents().setStackInSlot(slot, new ItemStack(Items.STONE, 64));
         }
@@ -308,7 +311,7 @@ public final class CellaTests {
         player.getInventory().setItem(20, new ItemStack(Items.BONE, 5));
 
         CellaMenu menu = CellaMenu.at(1, player.getInventory(), helper.absolutePos(WHERE),
-                chest.contents().getSlots());
+                chest.contents().getSlots(), KIND.pageSize());
         menu.clickMenuButton(player, CellaMenu.STOW);
 
         check(player.getInventory().getItem(0).is(Items.IRON_PICKAXE),
@@ -331,14 +334,14 @@ public final class CellaTests {
     public static void takingReachesPastThePage(GameTestHelper helper) {
         CellaBlockEntity chest = place(helper);
         Player player = helper.makeMockPlayer(GameType.SURVIVAL);
-        int page = CellaConfig.pageSize();
+        int page = KIND.pageSize();
 
         // One stack on the first page, one three pages in where nothing can see it.
         chest.contents().setStackInSlot(0, new ItemStack(Items.STONE, 64));
         chest.contents().setStackInSlot(page * 3 + 6, new ItemStack(Items.GOLD_INGOT, 12));
 
         CellaMenu menu = CellaMenu.at(1, player.getInventory(), helper.absolutePos(WHERE),
-                chest.contents().getSlots());
+                chest.contents().getSlots(), KIND.pageSize());
         menu.clickMenuButton(player, CellaMenu.TAKE);
 
         check(chest.contents().getStackInSlot(0).isEmpty()
@@ -359,7 +362,7 @@ public final class CellaTests {
     public static void takingWhatMatchesLeavesTheRest(GameTestHelper helper) {
         CellaBlockEntity chest = place(helper);
         Player player = helper.makeMockPlayer(GameType.SURVIVAL);
-        int page = CellaConfig.pageSize();
+        int page = KIND.pageSize();
 
         chest.contents().setStackInSlot(page * 2, new ItemStack(Items.COBBLESTONE, 40));
         chest.contents().setStackInSlot(page * 2 + 1, new ItemStack(Items.DIAMOND, 3));
@@ -367,7 +370,7 @@ public final class CellaTests {
                 new ItemStack(Items.COBBLESTONE, 1));
 
         CellaMenu menu = CellaMenu.at(1, player.getInventory(), helper.absolutePos(WHERE),
-                chest.contents().getSlots());
+                chest.contents().getSlots(), KIND.pageSize());
         menu.clickMenuButton(player, CellaMenu.TAKING);
 
         check(chest.contents().getStackInSlot(page * 2).isEmpty(),
@@ -399,7 +402,7 @@ public final class CellaTests {
         player.getInventory().setItem(5, new ItemStack(Items.APPLE, 3));
 
         CellaMenu menu = CellaMenu.at(1, player.getInventory(), helper.absolutePos(WHERE),
-                chest.contents().getSlots());
+                chest.contents().getSlots(), KIND.pageSize());
         menu.clickMenuButton(player, CellaMenu.STOW);
 
         check(player.getInventory().getItem(5).isEmpty(), "the apples should have gone in");
@@ -440,7 +443,7 @@ public final class CellaTests {
     }
 
     private static CellaBlockEntity place(GameTestHelper helper) {
-        helper.setBlock(WHERE, CellaRegistry.BLOCK.get());
+        helper.setBlock(WHERE, CellaRegistry.block(KIND).get());
         return (CellaBlockEntity) helper.getBlockEntity(WHERE);
     }
 

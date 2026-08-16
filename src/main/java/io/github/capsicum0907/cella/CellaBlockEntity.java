@@ -75,7 +75,7 @@ public class CellaBlockEntity extends BlockEntity implements MenuProvider, LidBl
 
     public CellaBlockEntity(BlockPos pos, BlockState state) {
         super(CellaRegistry.BLOCK_ENTITY.get(), pos, state);
-        this.contents = new ItemStackHandler(CellaConfig.pageSize() * CellaConfig.PAGES.get()) {
+        this.contents = new ItemStackHandler(kindOf(state).slots()) {
             @Override
             protected void onContentsChanged(int slot) {
                 setChanged();
@@ -90,6 +90,21 @@ public class CellaBlockEntity extends BlockEntity implements MenuProvider, LidBl
 
     public ItemStackHandler contents() {
         return contents;
+    }
+
+    /**
+     * Which kind of chest this sits in.
+     *
+     * <p>Asked of the block rather than saved, because it cannot disagree that way: a
+     * block entity is only ever in the block it was made for. The fallback is the first
+     * kind, and is only reachable if one of these is somehow put somewhere else.
+     */
+    public static Kind kindOf(BlockState state) {
+        return state.getBlock() instanceof CellaBlock chest ? chest.kind() : Kind.values()[0];
+    }
+
+    public Kind kind() {
+        return kindOf(getBlockState());
     }
 
     @Override
@@ -195,6 +210,7 @@ public class CellaBlockEntity extends BlockEntity implements MenuProvider, LidBl
 
     @Override
     public AbstractContainerMenu createMenu(int id, Inventory inventory, Player player) {
-        return CellaMenu.at(id, inventory, getBlockPos(), contents.getSlots());
+        return CellaMenu.at(id, inventory, getBlockPos(), contents.getSlots(),
+                kind().pageSize());
     }
 }
