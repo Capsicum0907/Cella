@@ -87,6 +87,11 @@ set — sort, and four ways of moving:
 | Put your inventory in | everything except what is in hand | only kinds the chest already keeps |
 | Take as much as will fit | stops at the first stack that will not fit | only kinds you are carrying |
 
+The wheel turns the page as well, over the frame — the lid, the margins, the strip
+above the inventory — but never over a slot. The wheel above a slot belongs to
+whatever the player installed to use it there, and a chest that ate that gesture
+would be a chest that broke their mouse.
+
 Two buttons, not four. Four meant two things to tell apart at once — direction and
 reach — and six pixels of picture will carry one. Reach is shift, which in this game
 already means "the same thing, done the other way".

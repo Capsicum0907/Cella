@@ -156,6 +156,31 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     }
 
     /**
+     * The wheel turns the page, over the frame and nowhere else.
+     *
+     * <p><b>Not over a slot.</b> The wheel above a slot already belongs to whoever the
+     * player installed to use it — moving one item at a time, scrolling a stack across —
+     * and a chest that quietly ate that gesture would be a chest that broke their mouse.
+     * The frame is the part of this screen nobody else has a use for, and it is a big
+     * target: the lid, the margins, and the strip above the inventory.
+     *
+     * <p>Up goes back, which is the direction every list scrolls.
+     */
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        if (menu.pages() > 1 && scrollY != 0 && hoveredSlot == null && overPanel(mouseX, mouseY)) {
+            turn(scrollY > 0 ? -1 : 1);
+            return true;
+        }
+        return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
+    }
+
+    private boolean overPanel(double mouseX, double mouseY) {
+        return mouseX >= leftPos && mouseX < leftPos + imageWidth
+                && mouseY >= topPos && mouseY < topPos + imageHeight;
+    }
+
+    /**
      * Turning a page tells nobody.
      *
      * <p>The page is which slots this screen draws, and the server never asks:
