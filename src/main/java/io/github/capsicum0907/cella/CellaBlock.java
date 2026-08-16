@@ -5,24 +5,77 @@ import java.util.List;
 import com.mojang.serialization.MapCodec;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.item.context.BlockPlaceContext;
+import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.block.BaseEntityBlock;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.HorizontalDirectionalBlock;
+import net.minecraft.world.level.block.Mirror;
+import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.level.block.state.properties.DirectionProperty;
 import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.VoxelShape;
 
-/** A chest with more than one page. */
+/**
+ * A chest with more than one page.
+ *
+ * <p>It is drawn the way a chest is drawn — by a block entity renderer, not by a model
+ * — so it faces the way it was placed, stands fourteen sixteenths tall, and leaves a
+ * gap round its sides. {@link #getRenderShape} says {@code ENTITYBLOCK_ANIMATED} and
+ * the model this points at has nothing in it but a particle, or the cube would be drawn
+ * inside the chest.
+ */
 public class CellaBlock extends BaseEntityBlock {
     public static final MapCodec<CellaBlock> CODEC = simpleCodec(CellaBlock::new);
 
+    /** Which way it was put down, the same property a vanilla chest uses. */
+    public static final DirectionProperty FACING = HorizontalDirectionalBlock.FACING;
+
+    /** A chest is not a full block: one sixteenth in on each side, and two short. */
+    private static final VoxelShape SHAPE = Block.box(1.0, 0.0, 1.0, 15.0, 14.0, 15.0);
+
     public CellaBlock(Properties properties) {
         super(properties);
+        registerDefaultState(stateDefinition.any().setValue(FACING, Direction.NORTH));
+    }
+
+    @Override
+    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
+        builder.add(FACING);
+    }
+
+    /** Facing the player who put it down, which is what every chest does. */
+    @Override
+    public BlockState getStateForPlacement(BlockPlaceContext context) {
+        return defaultBlockState().setValue(FACING, context.getHorizontalDirection().getOpposite());
+    }
+
+    @Override
+    protected BlockState rotate(BlockState state, Rotation rotation) {
+        return state.setValue(FACING, rotation.rotate(state.getValue(FACING)));
+    }
+
+    @Override
+    protected BlockState mirror(BlockState state, Mirror mirror) {
+        return state.rotate(mirror.getRotation(state.getValue(FACING)));
+    }
+
+    @Override
+    protected VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos,
+            CollisionContext context) {
+        return SHAPE;
     }
 
     @Override
@@ -35,9 +88,14 @@ public class CellaBlock extends BaseEntityBlock {
         return new CellaBlockEntity(pos, state);
     }
 
+    /**
+     * Drawn by {@code CellaRenderer}, not by a model. The model this block's state
+     * points at carries a particle texture and no geometry, so what is seen is the
+     * renderer's chest and nothing else.
+     */
     @Override
     protected RenderShape getRenderShape(BlockState state) {
-        return RenderShape.MODEL;
+        return RenderShape.ENTITYBLOCK_ANIMATED;
     }
 
     @Override

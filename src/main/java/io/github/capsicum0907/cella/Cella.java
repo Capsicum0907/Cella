@@ -2,6 +2,7 @@ package io.github.capsicum0907.cella;
 
 import com.mojang.logging.LogUtils;
 
+import io.github.capsicum0907.cella.client.CellaRenderer;
 import io.github.capsicum0907.cella.client.CellaScreen;
 
 import net.neoforged.api.distmarker.Dist;
@@ -12,6 +13,7 @@ import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
+import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 
 import org.slf4j.Logger;
@@ -35,6 +37,7 @@ public class Cella {
         modEventBus.addListener(Cella::capabilities);
         if (FMLEnvironment.dist == Dist.CLIENT) {
             modEventBus.addListener(Cella::screens);
+            modEventBus.addListener(Cella::renderers);
         }
 
         modContainer.registerConfig(ModConfig.Type.SERVER, CellaConfig.SPEC);
@@ -57,5 +60,10 @@ public class Cella {
 
     private static void screens(RegisterMenuScreensEvent event) {
         event.register(CellaRegistry.MENU.get(), CellaScreen::new);
+    }
+
+    /** The chest is drawn rather than modelled; see {@link CellaRenderer}. */
+    private static void renderers(EntityRenderersEvent.RegisterRenderers event) {
+        event.registerBlockEntityRenderer(CellaRegistry.BLOCK_ENTITY.get(), CellaRenderer::new);
     }
 }

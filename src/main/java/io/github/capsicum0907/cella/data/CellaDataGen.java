@@ -19,6 +19,7 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.model.generators.BlockStateProvider;
+import net.neoforged.neoforge.client.model.generators.ModelFile;
 import net.neoforged.neoforge.common.data.BlockTagsProvider;
 import net.neoforged.neoforge.common.data.ExistingFileHelper;
 import net.neoforged.neoforge.common.data.LanguageProvider;
@@ -68,11 +69,38 @@ public final class CellaDataGen {
             super(output, Cella.MODID, existingFileHelper);
         }
 
+        /**
+         * The block's model has no geometry at all - only a particle, for the dust when
+         * it breaks and the crack overlay while it is being mined. What is seen is
+         * {@code CellaRenderer}. Leaving a cube here would draw one inside the chest.
+         *
+         * <p>{@code horizontalBlock} makes the four turned variants, so the state matches
+         * the way the renderer reads FACING.
+         *
+         * <p>The item is an ordinary model, built to the same proportions the renderer
+         * uses: a body and a lid with the join showing. An item cannot be drawn by a
+         * block entity renderer without a whole other client hook, and it does not need
+         * to be - nobody turns a chest over in their hand.
+         */
         @Override
         protected void registerStatesAndModels() {
             String name = CellaRegistry.BLOCK.getId().getPath();
-            simpleBlock(CellaRegistry.BLOCK.get(), models().cubeAll(name, modLoc("block/" + name)));
-            itemModels().withExistingParent(name, modLoc("block/" + name));
+            horizontalBlock(CellaRegistry.BLOCK.get(),
+                    models().getBuilder(name).texture("particle", modLoc("block/" + name)));
+
+            // block/block for the parent, which carries the display transforms a block
+            // is held and dropped with. item/generated is for a flat sprite and would
+            // lay this on its side in the hand.
+            itemModels().getBuilder(name)
+                    .parent(new ModelFile.UncheckedModelFile("block/block"))
+                    .texture("all", modLoc("block/" + name))
+                    .texture("particle", modLoc("block/" + name))
+                    .element().from(1, 0, 1).to(15, 10, 15)
+                            .allFaces((face, builder) -> builder.texture("#all")).end()
+                    .element().from(1, 10, 1).to(15, 14, 15)
+                            .allFaces((face, builder) -> builder.texture("#all")).end()
+                    .element().from(7, 7, 0).to(9, 11, 1)
+                            .allFaces((face, builder) -> builder.texture("#all")).end();
         }
     }
 

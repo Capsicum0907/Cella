@@ -31,6 +31,7 @@ STOW_OUT = ASSETS / "gui/stow.png"
 TAKE_OUT = ASSETS / "gui/take.png"
 PREV_OUT = ASSETS / "gui/prev.png"
 NEXT_OUT = ASSETS / "gui/next.png"
+CHEST_OUT = ASSETS / "entity/chest/cella.png"
 
 # One place for every colour. Body, and the two derived from it.
 WOOD = (0x8A, 0x66, 0x3C, 0xFF)
@@ -177,6 +178,103 @@ def next_icon():
     return _rows(_chevron(False))
 
 
+# --- the chest, as the block entity renderer wants it -------------------------
+#
+# The renderer is vanilla's: three parts on a 64x64 sheet, laid out by the standard
+# box unwrap. Read off ChestRenderer.createSingleBodyLayer rather than guessed --
+#
+#     bottom  texOffs(0, 19)  14 x 10 x 14
+#     lid     texOffs(0,  0)  14 x  5 x 14
+#     lock    texOffs(0,  0)   2 x  4 x  1
+#
+# For a box w x h x d at (u, v) the six faces land at
+#
+#     down  (u+d,     v)      w x d      up    (u+d+w,   v)      w x d
+#     east  (u,       v+d)    d x h      north (u+d,     v+d)    w x h
+#     west  (u+d+w,   v+d)    d x h      south (u+d+w+d, v+d)    w x h
+#
+# The layout is vanilla's because the model is; the pixels are not. Recolouring
+# Mojang's chest would be shipping their art with a hue turned, which is not ours to
+# ship however it is generated.
+SHEET = 64
+
+BOARD = (0x9A, 0x71, 0x42, 0xFF)
+BOARD_LIT = (0xB2, 0x86, 0x52, 0xFF)
+BOARD_DARK = (0x76, 0x55, 0x30, 0xFF)
+GROOVE = (0x5E, 0x42, 0x25, 0xFF)
+NOTHING = (0x00, 0x00, 0x00, 0x00)
+
+LATCH = (0x8C, 0x8C, 0x94, 0xFF)
+LATCH_LIT = (0xC2, 0xC2, 0xCA, 0xFF)
+LATCH_DARK = (0x5C, 0x5C, 0x64, 0xFF)
+
+
+def _faces(u, v, w, h, d):
+    """Where the six faces of a box land, as (x, y, width, height, is_lengthwise)."""
+    return [
+        (u + d, v, w, d, True),           # down
+        (u + d + w, v, w, d, True),       # up
+        (u, v + d, d, h, False),          # east
+        (u + d, v + d, w, h, False),      # north
+        (u + d + w, v + d, d, h, False),  # west
+        (u + d + w + d, v + d, w, h, False),  # south
+    ]
+
+
+def _board(sheet, x, y, w, h, across, seam_every=4):
+    """A panel of boards: body colour, a lit top edge, a dark foot, and grooves.
+
+    The grooves run across the short way on the faces you look at and the long way on
+    the ones you look down at, which is what boards do on a real box.
+    """
+    for dy in range(h):
+        for dx in range(w):
+            if across:
+                groove = dx % seam_every == seam_every - 1
+            else:
+                groove = dy % seam_every == seam_every - 1 and dy != h - 1
+            if groove:
+                colour = GROOVE
+            elif dy == 0:
+                colour = BOARD_LIT
+            elif dy == h - 1:
+                colour = BOARD_DARK
+            elif dx == 0:
+                colour = BOARD_LIT
+            elif dx == w - 1:
+                colour = BOARD_DARK
+            else:
+                colour = BOARD
+            sheet[y + dy][x + dx] = colour
+
+
+def _metal(sheet, x, y, w, h):
+    for dy in range(h):
+        for dx in range(w):
+            if dy == 0 or dx == 0:
+                colour = LATCH_LIT
+            elif dy == h - 1 or dx == w - 1:
+                colour = LATCH_DARK
+            else:
+                colour = LATCH
+            sheet[y + dy][x + dx] = colour
+
+
+def chest_texture():
+    sheet = [[NOTHING for _ in range(SHEET)] for _ in range(SHEET)]
+
+    # The lid, then the bottom. Same treatment: the top and bottom faces get grooves
+    # running the length of the boards, the sides get them across.
+    for u, v, w, h, d in ((0, 0, 14, 5, 14), (0, 19, 14, 10, 14)):
+        for x, y, fw, fh, lengthwise in _faces(u, v, w, h, d):
+            _board(sheet, x, y, fw, fh, across=lengthwise)
+
+    # The lock last: it sits in the corner of the sheet the lid's faces leave empty.
+    for x, y, fw, fh, _ in _faces(0, 0, 2, 4, 1):
+        _metal(sheet, x, y, fw, fh)
+    return sheet
+
+
 def _chunk(kind: bytes, data: bytes) -> bytes:
     return (struct.pack(">I", len(data)) + kind + data
             + struct.pack(">I", zlib.crc32(kind + data) & 0xFFFFFFFF))
@@ -208,3 +306,4 @@ if __name__ == "__main__":
     write(TAKE_OUT, take_icon())
     write(PREV_OUT, prev_icon())
     write(NEXT_OUT, next_icon())
+    write(CHEST_OUT, chest_texture())
