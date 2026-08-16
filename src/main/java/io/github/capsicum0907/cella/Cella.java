@@ -11,9 +11,11 @@ import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.loading.FMLEnvironment;
+import net.minecraft.world.item.CreativeModeTabs;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
+import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 
 import org.slf4j.Logger;
@@ -35,6 +37,7 @@ public class Cella {
         CellaRegistry.MENUS.register(modEventBus);
 
         modEventBus.addListener(Cella::capabilities);
+        modEventBus.addListener(Cella::creativeTab);
         if (FMLEnvironment.dist == Dist.CLIENT) {
             modEventBus.addListener(Cella::screens);
             modEventBus.addListener(Cella::renderers);
@@ -56,6 +59,19 @@ public class Cella {
     private static void capabilities(RegisterCapabilitiesEvent event) {
         event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, CellaRegistry.BLOCK_ENTITY.get(),
                 (chest, side) -> chest.contents());
+    }
+
+    /**
+     * Into the functional blocks tab, beside the chests and barrels.
+     *
+     * <p>Not decoration: a block registered into no tab at all is not merely tidy - it
+     * is invisible to anything that reads the creative menu, which is how a recipe
+     * browser builds its list. The mod was craftable and unfindable.
+     */
+    private static void creativeTab(BuildCreativeModeTabContentsEvent event) {
+        if (event.getTabKey() == CreativeModeTabs.FUNCTIONAL_BLOCKS) {
+            event.accept(CellaRegistry.ITEM.get());
+        }
     }
 
     private static void screens(RegisterMenuScreensEvent event) {

@@ -198,18 +198,57 @@ def next_icon():
 # ship however it is generated.
 SHEET = 64
 
-# Red, because a chest that is not a vanilla chest should not look like one from
-# across a room. The wood is stained rather than painted - the lit and dark edges are
-# the same hue at different weights, which is what keeps it reading as boards.
-BOARD = (0xA8, 0x3A, 0x32, 0xFF)
-BOARD_LIT = (0xC4, 0x4E, 0x44, 0xFF)
-BOARD_DARK = (0x82, 0x2A, 0x25, 0xFF)
-GROOVE = (0x5A, 0x1B, 0x18, 0xFF)
+# Red, because a chest that is not a vanilla chest should not read as one from across
+# a room.
+#
+# The *structure* is vanilla's and was read off its own file rather than guessed at.
+# What that file is, counted: no bands and no clean lines. Each face is a wash of six
+# or so shades a step apart, scattered pixel by pixel; every fourth row leans darker,
+# which is where a board meets the next; and every face carries a one-pixel near-black
+# edge. The lock is four shades of grey and hardly any of them.
+#
+# The first version here drew tidy bands every four pixels, which is what a person
+# assumes wood looks like and is nothing like what is actually in the file. Beside a
+# real chest it read as a striped box.
+#
+# The shades are ours and the arrangement is theirs. Reading how a texture is built is
+# not the same as shipping it.
+BODY = (
+    (0xC4, 0x4E, 0x44, 0xFF),
+    (0xB8, 0x43, 0x3A, 0xFF),
+    (0xAE, 0x3C, 0x33, 0xFF),
+    (0xA6, 0x36, 0x2E, 0xFF),
+    (0x9C, 0x30, 0x29, 0xFF),
+    (0x92, 0x2B, 0x24, 0xFF),
+)
+#: The shades a board takes where it meets the next one. Named apart from the crate's
+#: single SEAM colour above, which is a different picture's idea of the same word.
+JOINT = (
+    (0x86, 0x25, 0x1F, 0xFF),
+    (0x7C, 0x21, 0x1B, 0xFF),
+    (0x72, 0x1D, 0x18, 0xFF),
+)
+EDGE = (0x33, 0x14, 0x10, 0xFF)
 NOTHING = (0x00, 0x00, 0x00, 0x00)
 
 LATCH = (0x8C, 0x8C, 0x94, 0xFF)
 LATCH_LIT = (0xC2, 0xC2, 0xCA, 0xFF)
 LATCH_DARK = (0x5C, 0x5C, 0x64, 0xFF)
+
+#: How often a board meets the next one, counted off vanilla's own faces.
+BOARD_EVERY = 4
+
+
+def _scatter(x, y, choices):
+    """A shade for this pixel, the same one every time this runs.
+
+    Deliberately not random: the file has to come out identical from one run to the
+    next or every regeneration is a diff. A hash of the position gives the disorder
+    without the irreproducibility.
+    """
+    mixed = (x * 73_856_093) ^ (y * 19_349_663)
+    mixed ^= mixed >> 13
+    return choices[(mixed & 0x7FFFFFFF) % len(choices)]
 
 
 def _faces(u, v, w, h, d):
@@ -224,31 +263,20 @@ def _faces(u, v, w, h, d):
     ]
 
 
-def _board(sheet, x, y, w, h, across, seam_every=4):
-    """A panel of boards: body colour, a lit top edge, a dark foot, and grooves.
+def _board(sheet, x, y, w, h, across):
+    """A face: near-black all the way round, a wash inside, darker where boards meet.
 
-    The grooves run across the short way on the faces you look at and the long way on
-    the ones you look down at, which is what boards do on a real box.
+    `across` turns the boards a quarter: the faces you look down at have them running
+    the length of the box, the ones you look at have them stacked.
     """
     for dy in range(h):
         for dx in range(w):
-            if across:
-                groove = dx % seam_every == seam_every - 1
-            else:
-                groove = dy % seam_every == seam_every - 1 and dy != h - 1
-            if groove:
-                colour = GROOVE
-            elif dy == 0:
-                colour = BOARD_LIT
-            elif dy == h - 1:
-                colour = BOARD_DARK
-            elif dx == 0:
-                colour = BOARD_LIT
-            elif dx == w - 1:
-                colour = BOARD_DARK
-            else:
-                colour = BOARD
-            sheet[y + dy][x + dx] = colour
+            if dx == 0 or dx == w - 1 or dy == 0 or dy == h - 1:
+                sheet[y + dy][x + dx] = EDGE
+                continue
+            along = dx if across else dy
+            joint = along % BOARD_EVERY == BOARD_EVERY - 1
+            sheet[y + dy][x + dx] = _scatter(x + dx, y + dy, JOINT if joint else BODY)
 
 
 def _metal(sheet, x, y, w, h):
