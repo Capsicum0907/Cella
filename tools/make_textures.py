@@ -26,6 +26,7 @@ SIZE = 16
 
 ASSETS = pathlib.Path(__file__).resolve().parents[1] / "src/main/resources/assets/cella/textures"
 OUT = ASSETS / "block/cella.png"
+SORT_OUT = ASSETS / "gui/sort.png"
 
 # One place for every colour. Body, and the two derived from it.
 WOOD = (0x8A, 0x66, 0x3C, 0xFF)
@@ -86,15 +87,47 @@ def crate() -> list[list[tuple[int, int, int, int]]]:
     return rows
 
 
+# The sort icon: three bars, longest first, which is what a sort button looks like
+# everywhere else. Odd-sized so it sits in the middle of an odd-sized button - the
+# same parity problem the page number had.
+ICON = 11
+BARS = ((1, 1, 9), (1, 4, 6), (1, 7, 3))  # x, y, length; each two pixels deep
+BAR_DEPTH = 2
+
+FACE = (0xEE, 0xEE, 0xEE, 0xFF)
+SHADOW = (0x3F, 0x3F, 0x3F, 0xFF)
+CLEAR = (0x00, 0x00, 0x00, 0x00)
+
+
+def sort_icon() -> list[list[tuple[int, int, int, int]]]:
+    """White bars over a one-pixel shadow, the way the game draws its own labels."""
+    bars = {(x + dx, y + dy)
+            for (x, y, length) in BARS
+            for dx in range(length)
+            for dy in range(BAR_DEPTH)}
+    shadow = {(x + 1, y + 1) for (x, y) in bars} - bars
+    return [[FACE if (x, y) in bars else SHADOW if (x, y) in shadow else CLEAR
+             for x in range(ICON)]
+            for y in range(ICON)]
+
+
 def _chunk(kind: bytes, data: bytes) -> bytes:
     return (struct.pack(">I", len(data)) + kind + data
             + struct.pack(">I", zlib.crc32(kind + data) & 0xFFFFFFFF))
 
 
 def write(path: pathlib.Path, pixels) -> None:
+    """The header says what the pixels are, not what SIZE happens to be.
+
+    It said SIZE while the icon was eleven rows: a file claiming to be sixteen tall
+    with eleven rows in it. Declaring a size instead of measuring one is the same
+    mistake that had the chest screen drawn at 176 by 222.
+    """
+    height = len(pixels)
+    width = len(pixels[0])
     raw = b"".join(b"\x00" + bytes(v for pixel in row for v in pixel) for row in pixels)
     png = (b"\x89PNG\r\n\x1a\n"
-           + _chunk(b"IHDR", struct.pack(">IIBBBBB", SIZE, SIZE, 8, 6, 0, 0, 0))
+           + _chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 6, 0, 0, 0))
            + _chunk(b"IDAT", zlib.compress(raw, 9))
            + _chunk(b"IEND", b""))
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -104,3 +137,4 @@ def write(path: pathlib.Path, pixels) -> None:
 
 if __name__ == "__main__":
     write(OUT, crate())
+    write(SORT_OUT, sort_icon())

@@ -1,5 +1,6 @@
 package io.github.capsicum0907.cella.client;
 
+import io.github.capsicum0907.cella.Cella;
 import io.github.capsicum0907.cella.CellaConfig;
 import io.github.capsicum0907.cella.CellaMenu;
 
@@ -27,6 +28,18 @@ import net.minecraft.world.entity.player.Inventory;
 public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     private static final ResourceLocation BACKGROUND =
             ResourceLocation.withDefaultNamespace("textures/gui/container/generic_54.png");
+
+    /**
+     * Drawn rather than written, because the arrows that mean "sort" in a font are
+     * hairline strokes at this size and did not say what the button does anyway. Three
+     * bars, longest first, which is what a sort button looks like in most things.
+     *
+     * <p>Eleven square, and the numbers passed to blit are the file's own size — the
+     * background above is what happens when they are not.
+     */
+    private static final ResourceLocation SORT_ICON =
+            ResourceLocation.fromNamespaceAndPath(Cella.MODID, "textures/gui/sort.png");
+    private static final int ICON = 11;
 
     /** The strip of background above the slots, and the part below them. */
     private static final int LID = 17;
@@ -61,7 +74,7 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     private static final int DIGITS = 7;
     private static final int BUTTON_Y = 3;
     private static final int TEXT_Y = BUTTON_Y + (BUTTON - DIGITS) / 2;
-    private static final int GAP = 26;
+    private static final int GAP = 34;
     private static final int SPACE = 3;
     private static final int AFTER_TITLE = 6;
 
@@ -115,7 +128,7 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
                 .bounds(leftPos + controls + BUTTON + GAP, topPos + BUTTON_Y, BUTTON, BUTTON)
                 .build());
         // Sorting is the chest's own, not the page's: see Tidy.
-        addRenderableWidget(Button.builder(Component.literal("⇅"), button -> sort())
+        addRenderableWidget(Button.builder(Component.empty(), button -> sort())
                 .tooltip(Tooltip.create(Component.translatable("gui.cella.sort")))
                 .bounds(leftPos + controls + width() - BUTTON, topPos + BUTTON_Y, BUTTON, BUTTON)
                 .build());
@@ -185,6 +198,13 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partial) {
         super.render(graphics, mouseX, mouseY, partial);
+        if (menu.window().pages() > 1) {
+            // After the widgets, because the button draws its own face first. Centred
+            // by the pixel: eleven in thirteen leaves one either side.
+            int inset = (BUTTON - ICON) / 2;
+            graphics.blit(SORT_ICON, leftPos + controls + width() - BUTTON + inset,
+                    topPos + BUTTON_Y + inset, 0, 0, ICON, ICON, ICON, ICON);
+        }
         renderTooltip(graphics, mouseX, mouseY);
     }
 }
