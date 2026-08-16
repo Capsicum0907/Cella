@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=east": {
+      "model": "cella:block/laravel",
+      "y": 90
+    },
+    "facing=north": {
+      "model": "cella:block/laravel"
+    },
+    "facing=south": {
+      "model": "cella:block/laravel",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "cella:block/laravel",
+      "y": 270
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=east": {
+      "model": "cella:block/perfect",
+      "y": 90
+    },
+    "facing=north": {
+      "model": "cella:block/perfect"
+    },
+    "facing=south": {
+      "model": "cella:block/perfect",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "cella:block/perfect",
+      "y": 270
+    }
+  }
+}

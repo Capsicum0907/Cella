@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=east": {
+      "model": "cella:block/max",
+      "y": 90
+    },
+    "facing=north": {
+      "model": "cella:block/max"
+    },
+    "facing=south": {
+      "model": "cella:block/max",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "cella:block/max",
+      "y": 270
+    }
+  }
+}

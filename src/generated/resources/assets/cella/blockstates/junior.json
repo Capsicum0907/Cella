@@ -1,18 +1,18 @@
 {
   "variants": {
     "facing=east": {
-      "model": "cella:block/cella",
+      "model": "cella:block/junior",
       "y": 90
     },
     "facing=north": {
-      "model": "cella:block/cella"
+      "model": "cella:block/junior"
     },
     "facing=south": {
-      "model": "cella:block/cella",
+      "model": "cella:block/junior",
       "y": 180
     },
     "facing=west": {
-      "model": "cella:block/cella",
+      "model": "cella:block/junior",
       "y": 270
     }
   }

@@ -1,5 +1,11 @@
 {
-  "block.cella.cella": "Cella",
+  "block.cella.imperfect": "Imperfect Cella",
+  "block.cella.junior": "Cella Jr.",
+  "block.cella.laravel": "Laravel Cella",
+  "block.cella.max": "Cella Max",
+  "block.cella.perfect": "Perfect Cella",
+  "block.cella.semi_perfect": "Semi-Perfect Cella",
+  "block.cella.super_perfect": "Super Perfect Cella",
   "gui.cella.next": "Next page",
   "gui.cella.prev": "Previous page",
   "gui.cella.sort": "Sort every page",

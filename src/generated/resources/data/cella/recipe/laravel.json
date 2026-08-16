@@ -6,7 +6,7 @@
       "item": "minecraft:chest"
     },
     "I": {
-      "item": "minecraft:iron_ingot"
+      "item": "minecraft:copper_ingot"
     },
     "P": {
       "item": "minecraft:iron_nugget"
@@ -19,6 +19,6 @@
   ],
   "result": {
     "count": 1,
-    "id": "cella:cella"
+    "id": "cella:laravel"
   }
 }

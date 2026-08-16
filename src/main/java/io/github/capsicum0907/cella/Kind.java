@@ -25,10 +25,20 @@ import net.minecraft.world.level.ItemLike;
  */
 public enum Kind {
     /**
-     * The first, and the one every world already has placed. <b>Its id does not change.</b>
-     * Renaming it to something tiered would orphan every chest anybody has built.
+     * The seven, smallest first.
+     *
+     * <p>Capacity climbs with the form and the middle of the recipe climbs with it. The
+     * largest stops at thirty-two pages because that is where the config stops, and the
+     * config stops there because every slot is in the menu — see the README.
      */
-    CELLA("cella", "Cella", 0xA8332B, 6, 8, () -> Items.IRON_INGOT);
+    LARAVEL("laravel", "Laravel Cella", 0x8C9B5A, 3, 1, () -> Items.COPPER_INGOT),
+    JUNIOR("junior", "Cella Jr.", 0x3FB39A, 3, 2, () -> Items.IRON_INGOT),
+    IMPERFECT("imperfect", "Imperfect Cella", 0x4C7A38, 4, 3, () -> Items.GOLD_INGOT),
+    SEMI_PERFECT("semi_perfect", "Semi-Perfect Cella", 0x74A84C, 5, 5, () -> Items.EMERALD),
+    PERFECT("perfect", "Perfect Cella", 0x2F8F52, 6, 8, () -> Items.DIAMOND),
+    SUPER_PERFECT("super_perfect", "Super Perfect Cella", 0x2FB36A, 6, 16,
+            () -> Items.NETHERITE_INGOT),
+    MAX("max", "Cella Max", 0x8A3A2E, 6, 32, () -> Items.NETHER_STAR);
 
     private final String id;
     private final String name;

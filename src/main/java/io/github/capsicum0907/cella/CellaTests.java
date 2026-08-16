@@ -30,8 +30,14 @@ public final class CellaTests {
     /** The player's own three rows and hotbar, which every container menu ends with. */
     private static final int PLAYER_SLOTS = 36;
 
-    /** The kind these tests are written about. Any of them would do. */
-    private static final Kind KIND = Kind.values()[0];
+    /**
+     * The kind these tests are written about.
+     *
+     * <p>Named rather than taken as the first of them: several of these need a chest with
+     * pages to spare, and the first is the smallest form there is. Naming it also means
+     * adding a kind cannot quietly change what is being tested.
+     */
+    private static final Kind KIND = Kind.PERFECT;
 
     private CellaTests() {
     }

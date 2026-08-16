@@ -132,6 +132,10 @@ off the end of its own list.
 
 ### There is a list of kinds, and it is the only one
 
+Seven of them, smallest first: Laravel, Cella Jr., Imperfect, Semi-Perfect, Perfect,
+Super Perfect, Cella Max. Capacity climbs with the form, from twenty-seven slots to
+one thousand seven hundred and twenty-eight, and so does the middle of the recipe.
+
 `Kind` is an enum, and every column in it is something that differs between one chest
 and the next: the id, the name it is called, how many rows and pages it is made with,
 the one colour its texture is derived from, and the ingredient in the middle of its
