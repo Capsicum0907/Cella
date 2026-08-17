@@ -1150,6 +1150,39 @@ public final class CellaTests {
     }
 
     /**
+     * A Cella swept up by the wave takes its chest with it.
+     *
+     * <p>⚠ <b>The wave removes rather than destroys</b> — {@code discard}, so that nothing
+     * is left lying in a crater nobody can reach — and removal is the road that does
+     * <em>not</em> go through the item. So this is the one call site in the mod that has to
+     * remember on its own, and the only one a player could never check by hand: it wants
+     * the End, a lit Perfect and a Cella lying in the reach.
+     *
+     * <p>Nothing here asks {@link Blast} how many waves are in flight or clears the ones
+     * that are. Those are the same static list for the whole server, and a test that
+     * reached into it would be answering for whatever else was running beside it.
+     */
+    @GameTest(template = TestStructures.FLOOR)
+    public static void theWaveTakesTheNamesItSweepsUp(GameTestHelper helper) {
+        net.minecraft.server.level.ServerLevel level = helper.getLevel();
+        HolderLookup.Provider registries = level.registryAccess();
+        Kept kept = Kept.of(level).orElseThrow(
+                () -> new GameTestAssertException("a game test has a server, so it has a store"));
+        java.util.UUID swept = file(kept, registries);
+
+        BlockPos centre = helper.absolutePos(new BlockPos(2, 40, 2));
+        net.minecraft.world.entity.item.ItemEntity lying =
+                carrying(helper, Kind.IMPERFECT, java.util.List.of(swept));
+        lying.moveTo(centre.getX() + 2.5, centre.getY() + 0.5, centre.getZ() + 0.5);
+
+        Blast.start(level, centre, 3);
+        helper.succeedWhen(() -> {
+            check(lying.isRemoved(), "the wave should have taken the item");
+            check(kept.trace(swept).isEmpty(), "and the chest it named with it");
+        });
+    }
+
+    /**
      * A name that simply runs out is lost as surely as one that burns.
      *
      * <p>⚠ <b>And it is the commonest way of the two by a long way</b>, so a cleanup that
