@@ -132,9 +132,15 @@ off the end of its own list.
 
 ### There is a list of kinds, and it is the only one
 
-Seven of them, smallest first: Laravel, Cella Jr., Imperfect, Semi-Perfect, Perfect,
-Super Perfect, Cella Max. Capacity climbs with the form, from twenty-seven slots to
-one thousand seven hundred and twenty-eight, and so does the middle of the recipe.
+Seven of them: Laravel, Imperfect, Semi-Perfect, Perfect, Super Perfect, Cella Max,
+and Cella Jr. off the side of Perfect. Capacity climbs with the form, from twenty-seven
+slots to eighteen hundred, and a page gets wider as well as taller towards the top.
+
+**Imperfect is not crafted.** A Laravel that has been fed enough becomes one, so a kind
+is allowed to have no recipe at all. The rest carry theirs as data — the pattern and
+what the letters mean — because no two of the shapes are alike: nine animals for the
+first, eight of the form before round a block of gold, four of the form before and four
+nether stars round a dragon egg.
 
 `Kind` is an enum, and every column in it is something that differs between one chest
 and the next: the id, the name it is called, how many rows and pages it is made with,

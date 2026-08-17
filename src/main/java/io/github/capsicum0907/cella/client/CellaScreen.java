@@ -63,6 +63,10 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     private static final int PANEL = 0xFFC6C6C6;
     private static final int PANEL_LIT = 0xFFFFFFFF;
     private static final int PANEL_DARK = 0xFF555555;
+    private static final int OUTLINE = 0xFF000000;
+
+    /** How deep the highlight and the shadow run, counted off vanilla's own panel. */
+    private static final int BEVEL = 3;
 
     /** Where vanilla draws a container title, and so where ours starts. */
     private static final int TITLE_X = 8;
@@ -260,13 +264,9 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
      */
     @Override
     protected void renderBg(GuiGraphics graphics, float partial, int mouseX, int mouseY) {
+        panel(graphics, leftPos, topPos, imageWidth, imageHeight);
         int x = leftPos;
         int y = topPos;
-        graphics.fill(x, y, x + imageWidth, y + imageHeight, PANEL);
-        graphics.fill(x, y, x + imageWidth, y + 1, PANEL_LIT);
-        graphics.fill(x, y, x + 1, y + imageHeight, PANEL_LIT);
-        graphics.fill(x, y + imageHeight - 1, x + imageWidth, y + imageHeight, PANEL_DARK);
-        graphics.fill(x + imageWidth - 1, y, x + imageWidth, y + imageHeight, PANEL_DARK);
 
         // The whole page's worth of frames, whether there is a slot behind each or not.
         // The last page of a chest built to older numbers is a short one, and drawing
@@ -298,6 +298,38 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
      * ellipsis to say it was. The controls do not move: a name is a thing you can guess
      * the rest of, and a button is not.
      */
+    /**
+     * The panel, built the way vanilla's picture is built.
+     *
+     * <p>Counted off {@code generic_54} rather than guessed: a one-pixel black outline
+     * with <b>the corner cut away</b> - three pixels gone at each, so it reads as rounded
+     * - then a three-pixel white highlight inside the top and left, a three-pixel #555555
+     * shadow inside the bottom and right, and #C6C6C6 between. A plain rectangle was the
+     * first version and looked like a plain rectangle.
+     */
+    private void panel(GuiGraphics graphics, int x, int y, int w, int h) {
+        // The body, with the corners pulled in a pixel on the first and last rows.
+        graphics.fill(x + 1, y + 2, x + w - 1, y + h - 2, PANEL);
+        graphics.fill(x + 2, y + 1, x + w - 2, y + 2, PANEL);
+        graphics.fill(x + 2, y + h - 2, x + w - 2, y + h - 1, PANEL);
+
+        graphics.fill(x + 1, y + 1, x + w - 1, y + BEVEL + 1, PANEL_LIT);
+        graphics.fill(x + 1, y + 1, x + BEVEL + 1, y + h - 1, PANEL_LIT);
+        graphics.fill(x + 1, y + h - BEVEL - 1, x + w - 1, y + h - 1, PANEL_DARK);
+        graphics.fill(x + w - BEVEL - 1, y + 1, x + w - 1, y + h - 1, PANEL_DARK);
+
+        // The outline last, so nothing has drawn over it.
+        graphics.fill(x + 2, y, x + w - 2, y + 1, OUTLINE);
+        graphics.fill(x + 2, y + h - 1, x + w - 2, y + h, OUTLINE);
+        graphics.fill(x, y + 2, x + 1, y + h - 2, OUTLINE);
+        graphics.fill(x + w - 1, y + 2, x + w, y + h - 2, OUTLINE);
+        for (int cx : new int[] { x + 1, x + w - 2 }) {
+            for (int cy : new int[] { y + 1, y + h - 2 }) {
+                graphics.fill(cx, cy, cx + 1, cy + 1, OUTLINE);
+            }
+        }
+    }
+
     @Override
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
         Component page = Component.literal((menu.page() + 1) + " / " + menu.pages());

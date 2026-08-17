@@ -16,8 +16,8 @@ import net.minecraft.data.recipes.ShapedRecipeBuilder;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.PackType;
 import net.minecraft.tags.BlockTags;
-import net.minecraft.world.item.Items;
-import net.minecraft.world.level.block.Blocks;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.world.level.ItemLike;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -179,45 +179,30 @@ public final class CellaDataGen {
         }
 
         /**
-         * The first is built; the rest are grown.
+         * Whatever each kind says it is made of, and nothing where one says nothing.
          *
-         * <p>One kind grows out of nothing and is made of chests, the way any chest is.
-         * Every other one is the form before it with this form's own material round it —
-         * which is the shape of the thing being modelled, and also means a player cannot
-         * skip a step.
+         * <p>The shapes have no two alike - nine animals, eight of the last form round a
+         * gold block, four of the last and four nether stars round a dragon egg - so this
+         * walks the pattern rather than knowing any of them.
          */
         @Override
         protected void buildRecipes(RecipeOutput output) {
             for (Kind kind : Kind.values()) {
-                kind.from().ifPresentOrElse(
-                        previous -> grown(output, kind, previous),
-                        () -> built(output, kind));
+                kind.formula().ifPresent(formula -> {
+                    ShapedRecipeBuilder shaped = ShapedRecipeBuilder.shaped(
+                            RecipeCategory.DECORATIONS,
+                            CellaRegistry.block(kind).get(), formula.count());
+                    formula.pattern().forEach(shaped::pattern);
+                    formula.of().forEach((letter, what) -> shaped.define(letter, what.get()));
+
+                    // Unlocked by the first thing it asks for, which for everything past
+                    // the first form is the form before it.
+                    ItemLike first = formula.of().values().iterator().next().get();
+                    shaped.unlockedBy("has_" + BuiltInRegistries.ITEM.getKey(first.asItem())
+                            .getPath(), has(first));
+                    shaped.save(output);
+                });
             }
-        }
-
-        private void built(RecipeOutput output, Kind kind) {
-            ShapedRecipeBuilder.shaped(RecipeCategory.DECORATIONS,
-                            CellaRegistry.block(kind).get(), kind.count())
-                    .pattern("PCP")
-                    .pattern("CIC")
-                    .pattern("PCP")
-                    .define('P', Items.IRON_NUGGET)
-                    .define('C', Blocks.CHEST)
-                    .define('I', kind.core())
-                    .unlockedBy("has_chest", has(Blocks.CHEST))
-                    .save(output);
-        }
-
-        private void grown(RecipeOutput output, Kind kind, Kind previous) {
-            ShapedRecipeBuilder.shaped(RecipeCategory.DECORATIONS,
-                            CellaRegistry.block(kind).get(), kind.count())
-                    .pattern(" I ")
-                    .pattern("IXI")
-                    .pattern(" I ")
-                    .define('I', kind.core())
-                    .define('X', CellaRegistry.block(previous).get())
-                    .unlockedBy("has_" + previous.id(), has(CellaRegistry.block(previous).get()))
-                    .save(output);
         }
     }
 }

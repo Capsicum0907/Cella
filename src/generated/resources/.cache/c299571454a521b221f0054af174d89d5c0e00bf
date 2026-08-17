@@ -1,4 +1,4 @@
-// 1.21.1	2026-08-17T09:37:21.0686165	Kind Textures: cella
+// 1.21.1	2026-08-17T10:20:59.0822417	Kind Textures: cella
 af4d1ad7876ba2ba62392b3880c7778d2172cc99 assets/cella/textures/block/imperfect.png
 6085fbbc147d74f1492ee3342e68683056edfc17 assets/cella/textures/block/junior.png
 0b1a4a52e80f1f9532febf963c343650f4d7c701 assets/cella/textures/block/laravel.png
@@ -6,10 +6,10 @@ af4d1ad7876ba2ba62392b3880c7778d2172cc99 assets/cella/textures/block/imperfect.p
 2fe9b33089570ff5caed95f8c33459bf104e78e6 assets/cella/textures/block/perfect.png
 9313e18a5cec7c134fc28edabac000e4817c4bd1 assets/cella/textures/block/semi_perfect.png
 5988bbee7f3a7640e7a55b5bdbb19ddb4fbf8e5b assets/cella/textures/block/super_perfect.png
-25525ea5b10ffd7d08f4ce15f56d20c9cd7e59bb assets/cella/textures/entity/chest/imperfect.png
-808e465048cb6900014cf2dea3db4b26892e594f assets/cella/textures/entity/chest/junior.png
-57492a29b845f41a6a0d705465c7961bf8f165ee assets/cella/textures/entity/chest/laravel.png
-d90b8ed15daaadf426c6910c227a270a4916a7c7 assets/cella/textures/entity/chest/max.png
-b26cb22a6fa2112e36a21326f04b68e006176118 assets/cella/textures/entity/chest/perfect.png
-eff61bbf0211b12f4719e3c54332506c5126657a assets/cella/textures/entity/chest/semi_perfect.png
-2e333118cf554a3d9cd2178565b6c2098d10736a assets/cella/textures/entity/chest/super_perfect.png
+3de565d8526dd22c93ae6a6f0f252ea6694d97df assets/cella/textures/entity/chest/imperfect.png
+32141ca67aabf1c3282f289c85892da89254c89b assets/cella/textures/entity/chest/junior.png
+dae2f82573f2c2567fa8ce5afb403bb9f49971b3 assets/cella/textures/entity/chest/laravel.png
+ae7f36be1f8012a9d69a4089c3b9503637d2c6a6 assets/cella/textures/entity/chest/max.png
+51b49271f545e18e7aa3e7189e27ebe9940f2956 assets/cella/textures/entity/chest/perfect.png
+edb608dd8c71ab576fa4c16eedd1422d26898f46 assets/cella/textures/entity/chest/semi_perfect.png
+071d6df1af66ffffe60ce3f7dc8763b6103f72c0 assets/cella/textures/entity/chest/super_perfect.png

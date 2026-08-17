@@ -2,17 +2,17 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "key": {
-    "I": {
-      "item": "minecraft:diamond"
-    },
-    "X": {
+    "C": {
       "item": "cella:semi_perfect"
+    },
+    "G": {
+      "item": "minecraft:gold_block"
     }
   },
   "pattern": [
-    " I ",
-    "IXI",
-    " I "
+    "CCC",
+    "CGC",
+    "CCC"
   ],
   "result": {
     "count": 1,

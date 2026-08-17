@@ -2,17 +2,17 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "key": {
-    "I": {
-      "item": "minecraft:egg"
-    },
-    "X": {
+    "C": {
       "item": "cella:perfect"
+    },
+    "D": {
+      "item": "minecraft:diamond_block"
     }
   },
   "pattern": [
-    " I ",
-    "IXI",
-    " I "
+    "DDD",
+    "DCD",
+    "DDD"
   ],
   "result": {
     "count": 7,

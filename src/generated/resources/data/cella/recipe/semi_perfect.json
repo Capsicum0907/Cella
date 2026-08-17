@@ -2,17 +2,17 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "key": {
-    "I": {
-      "item": "minecraft:emerald"
-    },
-    "X": {
+    "C": {
       "item": "cella:imperfect"
+    },
+    "O": {
+      "item": "minecraft:obsidian"
     }
   },
   "pattern": [
-    " I ",
-    "IXI",
-    " I "
+    "CCC",
+    "COC",
+    "CCC"
   ],
   "result": {
     "count": 1,

@@ -2,17 +2,20 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "key": {
-    "I": {
-      "item": "minecraft:netherite_ingot"
-    },
-    "X": {
+    "C": {
       "item": "cella:perfect"
+    },
+    "E": {
+      "item": "minecraft:dragon_egg"
+    },
+    "S": {
+      "item": "minecraft:nether_star"
     }
   },
   "pattern": [
-    " I ",
-    "IXI",
-    " I "
+    "CSC",
+    "SES",
+    "CSC"
   ],
   "result": {
     "count": 1,

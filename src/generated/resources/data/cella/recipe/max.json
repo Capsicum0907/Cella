@@ -2,17 +2,20 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "key": {
-    "I": {
-      "item": "minecraft:nether_star"
-    },
-    "X": {
+    "C": {
       "item": "cella:super_perfect"
+    },
+    "E": {
+      "item": "minecraft:elytra"
+    },
+    "T": {
+      "item": "minecraft:totem_of_undying"
     }
   },
   "pattern": [
-    " I ",
-    "IXI",
-    " I "
+    "CTC",
+    "TET",
+    "CTC"
   ],
   "result": {
     "count": 1,

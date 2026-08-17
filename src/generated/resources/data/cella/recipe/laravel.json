@@ -2,20 +2,38 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "key": {
+    "B": {
+      "item": "minecraft:beef"
+    },
     "C": {
       "item": "minecraft:chest"
     },
-    "I": {
-      "item": "minecraft:copper_ingot"
+    "F": {
+      "item": "minecraft:rotten_flesh"
+    },
+    "H": {
+      "item": "minecraft:pufferfish"
+    },
+    "M": {
+      "item": "minecraft:mutton"
+    },
+    "O": {
+      "item": "minecraft:cod"
     },
     "P": {
-      "item": "minecraft:iron_nugget"
+      "item": "minecraft:porkchop"
+    },
+    "R": {
+      "item": "minecraft:rabbit"
+    },
+    "S": {
+      "item": "minecraft:spider_eye"
     }
   },
   "pattern": [
-    "PCP",
-    "CIC",
-    "PCP"
+    "BPM",
+    "HCR",
+    "OSF"
   ],
   "result": {
     "count": 1,

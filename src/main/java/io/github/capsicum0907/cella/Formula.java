@@ -1,0 +1,60 @@
+package io.github.capsicum0907.cella;
+
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Supplier;
+
+import net.minecraft.world.level.ItemLike;
+
+/**
+ * How one kind of chest is made, as data.
+ *
+ * <p>There was a column for "the ingredient in the middle" and one for "the form before
+ * this one", which was enough while every recipe was the same shape. They are not: one is
+ * nine different animals, one is eight of the last form round a block of gold, one is four
+ * of the last form and four nether stars round a dragon egg, and one does not exist at all
+ * because that form is not crafted.
+ *
+ * <p>So a kind carries its pattern and what the letters in it mean, and the recipe
+ * provider walks that instead of knowing the shapes itself.
+ *
+ * <p>The ingredients are suppliers because a kind is built before the registries are, and
+ * because several of them are other kinds of this same chest — which cannot be looked up
+ * until they exist.
+ */
+public record Formula(List<String> pattern, Map<Character, Supplier<ItemLike>> of, int count) {
+    /** A builder, because a map literal of nine entries is not a thing Java says nicely. */
+    public static class Builder {
+        private final List<String> pattern;
+        private final Map<Character, Supplier<ItemLike>> of = new LinkedHashMap<>();
+        private int count = 1;
+
+        private Builder(String top, String middle, String bottom) {
+            this.pattern = List.of(top, middle, bottom);
+        }
+
+        public Builder key(char letter, Supplier<ItemLike> what) {
+            of.put(letter, what);
+            return this;
+        }
+
+        /** The letter stands for another of these chests. */
+        public Builder key(char letter, Kind kind) {
+            return key(letter, () -> CellaRegistry.block(kind).get());
+        }
+
+        public Builder count(int made) {
+            this.count = made;
+            return this;
+        }
+
+        public Formula done() {
+            return new Formula(pattern, Map.copyOf(of), count);
+        }
+    }
+
+    public static Builder shaped(String top, String middle, String bottom) {
+        return new Builder(top, middle, bottom);
+    }
+}

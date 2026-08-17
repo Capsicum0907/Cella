@@ -81,31 +81,29 @@ public class KindTextures implements DataProvider {
     private static final float EDGE = 0.30F;
 
     /**
-     * The underside of the lid: dark boards, three fifths the weight of the outside.
+     * The two faces you only see with the lid up, and they are built the same way.
      *
-     * <p>Measured off vanilla, whose lid underside means #4F3713 against a top of
-     * #7F5C25 - darker, and every bit as brown.
-     */
-    private static final float UNDER_LID = 0.60F;
-
-    /**
-     * <b>The floor is not dark boards. It is a hole.</b>
+     * <p>Counted off vanilla, whose underside-of-lid and inside-floor share one frame:
      *
-     * <p>Vanilla's inside floor is <em>#000000 for a hundred of its hundred and ninety-six
-     * pixels</em> - a fourteen square face with two pixels of dark wood round the rim and
-     * a ten by ten of nothing in the middle. That is what makes an open chest look like it
-     * has a space in it rather than a painted bottom, and it is why the first attempt at
-     * this was wrong: dimming the boards to two fifths kept their colour, and a dark brown
-     * floor still reads as a floor.
+     * <pre>
+     *     :-------------      the outer ring, dark
+     *     -***##*##**#*-      then a bright ring - the lit lip of the opening
+     *     -#::::::::::#-      then ten by ten of centre
+     * </pre>
+     *
+     * <p><b>The bright ring is what makes it look recessed</b>, and it is the part that
+     * was missing here. Dimming the whole face instead gave a flat dark panel: darker,
+     * and no deeper. The centre is the only thing that differs between the two - dark
+     * boards under the lid, and nothing at all on the floor, which is #000000 for a
+     * hundred of vanilla's hundred and ninety-six pixels.
      */
+    private static final float LIP = 1.15F;
+    private static final float CAVITY = 0.35F;
     private static final int HOLLOW = 0xFF000000;
-    private static final int RIM = 2;
-    private static final float RIM_WEIGHT = 0.35F;
 
     /** Which of the six {@link #faces} is which: the lid's down, the body's up. */
     private static final int DOWN = 0;
     private static final int UP = 1;
-    private static final int NONE = -1;
 
     private static final int LATCH = 0xFF8C8C94;
     private static final int LATCH_LIT = 0xFFC2C2CA;
@@ -156,11 +154,8 @@ public class KindTextures implements DataProvider {
         }
         // The lid, then the bottom. The faces you look down at have their boards running
         // the length of the box; the ones you look at have them stacked.
-        board(sheet, stain, 0, 0, 14, 5, 14, DOWN, UNDER_LID);
-        board(sheet, stain, 0, 19, 14, 10, 14, NONE, 1.0F);
-        // The one face that is not boards at all.
-        int[] floor = faces(0, 19, 14, 10, 14)[UP];
-        hollow(sheet, stain, floor[0], floor[1], floor[2], floor[3]);
+        board(sheet, stain, 0, 0, 14, 5, 14, DOWN);
+        board(sheet, stain, 0, 19, 14, 10, 14, UP);
         // The lock last, in the corner of the sheet the lid's faces leave empty.
         for (int[] face : faces(0, 0, 2, 4, 1)) {
             metal(sheet, face[0], face[1], face[2], face[3]);
@@ -177,7 +172,7 @@ public class KindTextures implements DataProvider {
      */
     private static int[][] tile(int stain) {
         int[][] tile = new int[TILE][TILE];
-        face(tile, stain, 0, 0, TILE, TILE, 1.0F);
+        face(tile, stain, 0, 0, TILE, TILE);
         return tile;
     }
 
@@ -194,34 +189,47 @@ public class KindTextures implements DataProvider {
     }
 
     private static void board(int[][] sheet, int stain, int u, int v, int w, int h, int d,
-            int inwards, float dimmed) {
+            int inwards) {
         int[][] faces = faces(u, v, w, h, d);
         for (int at = 0; at < faces.length; at++) {
             int[] face = faces[at];
-            face(sheet, stain, face[0], face[1], face[2], face[3],
-                    at == inwards ? dimmed : 1.0F);
-        }
-    }
-
-    /** A rim of dark boards and nothing in the middle: what you see when you look in. */
-    private static void hollow(int[][] sheet, int stain, int x, int y, int w, int h) {
-        for (int dy = 0; dy < h; dy++) {
-            for (int dx = 0; dx < w; dx++) {
-                boolean edge = dx < RIM || dx >= w - RIM || dy < RIM || dy >= h - RIM;
-                sheet[y + dy][x + dx] = edge
-                        ? shade(stain, RIM_WEIGHT * BODY[scatter(x + dx, y + dy, BODY.length)])
-                        : HOLLOW;
+            if (at == inwards) {
+                inward(sheet, stain, face[0], face[1], face[2], face[3], inwards == UP);
+            } else {
+                face(sheet, stain, face[0], face[1], face[2], face[3]);
             }
         }
     }
 
-    /** Near-black all the way round, a wash inside, the whole face weighted by `lit`. */
-    private static void face(int[][] sheet, int stain, int x, int y, int w, int h, float lit) {
+    /**
+     * A dark ring, a bright lip inside it, and a centre that is either dark boards or
+     * nothing. See {@link #LIP}.
+     *
+     * @param empty whether the middle is a hole rather than boards - true for the floor,
+     *              which is what you look down into, and false for the lid over it
+     */
+    private static void inward(int[][] sheet, int stain, int x, int y, int w, int h,
+            boolean empty) {
+        for (int dy = 0; dy < h; dy++) {
+            for (int dx = 0; dx < w; dx++) {
+                int ring = Math.min(Math.min(dx, dy), Math.min(w - 1 - dx, h - 1 - dy));
+                float wash = BODY[scatter(x + dx, y + dy, BODY.length)];
+                sheet[y + dy][x + dx] = switch (ring) {
+                    case 0 -> shade(stain, EDGE);
+                    case 1 -> shade(stain, LIP * wash);
+                    default -> empty ? HOLLOW : shade(stain, CAVITY * wash);
+                };
+            }
+        }
+    }
+
+    /** Near-black all the way round, a wash inside. */
+    private static void face(int[][] sheet, int stain, int x, int y, int w, int h) {
         for (int dy = 0; dy < h; dy++) {
             for (int dx = 0; dx < w; dx++) {
                 boolean rim = dx == 0 || dx == w - 1 || dy == 0 || dy == h - 1;
-                float weight = rim ? EDGE : BODY[scatter(x + dx, y + dy, BODY.length)];
-                sheet[y + dy][x + dx] = shade(stain, weight * lit);
+                sheet[y + dy][x + dx] = shade(stain,
+                        rim ? EDGE : BODY[scatter(x + dx, y + dy, BODY.length)]);
             }
         }
     }

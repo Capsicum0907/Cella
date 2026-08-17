@@ -1,15 +1,13 @@
-// 1.21.1	2026-08-17T09:05:23.7109468	Recipes
-448b0173ae9cb49fc9137f54ad5376692b5431e7 data/cella/advancement/recipes/decorations/imperfect.json
+// 1.21.1	2026-08-17T10:20:59.0837462	Recipes
 95f9ac777e33d92323fdb6a74b763f06aaf6ba76 data/cella/advancement/recipes/decorations/junior.json
-dac72545d500f84f64497eb93cbec5ae941ed20e data/cella/advancement/recipes/decorations/laravel.json
-7811a1117ded2cf19ad53da07c70ec0b74ca01e9 data/cella/advancement/recipes/decorations/max.json
+8de7d8bad86f2256e8d65d95acf2a509f5efb457 data/cella/advancement/recipes/decorations/laravel.json
+37db62050034fb0a2ff812422a225686bc6345b5 data/cella/advancement/recipes/decorations/max.json
 37c87182699c3a1bca3225a6dd762b5f450f097c data/cella/advancement/recipes/decorations/perfect.json
 90f8b8f70b341e978437ca4522053a51ae9a28a0 data/cella/advancement/recipes/decorations/semi_perfect.json
-f1d71865a5d2991dd24cccce481e46e188c99f88 data/cella/advancement/recipes/decorations/super_perfect.json
-17e469ad41f4837c53af5cc99392183f3262b1f5 data/cella/recipe/imperfect.json
-6b8b2b7fff362cef970efc4bbfec4764e4a878c4 data/cella/recipe/junior.json
-b9996f25676550cc719b751fe845e68dc154d6e8 data/cella/recipe/laravel.json
-fe98155e8f83c2764b3d7450bd6aab997c258744 data/cella/recipe/max.json
-1c4e2d81be176e723c7673cd4b0988eaf7c40e5a data/cella/recipe/perfect.json
-b9989fcc8f219da34ce2022081d290feea962aca data/cella/recipe/semi_perfect.json
-1111fc1071bfc5da364b57d55edad77f88cfe5e2 data/cella/recipe/super_perfect.json
+e46e373a6459755c740e9a67fda19ace6f2bf63a data/cella/advancement/recipes/decorations/super_perfect.json
+9796a2d186c5bf07614fa44f86ef02997875e64f data/cella/recipe/junior.json
+d2a5df0cfb60785491c8e58c2a2fb99f0b112e7d data/cella/recipe/laravel.json
+35cad658203c48b467ca0b47ba8db78ed92d7ac0 data/cella/recipe/max.json
+67d9a6ae84c3ebe7822c25e499fbf0c5ae3905ad data/cella/recipe/perfect.json
+5369f5a473438096faf0ca5a7ce648c344a00165 data/cella/recipe/semi_perfect.json
+aeb1a15ddab73bdb1210c547018d26c1f8ebce8c data/cella/recipe/super_perfect.json
