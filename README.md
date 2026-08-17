@@ -208,6 +208,13 @@ sunken frame a slot sits in, blitted once per slot wherever the menu put it. The
 screen reads the slots off the menu rather than counting them out again, which is
 what keeps the picture and the clicking from disagreeing.
 
+**A frame is drawn where there is a slot, and nowhere else.** The last page of a chest
+built to older numbers is a short one, and the squares past its end used to be drawn
+anyway so the grid came out rectangular. The comment defending that said *an empty
+frame is what an empty slot looks like* — which is the reason not to draw one. Forty-five
+squares that cannot be hovered, clicked or filled, drawn exactly like forty-five that
+can, is the screen lying about what is there. Bare panel is what nothing looks like.
+
 **The texture is generated in Java for that reason.** It used to be drawn by a script
 under `tools/`, which would have put each kind's colour in one language and everything
 else about it in another — two lists to keep in step. `ChestSheets` writes the sheets

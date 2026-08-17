@@ -54,12 +54,6 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     private static final int SLOT_U = 7;
     private static final int SLOT_V = 17;
 
-    /** Where the first row of chest slots begins, under the lid. */
-    private static final int FIRST_Y = 18;
-
-    /** The player's three rows and hotbar, which every container menu ends with. */
-    private static final int PLAYER_SLOTS = 36;
-
     private static final int PANEL = 0xFFC6C6C6;
     private static final int PANEL_LIT = 0xFFFFFFFF;
     private static final int PANEL_DARK = 0xFF555555;
@@ -257,32 +251,28 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
      * button has, for the same reason — and the only thing still taken from the file is
      * the sunken frame a slot sits in, blitted once per slot wherever the menu put it.
      *
-     * <p>Reading the slots off the menu rather than counting them out again is what keeps
-     * the picture and the clicking from disagreeing: there is one list of where things
-     * are and both use it.
+     * <p><b>A frame is drawn where there is a slot, and nowhere else.</b> The last page of
+     * a chest built to older numbers is a short one — a chest keeps the size it was made
+     * at, and that size need not divide by a page — and the squares past its end were
+     * being drawn anyway, so that the grid came out rectangular. That was wrong, and the
+     * comment defending it said so without noticing: <i>an empty frame is what an empty
+     * slot looks like.</i> Which is the reason not to draw one where there is no slot.
+     * Forty-five squares that cannot be hovered, clicked or filled, drawn exactly like
+     * forty-five that can, is the screen lying about what is there — the same fault as
+     * every other one this mod has had, wearing a tidier coat. Bare panel is what nothing
+     * looks like.
+     *
+     * <p>So every frame is read off the menu, the chest's and the player's alike. One
+     * list of where things are, and the picture and the clicking both use it.
      */
     @Override
     protected void renderBg(GuiGraphics graphics, float partial, int mouseX, int mouseY) {
         panel(graphics, leftPos, topPos, imageWidth, imageHeight);
-        int x = leftPos;
-        int y = topPos;
-
-        // The whole page's worth of frames, whether there is a slot behind each or not.
-        // The last page of a chest built to older numbers is a short one, and drawing
-        // only the slots that exist left a hole in the middle of the panel where the
-        // frames stopped. An empty frame is what an empty slot looks like.
-        int chestLeft = (imageWidth - menu.columns() * SLOT) / 2;
-        for (int row = 0; row < rows; row++) {
-            for (int column = 0; column < menu.columns(); column++) {
-                graphics.blit(BACKGROUND, x + chestLeft + column * SLOT - 1,
-                        y + FIRST_Y + row * SLOT - 1, SLOT_U, SLOT_V, SLOT, SLOT);
+        for (net.minecraft.world.inventory.Slot slot : menu.slots) {
+            if (slot.isActive()) {
+                graphics.blit(BACKGROUND, leftPos + slot.x - 1, topPos + slot.y - 1,
+                        SLOT_U, SLOT_V, SLOT, SLOT);
             }
-        }
-        // The player's own, read off the menu: they are the only ones whose places this
-        // screen does not work out for itself.
-        for (int at = menu.slots.size() - PLAYER_SLOTS; at < menu.slots.size(); at++) {
-            net.minecraft.world.inventory.Slot slot = menu.slots.get(at);
-            graphics.blit(BACKGROUND, x + slot.x - 1, y + slot.y - 1, SLOT_U, SLOT_V, SLOT, SLOT);
         }
     }
 
