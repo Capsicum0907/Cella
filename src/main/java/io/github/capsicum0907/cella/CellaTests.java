@@ -1665,6 +1665,13 @@ public final class CellaTests {
 
         check(lasting.isAlive(), "the Super Perfect should still be lying there");
         check(fading.isRemoved(), "and the Perfect should be gone: " + fading.isAlive());
+
+        // ⚠ And still keeping time, because the bob and the spin are read off the same
+        // clock the lifetime is. Stopping it is the obvious way to make an item last and it
+        // leaves one hanging motionless in the air; this winds it back instead.
+        int was = lasting.getAge();
+        lasting.tick();
+        check(lasting.getAge() != was, "and still moving: the clock has to keep running");
         helper.succeed();
     }
 

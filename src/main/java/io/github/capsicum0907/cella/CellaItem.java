@@ -53,7 +53,24 @@ public class CellaItem extends BlockItem {
     }
 
     /**
-     * The five minutes a dropped item has, taken away.
+     * Where the clock is wound back to, and ⚠ <b>why it is not simply stopped</b>.
+     *
+     * <p>{@code setUnlimitedLifetime()} is the obvious call and it is wrong here: it puts
+     * {@code age} at a sentinel the tick skips, so the clock stops — and <b>the bob and the
+     * spin are both read off that clock</b> ({@code sin(age / 10)} and {@code age / 20}).
+     * The item never went away and also never moved again, which is not what anybody meant
+     * by not going away.
+     *
+     * <p>{@code setExtendedLifetime()} winds it back to −6,000 instead and leaves it
+     * running, so it has to be wound again before it runs out. Winding it at <b>32</b> is
+     * what makes the join invisible: the jump is 6,032 ticks, which is 48.0011 turns of the
+     * spin — <b>a fifth of a degree off a whole number of revolutions</b> — and the bob is
+     * half that period, so a multiple of one is a multiple of both.
+     */
+    private static final int WIND_AT = 32;
+
+    /**
+     * The five minutes a dropped item has, given back to it before it runs out.
      *
      * <p>⚠ <b>The commonest way a Cella is lost is not fire or a creeper, it is waiting.</b>
      * Everything else on this axis was already closed for the top of the ladder — burning,
@@ -65,14 +82,19 @@ public class CellaItem extends BlockItem {
      * hundred thousand points of somebody's fighting, and there will never be many of them
      * lying about.
      *
-     * <p>Set every tick rather than once, which costs a comparison and cannot be missed by
-     * an item that arrived some other way.
+     * <p>This runs first thing in the entity's tick, before it ages and before it is asked
+     * whether it has run out, so one that was loaded from a save half a second from expiry
+     * is wound back before anything notices.
      */
     @Override
     public boolean onEntityItemUpdate(ItemStack stack,
             net.minecraft.world.entity.item.ItemEntity entity) {
-        if (kind().trait().unbreakableAsAnItem()) {
-            entity.setUnlimitedLifetime();
+        // Never past the halfway mark of a life shorter than the wind-back point. Nothing
+        // gives a Cella a lifespan that short, and a rule that only holds for the numbers
+        // in front of it is a rule waiting to be wrong.
+        if (kind().trait().unbreakableAsAnItem()
+                && entity.getAge() >= Math.min(WIND_AT, entity.lifespan / 2)) {
+            entity.setExtendedLifetime();
         }
         return false;
     }
