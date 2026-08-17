@@ -119,9 +119,7 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
 
     public CellaScreen(CellaMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
-        // A page's worth of rows, not the chest's. The menu holds every slot, so asking
-        // it how many it has would size the panel to forty-eight rows. imageWidth is
-        // left at the 176 the superclass already has.
+        // A page's worth of rows, which is the menu's - it is a page tall.
         this.rows = menu.rows();
         this.imageWidth = menu.width();
         this.imageHeight = 114 + rows * SLOT;
@@ -227,14 +225,40 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     }
 
     /**
-     * Turning a page tells nobody.
+     * Turning a page: shown at once, and asked for at the same time.
      *
-     * <p>The page is which slots this screen draws, and the server never asks:
-     * {@code isActive} appears nowhere in {@code AbstractContainerMenu} and the click
-     * path does not consult it.
+     * <p>The server owns which page a click means, so it has to be told. It is not
+     * waited for, though — a chest whose arrow answers a round trip later feels broken,
+     * and the drawing is the part that is safe to be early. What is not safe is
+     * {@link #slotClicked}.
      */
     private void turn(int by) {
-        menu.turnTo(Math.floorMod(menu.page() + by, menu.pages()));
+        int to = Math.floorMod(menu.page() + by, menu.pages());
+        menu.turnTo(to);
+        send(to);
+    }
+
+    /**
+     * No clicking a page the server has not agreed to yet.
+     *
+     * <p>For the length of one round trip after turning, this screen is showing the page
+     * that was asked for and the server would still answer about the one before it. A
+     * click in that gap takes whatever is at that square on the <em>old</em> page, which
+     * is not what the pointer is on. So chest clicks are dropped until the two agree —
+     * fifty milliseconds during which an arrow was just pressed, so there is nothing for
+     * the player to lose track of.
+     *
+     * <p>Only the chest half. The player's own slots do not depend on a page, and neither
+     * does shift-clicking out of them: that goes to the whole chest rather than the part
+     * on screen.
+     */
+    @Override
+    protected void slotClicked(net.minecraft.world.inventory.Slot slot, int slotId,
+            int button, net.minecraft.world.inventory.ClickType type) {
+        if (menu.pending() && slotId >= 0 && slotId < menu.pageSize()) {
+            return;
+        }
+        super.slotClicked(slot, slotId, button, type);
     }
 
     /**

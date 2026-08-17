@@ -25,8 +25,9 @@ import net.neoforged.neoforge.items.ItemStackHandler;
  * The chest itself: one run of slots, however many pages that comes to.
  *
  * <p><b>It knows nothing about pages.</b> Paging is a property of looking, and lives in
- * {@link Window}. What is here is a flat handler and the two things that have to be
- * true of it — that it is saved, and that everyone who is not a screen sees all of it.
+ * {@link Window} — a chest is a flat run of slots and a screen is what has a page. So a
+ * hopper, a comparator and the sort button all see the whole thing without asking, and
+ * the two things that have to be true here are that it is saved and that it is one run.
  */
 public class CellaBlockEntity extends BlockEntity implements MenuProvider, LidBlockEntity {
     private static final String CONTENTS = "Contents";

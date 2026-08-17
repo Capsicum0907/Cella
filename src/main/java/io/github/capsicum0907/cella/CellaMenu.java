@@ -7,6 +7,7 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ContainerLevelAccess;
+import net.minecraft.world.inventory.DataSlot;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.ItemStackLinkedSet;
@@ -16,14 +17,14 @@ import net.neoforged.neoforge.items.ItemHandlerHelper;
 import net.neoforged.neoforge.items.ItemStackHandler;
 
 /**
- * The whole chest, of which one page is shown.
+ * One page of a chest, with the whole chest underneath it.
  *
- * <p>Every slot is here. What a page is lives in {@link PagedSlot}, and it is a fact
- * about drawing rather than about storage — so the page is a field on this side of the
- * wire only, and turning it sends nothing.
+ * <p>The menu is a page tall — {@link Window} is the page, and the slots are ordinary
+ * slots into it. The five buttons reach past it into {@link #contents}, which is the
+ * whole thing, because that is what they are for: what a screen can do is limited to what
+ * it shows, and these are the ones that are not.
  *
- * <p>One of these per open screen, so two players reading the same chest can be on
- * different pages without either of them being told about the other.
+ * <p>One of these per open screen. Two players reading the same chest have a page each.
  */
 public class CellaMenu extends AbstractContainerMenu {
     private static final int PLAYER_ROWS = 3;
@@ -36,7 +37,12 @@ public class CellaMenu extends AbstractContainerMenu {
     /** The margin either side of the widest thing on the panel. */
     private static final int MARGIN = 7;
 
-    /** The button ids that are not a page: there is no page for them to collide with. */
+    /**
+     * The button ids that are not a page.
+     *
+     * <p>Negative on purpose: a page is sent as itself, so the two cannot collide however
+     * many pages a chest grows to.
+     */
     public static final int SORT = -1;
     public static final int STOW = -2;
     public static final int MATCHING = -3;
@@ -45,10 +51,25 @@ public class CellaMenu extends AbstractContainerMenu {
 
     private final ContainerLevelAccess access;
     private final IItemHandlerModifiable contents;
+    private final Window window;
     private final int pageSize;
     private final int columns;
     private final int width;
+
+    /** Whether this is the server's copy of the menu. See {@link #turnTo}. */
+    private final boolean server;
+
+    /** The page being shown. */
     private int page;
+
+    /**
+     * The page the server has, which is what a click will be read against.
+     *
+     * <p>Sent as a data slot, so it arrives with the contents and by the same means. On
+     * the server it is always {@link #page}; on the client it lags it by one round trip,
+     * and the gap is what {@link #pending} is.
+     */
+    private int agreed;
 
     /**
      * Opened at a block, on both sides.
@@ -61,9 +82,8 @@ public class CellaMenu extends AbstractContainerMenu {
      * size it was built with, so a world whose config has since been turned down holds
      * chests bigger than the config says. The client builds its menu from its own copy of
      * the block entity, which was made at the config's size and knows nothing about the
-     * save — and a client whose menu has fewer slots than the server sends walks off the
-     * end of its own list while it is being filled. Under the old design that mismatch
-     * was invisible; here it is a crash, so the number is sent.
+     * save — and a client whose page count disagrees with the server's is one that can
+     * ask for a page the server will refuse, and sit waiting for it.
      */
     public static CellaMenu at(int id, Inventory inventory, BlockPos pos, int size,
             int rows, int columns) {
@@ -90,19 +110,20 @@ public class CellaMenu extends AbstractContainerMenu {
         this.contents = contents;
         this.columns = columns;
         this.pageSize = rows * columns;
+        this.window = new Window(contents, pageSize);
+        this.server = !inventory.player.level().isClientSide;
         // As wide as the widest of the two inventories, and never narrower than the
         // player's, which is nine whatever the chest is.
         this.width = Math.max(CellaConfig.PLAYER_COLUMNS, columns) * SLOT + 2 * MARGIN;
         int chestLeft = (width - columns * SLOT) / 2;
         int playerLeft = (width - CellaConfig.PLAYER_COLUMNS * SLOT) / 2;
 
-        // Every page's slots, all at the same coordinates, stacked one page deep. Only
-        // the page on show answers isActive, so only it is drawn or clicked.
-        for (int index = 0; index < contents.getSlots(); index++) {
-            int within = index % pageSize;
-            addSlot(new PagedSlot(this, contents, index,
-                    chestLeft + (within % columns) * SLOT,
-                    FIRST_Y + (within / columns) * SLOT));
+        // A page's worth, and the page underneath them moves. There is one slot per
+        // square on the screen, which is the reason the mouse cannot be lied to.
+        for (int index = 0; index < pageSize; index++) {
+            addSlot(new PagedSlot(window, index,
+                    chestLeft + (index % columns) * SLOT,
+                    FIRST_Y + (index / columns) * SLOT));
         }
 
         // The vanilla chest layout, which grows downwards as rows are added.
@@ -116,21 +137,22 @@ public class CellaMenu extends AbstractContainerMenu {
         for (int column = 0; column < HOTBAR; column++) {
             addSlot(new Slot(inventory, column, playerLeft + column * SLOT, 161 + below));
         }
-        layOut();
-    }
 
-    /**
-     * Puts every page where it belongs relative to the one being shown.
-     *
-     * <p>Called whenever that changes, which is what stops two slots ever sharing a
-     * position. See {@link PagedSlot} for what went wrong when they did.
-     */
-    private void layOut() {
-        for (Slot slot : slots) {
-            if (slot instanceof PagedSlot paged) {
-                paged.place(page);
+        // The page, travelling the way every other number a menu has travels. Reading it
+        // is the server answering; being set is the client being told, and the client
+        // takes the answer as final - see turnTo.
+        addDataSlot(new DataSlot() {
+            @Override
+            public int get() {
+                return agreed;
             }
-        }
+
+            @Override
+            public void set(int value) {
+                agreed = value;
+                show(value);
+            }
+        });
     }
 
     /**
@@ -178,36 +200,72 @@ public class CellaMenu extends AbstractContainerMenu {
     }
 
     public int pages() {
-        return Math.max(1, (contents.getSlots() + pageSize - 1) / pageSize);
+        return window.pages();
+    }
+
+    /**
+     * Whether the page on screen is one the server has not agreed to yet.
+     *
+     * <p>True for the length of one round trip after turning, and it matters for exactly
+     * one thing: <b>a click is read against the server's page, not the drawn one.</b>
+     * While these disagree the screen is showing the page that was asked for and the
+     * server would answer about the page before it, so a click in that gap takes an item
+     * other than the one under the pointer. The screen refuses chest clicks until this
+     * goes false — see {@code CellaScreen}. It is never true on the server.
+     */
+    public boolean pending() {
+        return page != agreed;
+    }
+
+    /** Shows a page, which is all that turning one is: the window moves, nothing is told. */
+    private void show(int wanted) {
+        page = wanted;
+        window.openAt(wanted);
     }
 
     /**
      * Turns to a page, ignoring one that is not there.
      *
-     * <p>No packet and no server. Which page is on show is not a fact about the chest,
-     * and {@code isActive} is asked by the screen and by nothing else — it appears
-     * nowhere in {@code AbstractContainerMenu}, and the server's click path does not
-     * consult it.
+     * <p><b>The server owns which page a click means.</b> So the client turns at once and
+     * asks, and the server turns and answers with the page's contents and the page number
+     * together — one {@code sendAllDataToRemote}, which is the one call that says "forget
+     * what you were told about these slots". That call is the whole reason a window is
+     * workable: the game decides what to send by comparing each slot against what it last
+     * told the client that slot held, which is sound only while nothing moves underneath
+     * a slot. Under a window something does, every time a page turns, and this is how
+     * vanilla itself says so.
+     *
+     * <p>The client does not wait to draw, because a chest that answers the arrow key
+     * fifty milliseconds later feels broken. It waits to <em>act</em>, which is the part
+     * that can be wrong.
      */
     public void turnTo(int wanted) {
-        if (wanted >= 0 && wanted < pages()) {
-            page = wanted;
-            layOut();
+        if (wanted < 0 || wanted >= pages()) {
+            return;
+        }
+        show(wanted);
+        if (server) {
+            agreed = wanted;
+            sendAllDataToRemote();
         }
     }
 
     /**
-     * The two things that are not a slot click.
+     * A page, or one of the five things that are not a slot click.
      *
-     * <p>Both run on the server, because both change what is in the chest. What comes
-     * back arrives as the ordinary slot updates, and those are trustworthy now that slot
-     * <em>i</em> is contents <em>i</em>: the game works out what to send by comparing
-     * each slot against what it last told the client that slot held, which is sound
-     * exactly when nothing moves underneath a slot. Nothing does any more.
+     * <p>The buttons run on the server because they change what is in the chest. What
+     * comes back arrives as the ordinary slot updates, which are trustworthy for the page
+     * on show and irrelevant for the rest: a slot the client cannot see is a slot it does
+     * not need to be told about, and it is told all of them again the moment it turns.
      */
     @Override
     public boolean clickMenuButton(Player player, int id) {
-        if (id > SORT || id < TAKING) {
+        if (id >= 0) {
+            // Whatever was sent, which is not necessarily a page. turnTo checks.
+            turnTo(id);
+            return true;
+        }
+        if (id < TAKING) {
             return false;
         }
         if (!player.level().isClientSide) {
@@ -332,8 +390,6 @@ public class CellaMenu extends AbstractContainerMenu {
         return kept;
     }
 
-
-
     @Override
     public boolean stillValid(Player player) {
         // Any of them, because a menu does not care which kind it was opened on - only
@@ -344,12 +400,15 @@ public class CellaMenu extends AbstractContainerMenu {
     }
 
     /**
-     * Shift-click fills the whole chest, which now costs nothing to say.
+     * Shift-click fills the whole chest, not the page it is looking at.
      *
-     * <p>The chest's slots are the first {@code contents.getSlots()} of the menu and the
-     * player's are the rest, so the ordinary vanilla move does it — including onto pages
-     * that are not on screen. Under the old design this had to reach around the menu to
-     * the contents underneath, because the menu only had the page.
+     * <p>Out of the chest is vanilla's own move: the destination is the player, and every
+     * one of their slots is in this menu.
+     *
+     * <p>Into the chest is not, and cannot be. The menu holds a page, and the answer to
+     * "the page is full" has to be the next page rather than the player's hand. So that
+     * direction goes to the contents underneath — {@code insertItemStacked}, which tops
+     * up partial stacks before it opens a new slot, on every page there is.
      */
     @Override
     public ItemStack quickMoveStack(Player player, int index) {
@@ -359,21 +418,25 @@ public class CellaMenu extends AbstractContainerMenu {
         }
         ItemStack stack = slot.getItem();
         ItemStack before = stack.copy();
-        int chest = contents.getSlots();
 
-        if (index < chest) {
-            if (!moveItemStackTo(stack, chest, slots.size(), true)) {
+        if (index < pageSize) {
+            if (!moveItemStackTo(stack, pageSize, slots.size(), true)) {
                 return ItemStack.EMPTY;
             }
-        } else if (!moveItemStackTo(stack, 0, chest, false)) {
-            return ItemStack.EMPTY;
+            if (stack.isEmpty()) {
+                slot.set(ItemStack.EMPTY);
+            } else {
+                slot.setChanged();
+            }
+            return before;
         }
 
-        if (stack.isEmpty()) {
-            slot.set(ItemStack.EMPTY);
-        } else {
-            slot.setChanged();
+        ItemStack left = ItemHandlerHelper.insertItemStacked(contents, stack, false);
+        // Nothing moved. Saying so is what stops the caller asking again forever.
+        if (left.getCount() == stack.getCount()) {
+            return ItemStack.EMPTY;
         }
+        slot.set(left);
         return before;
     }
 }

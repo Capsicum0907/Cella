@@ -4,7 +4,7 @@ A chest with more than one page.
 
 *Cella* is Latin for a storeroom, and also a compartment inside one.
 
-> **Status: the chest works.** Fourteen game tests, watched in a client.
+> **Status: the chest works.** Sixteen game tests, watched in a client.
 
 ## Target
 
@@ -20,53 +20,77 @@ A chest with more than one page.
 
 A chest whose contents are divided into pages, one shown at a time.
 
-**Every slot is in the menu. What a page decides is what gets drawn.** The slots are
-`SlotItemHandler`s over the whole contents, numbered as the contents are, all of a
-page sitting at the same coordinates as all of every other page. A slot answers
-`isActive()` with whether its page is the one on show, and the screen asks that
-before it draws a slot, before it calls one hovered and before it works out which
-one the mouse is in. Nothing else is needed to hide the rest.
+**The menu holds one page. What moves is the page underneath it.** The chest's slots
+are `SlotItemHandler`s over a `Window` — a handler that offers one page of the
+contents as though it were a container of that size — so a slot is numbered nought
+upwards into the window and knows nothing about paging at all. Turning a page moves
+where the window starts. Nothing else is told, because nothing else was ever asked.
 
-Three things follow, and none of them had to be arranged:
+That layer is not decoration. The obvious version is a slot that works out its own
+index from the page each time; it does not survive contact with `SlotItemHandler`,
+which keeps its index in a `protected final` field and reads that field directly in
+all seven of its methods rather than through a getter. A slot with a moving index has
+to override every one of them, and the eighth that gets added upstream is a bug nobody
+writes. Putting the page *underneath* the slot leaves the slot with nothing to
+remember.
 
-- **Other mods see the whole chest.** A sorting mod works on the slots the menu has,
-  and that is every slot. It does not need to know this mod exists.
-- **A page turn sends nothing.** `isActive` appears nowhere in
-  `AbstractContainerMenu` and the server's click path never consults it, so which
-  page is on show is a client-side fact with no packet to its name.
-- **Slot *i* is contents *i*, always.** The game decides what to send a client by
-  comparing each slot with what it last said that slot held — sound exactly when
-  nothing moves underneath a slot.
+Three things follow:
+
+- **An open screen costs a page**, whatever the chest is. Opening one sends a page and
+  each tick compares a page. That is what makes a chest of thirteen thousand slots
+  possible at all.
+- **A page turn is a round trip.** The server decides what a click means, so it has to
+  be told which page. It answers with the page's contents and the page number
+  together, as one `sendAllDataToRemote()`.
+- **Slot *i* is not contents *i*** — and the game assumes it is. It decides what to
+  send by comparing each slot against what it last told the client that slot held,
+  which is sound only while nothing moves underneath a slot. Something does, exactly
+  once per page turn, and that same call is vanilla's own way of saying "forget what
+  you were told about these".
+
+The client draws the new page immediately and refuses to **click** it until the answer
+lands. Drawing early is safe; acting early is not, because for that one round trip the
+screen shows the page that was asked for and the server would answer about the page
+before it. Fifty milliseconds, during which an arrow was just pressed.
 
 ### The road not taken
 
-The first version did the opposite: fifty-four fixed slots with a *window* sliding
-underneath them, reading slot *i* as *page × size + i*. It works, and it has one real
-advantage — the menu stays one page wide however big the chest is, so nothing grows
-with the number of pages.
+Written three times, and the third is the second one again — so it is worth saying why
+the middle one was left rather than leaving it looking like a circle.
 
-It was abandoned for what falls out of it. A sorting mod could only ever reach the
-page on screen, because a page was all the menu had; so this mod had to grow its own
-sort and stow buttons to do what an installed mod was already trying to do. And the
-game's "has this slot changed" test became a lie: two pages holding the same thing in
-the same place sent nothing, and the client — which had only been told about pages it
-had looked at — drew a hole. That needed a full resend on every page turn to paper
-over.
+**The second design put every slot of the chest in the menu**, every page's slots at
+the same coordinates, with `isActive` deciding which were drawn. It was bought for one
+thing: a sorting mod works on the slots the menu has, so a menu holding all of them
+could be sorted whole from outside.
 
-The idea of keeping every slot comes from Expanded Storage, which hid the pages that
-were not on show by moving their slots two thousand pixels off screen. Asking
-`isActive` is the same thought without the coordinates having to lie.
+That turned out to be false. Inventory Profiles Next drops any slot that answers
+`isActive` with false — which is every page but one, however many are in the menu.
+Nothing was bought. The price was paid in full: every slot sent on opening, every slot
+compared every tick, and `pages` capped because of it.
 
-The price is real and is not hidden: the menu is as big as the chest, so opening one
-sends every stack and each tick walks every slot. `pages` is capped at 32 for that
-reason.
+Two real defects came out of the same design. Pages stacked at one set of coordinates
+meant that anything working out which slot the mouse was over from *where* it was found
+eight candidates in one square, so shift-clicking an empty slot fetched an item from
+another page. Moving the off-page slots a screen-height away fixed it — that is what
+Expanded Storage does, and it is not laziness — and cost an **access transformer**,
+because `Slot.x` and `Slot.y` are `public final`. With one page in the menu there is one
+slot per square, and the transformer is gone.
+
+What the window costs is the round trip above. The first attempt at a window had a hole
+in it and this one does not: nothing then said "forget what you were told" after a page
+turn, so two pages holding the same thing in the same place sent nothing and the client
+drew whatever it last saw there. It was patched with a full resend, which was written
+off at the time as papering over. It was not — it is the correct design, and it has a
+name in `AbstractContainerMenu`.
 
 ### What the paging does *not* touch
 
 - **What a hopper or a pipe is offered** is the whole contents. Which page somebody
   has open is not a fact about the chest.
-- **Shift-click fills the whole chest**, which is now just the ordinary vanilla move
-  over the menu's own slots.
+- **Shift-click fills the whole chest.** Out of the chest is the ordinary vanilla move,
+  since every one of the player's slots is in the menu. Into it is not and cannot be —
+  the answer to "this page is full" has to be the next page rather than your hand — so
+  that direction goes to the contents underneath.
 - **A comparator reads the whole chest**, including pages nobody has open.
 - **Sorting and moving are over every page**, and this mod does them itself.
 
@@ -126,15 +150,24 @@ vanilla chest picture is six rows tall and no more.
 A chest keeps the size it was built with, so any world whose config has been turned
 down since holds chests bigger than the config says. The client cannot work that out
 — its own copy of the block entity was made at the config's size — so the number is
-written into the packet that opens the screen. This mattered less when the menu was
-one page wide; now a client whose menu is shorter than what the server sends walks
-off the end of its own list.
+written into the packet that opens the screen. What it decides is how many pages there
+are, and the two sides have to agree on that: a client that thinks there are fewer
+cannot reach the last one, and one that thinks there are more can ask for a page the
+server refuses and then sit waiting for an answer that is not coming.
 
 ### There is a list of kinds, and it is the only one
 
 Seven of them: Laravel, Imperfect, Semi-Perfect, Perfect, Super Perfect, Cella Max,
-and Cella Jr. off the side of Perfect. Capacity climbs with the form, from twenty-seven
-slots to eighteen hundred, and a page gets wider as well as taller towards the top.
+and Cella Jr. off the side of Perfect. Capacity climbs with the form, and a page gets
+wider as well as taller towards the top.
+
+**The ladder is not finished.** Capacity is meant to be what went into the chest: four
+large chests for Imperfect, then multiplied by what each recipe eats — eight, eight,
+four, four, which reaches four thousand large chests at the top. Imperfect and
+Semi-Perfect are that; everything past them is still small, and Cella Jr. is held under
+the Perfect it comes from until Perfect can move. What is left is not a technical limit
+any more — it is the design question of how far the forms should go, and whether the
+upper ones buy something other than room.
 
 **The Perfect that makes Cella Jr. is not spent.** Seven come out and the parent is
 still standing there, which is what happened. That is a property of the one recipe and

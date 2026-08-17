@@ -51,10 +51,12 @@ public final class CellaConfig {
                             "this mod and the player's own inventory stays nine, in the middle.")
                     .defineInRange("columns", kind.defaultColumns(), 1, 15));
             PAGES.put(kind, builder
-                    .comment("Pages in one chest. Every slot is in the menu, not just the page",
-                            "on show, so this is not free: opening a chest sends all of them",
-                            "and each tick walks all of them. That is the price of other mods",
-                            "being able to see the whole chest.")
+                    .comment("Pages in one chest. What an open screen costs is one page,",
+                            "however many there are - that is all the menu holds and all",
+                            "the server sends or walks. The whole chest is only ever read",
+                            "by the sort and the two movers, which is once per press.",
+                            "So the ceiling here is a design question rather than a",
+                            "technical one, and it has not been settled.")
                     .defineInRange("pages", kind.defaultPages(), 1, 32));
             builder.pop();
         }

@@ -1,78 +1,60 @@
 package io.github.capsicum0907.cella;
 
-import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.items.SlotItemHandler;
 
 /**
- * A slot that belongs to a page, and is simply not there while another page is shown.
+ * A slot of the page being shown. It does not know which page that is.
  *
- * <p><b>Every slot of the chest is in the menu — all of them, on every page.</b> That is
- * the whole design, and it is the opposite of what this mod did first. Paging used to be
- * a window that moved underneath fifty-four fixed slots; now the slots are fixed to the
- * contents and it is <em>being shown</em> that moves.
+ * <p>It is an ordinary slot into a {@link Window}, and the window is the page. Turning a
+ * page moves the window; the slots are not told and have nothing to be told. That is the
+ * whole of paging, and this class exists for the one thing left over: <b>the last page of
+ * a chest can be short</b>, and a slot that is off the end must not be drawn.
  *
- * <p>Three things follow, and none of them had to be arranged:
+ * <h2>The road not taken</h2>
  *
- * <ul>
- *   <li><b>Another mod can see the whole chest.</b> A sorting mod works on the slots the
- *       menu has, and now that is every slot. Under the window it could only ever reach
- *       the page on screen, however it asked.
- *   <li><b>The page never has to be sent.</b> {@code isActive} is asked by the screen and
- *       by nothing else — it appears nowhere in {@code AbstractContainerMenu}, and the
- *       server's click path does not consult it. Turning a page changes what is drawn and
- *       nothing else, so it is a client-side fact and no packet exists for it.
- *   <li><b>Slot <em>i</em> is contents <em>i</em>, always.</b> The game works out what to
- *       send a client by comparing each slot with what it last said that slot held, which
- *       is sound exactly when nothing moves underneath a slot. Under the window it was
- *       not, and two pages holding the same thing in the same place sent nothing and drew
- *       a hole. There is nothing to be careful about here any more.
- * </ul>
+ * <p>This was written three times and the third is the second one again, so it is worth
+ * saying why the middle version was abandoned rather than leaving it looking like a
+ * circle.
  *
- * <p><b>The pages are also kept apart on screen, and that is not belt and braces.</b>
- * They were stacked at the same coordinates at first, on the reasoning that
- * {@code isActive} already answers every question vanilla asks — which is true, and was
- * not enough. Shift-clicking an empty slot fetched an item from the same square on
- * another page, because a mod that works out which slot the mouse is over from where it
- * is finds eight candidates in one square and is entitled to any of them. Vanilla's own
- * lookup asks {@code isActive} first; nothing obliges anyone else's to.
+ * <p><b>Every slot of the chest in the menu at once</b> was the second design, and it was
+ * bought for one thing: a sorting mod works on the slots the menu has, so a menu holding
+ * all of them could be sorted whole from outside. That turned out not to be true.
+ * Inventory Profiles Next excludes slots that answer {@code isActive} with false, which is
+ * every page but one however many are in the menu — so nothing was ever bought, and the
+ * price was being paid in full. The price: the server sends every slot when the screen
+ * opens and compares every slot every tick, which is thirteen thousand of them for a chest
+ * this mod is meant to grow into.
  *
- * <p>So Expanded Storage moving its off-page slots two thousand pixels away was not
- * laziness — it is what keeps a position honest, and this does the same. {@code isActive}
- * hides; {@link #place} makes the coordinates distinct. They are different jobs.
+ * <p>Two real defects came out of that design as well, and both are gone with it. Every
+ * page's slots sat at the same coordinates, so anything working out which slot the mouse
+ * was over from where it was found eight candidates in one square; moving the off-page
+ * ones a screen-height away fixed it and cost an <b>access transformer</b>, because
+ * {@code Slot.x} and {@code Slot.y} are {@code public final}. With one page in the menu
+ * there is one slot per square and the transformer is gone.
+ *
+ * <p>What the window costs, and it is the honest cost: <b>turning a page is no longer
+ * free.</b> Under the second design the page never left the client. Here the server owns
+ * it, because the server is the one deciding what a click means — see
+ * {@link CellaMenu#turnTo}.
  */
 public class PagedSlot extends SlotItemHandler {
-    /**
-     * How far apart the pages are stacked.
-     *
-     * <p>Only has to be more than a screen is tall, so that no page's slots can ever be
-     * mistaken for another's by anything measuring in pixels. It is not a hiding place —
-     * {@link #isActive} does the hiding — it is what makes the coordinates <em>distinct</em>.
-     */
-    private static final int SPREAD = 1000;
+    private final Window window;
 
-    private final CellaMenu menu;
-    private final int page;
-    private final int homeY;
-
-    public PagedSlot(CellaMenu menu, IItemHandler contents, int index, int x, int y) {
-        super(contents, index, x, y);
-        this.menu = menu;
-        this.page = index / menu.pageSize();
-        this.homeY = y;
+    public PagedSlot(Window window, int index, int x, int y) {
+        super(window, index, x, y);
+        this.window = window;
     }
 
     /**
-     * Puts this slot where it belongs relative to the page being shown.
+     * Off the end of a short last page is not drawn.
      *
-     * <p>The open page sits at home and every other page is a screen-height away, up or
-     * down. So no two slots share a position, ever.
+     * <p>Hiding is all this does. A slot that is off the end also refuses to hold, give
+     * or take anything, and that is arranged in {@link Window} rather than here — being
+     * invisible is a fact about this screen and everything else in the game is entitled
+     * to ignore it.
      */
-    public void place(int shown) {
-        this.y = homeY + (page - shown) * SPREAD;
-    }
-
     @Override
     public boolean isActive() {
-        return page == menu.page();
+        return window.holds(getSlotIndex());
     }
 }
