@@ -348,7 +348,7 @@ public final class CellaTests {
                 filed.serializeNBT(helper.getLevel().registryAccess()));
 
         ItemStack stack = new ItemStack(CellaRegistry.item(KIND).get());
-        stack.set(CellaRegistry.KEPT.get(), name);
+        stack.set(CellaRegistry.KEPT.get(), new Held(name, 1, KIND.slots()));
         check(stack.getMaxStackSize() == 1, "a named chest should not stack");
 
         CellaBlockEntity chest = place(helper, KIND);
@@ -406,6 +406,38 @@ public final class CellaTests {
                     columns + " columns should measure back to " + columns);
         }
         helper.succeed();
+    }
+
+    /**
+     * The item says how full the chest it is carrying was, and that cannot go stale.
+     *
+     * <p>The client is never told what is inside, so anything shown about a chest in a
+     * hand has to travel on the item. It is exact rather than an estimate: filed contents
+     * are reachable by one operation, which hands the whole chest back, so nothing can
+     * put an item into a chest that is in somebody's pocket.
+     */
+    @GameTest(template = TestStructures.FLOOR)
+    public static void theItemSaysHowFullTheChestWas(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper, KIND);
+        for (int slot = 0; slot < 300; slot++) {
+            chest.contents().setStackInSlot(slot, new ItemStack(Items.STONE, 1));
+        }
+        check(chest.used() == 300, "three hundred slots should be spoken for");
+
+        helper.destroyBlock(WHERE);
+
+        helper.succeedWhen(() -> {
+            Held held = dropped(helper).stream()
+                    .filter(stack -> stack.is(CellaRegistry.item(KIND).get()))
+                    .map(stack -> stack.get(CellaRegistry.KEPT.get()))
+                    .filter(java.util.Objects::nonNull)
+                    .findFirst()
+                    .orElseThrow(() -> new GameTestAssertException("no chest with a name"));
+            check(held.used() == 300, "the item should say three hundred: " + held.used());
+            check(held.slots() == KIND.slots(),
+                    "and how many there were altogether: " + held.slots());
+            check(held.counted(), "which is enough to draw a bar from");
+        });
     }
 
     private static java.util.List<ItemStack> dropped(GameTestHelper helper) {

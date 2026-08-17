@@ -161,14 +161,27 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
         return given;
     }
 
-    /** Nothing in any slot. Asked before deciding there is anything worth keeping. */
-    public boolean isEmpty() {
+    /**
+     * How many slots have something in them.
+     *
+     * <p>Slots rather than stacks, because slots are the scarce thing in a Cella: one
+     * item in each of two hundred thousand of them is full in the only sense that matters
+     * when you go to put something away. Written onto the item at {@link #handOver} and
+     * shown there; see {@link Held}.
+     */
+    public int used() {
+        int used = 0;
         for (int slot = 0; slot < contents.getSlots(); slot++) {
             if (!contents.getStackInSlot(slot).isEmpty()) {
-                return false;
+                used++;
             }
         }
-        return true;
+        return used;
+    }
+
+    /** Nothing in any slot. Asked before deciding there is anything worth keeping. */
+    public boolean isEmpty() {
+        return used() == 0;
     }
 
     /**
@@ -188,13 +201,15 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
         if (level.isClientSide || isEmpty()) {
             return;
         }
+        int used = used();
+        int slots = contents.getSlots();
         Kept.of(level).ifPresent(kept -> {
             java.util.UUID id = kept.put(contents.serializeNBT(level.registryAccess()));
             // The block entity is on its way out, but an emptied one cannot be read by
             // anything that still has hold of it.
             contents.setSize(contents.getSlots());
             ItemStack stack = new ItemStack(getBlockState().getBlock());
-            stack.set(CellaRegistry.KEPT.get(), id);
+            stack.set(CellaRegistry.KEPT.get(), new Held(id, used, slots));
             Containers.dropItemStack(level, pos.getX(), pos.getY(), pos.getZ(), stack);
             given = true;
         });

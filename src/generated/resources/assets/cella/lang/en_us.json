@@ -13,5 +13,6 @@
   "gui.cella.stow.shift": "Shift: your whole inventory",
   "gui.cella.take": "Take more of what you are carrying",
   "gui.cella.take.shift": "Shift: as much as will fit",
-  "itemGroup.cella": "Cella"
+  "itemGroup.cella": "Cella",
+  "tooltip.cella.filled": "%s of %s slots used (%s%%)"
 }

@@ -48,6 +48,7 @@ public class Cella {
         if (FMLEnvironment.dist == Dist.CLIENT) {
             modEventBus.addListener(Cella::screens);
             modEventBus.addListener(Cella::renderers);
+            modEventBus.addListener(Cella::tooltips);
             onlyOnTheClient(modContainer);
         }
 
@@ -93,6 +94,12 @@ public class Cella {
     private static void onlyOnTheClient(ModContainer modContainer) {
         modContainer.registerConfig(ModConfig.Type.CLIENT, CellaClientConfig.SPEC);
         NeoForge.EVENT_BUS.addListener(Measure::tick);
+    }
+
+    /** The drawn fill bar; the figures beside it are ordinary tooltip lines. */
+    private static void tooltips(
+            net.neoforged.neoforge.client.event.RegisterClientTooltipComponentFactoriesEvent event) {
+        event.register(Held.class, io.github.capsicum0907.cella.client.FillBar::new);
     }
 
     private static void screens(RegisterMenuScreensEvent event) {

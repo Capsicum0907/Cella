@@ -166,6 +166,7 @@ public final class CellaDataGen {
                 add(CellaRegistry.block(kind).get(), kind.displayName());
             }
             add("itemGroup." + Cella.MODID, "Cella");
+            add("tooltip.cella.filled", "%s of %s slots used (%s%%)");
             add("gui.cella.sort", "Sort every page");
             add("gui.cella.stow", "Put in what this chest already keeps");
             add("gui.cella.stow.shift", "Shift: your whole inventory");

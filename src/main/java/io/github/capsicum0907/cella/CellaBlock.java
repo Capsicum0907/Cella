@@ -215,12 +215,12 @@ public class CellaBlock extends BaseEntityBlock {
     public void setPlacedBy(Level level, BlockPos pos, BlockState state,
             @javax.annotation.Nullable LivingEntity placer, ItemStack stack) {
         super.setPlacedBy(level, pos, state, placer, stack);
-        java.util.UUID id = stack.get(CellaRegistry.KEPT.get());
-        if (level.isClientSide || id == null
+        Held held = stack.get(CellaRegistry.KEPT.get());
+        if (level.isClientSide || held == null
                 || !(level.getBlockEntity(pos) instanceof CellaBlockEntity chest)) {
             return;
         }
-        Kept.of(level).flatMap(kept -> kept.take(id))
+        Kept.of(level).flatMap(kept -> kept.take(held.chest()))
                 .ifPresent(contents -> chest.restore(level.registryAccess(), contents));
     }
 

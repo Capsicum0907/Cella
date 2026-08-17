@@ -1,7 +1,15 @@
 package io.github.capsicum0907.cella;
 
+import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
+
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.block.Block;
 
 /**
@@ -23,8 +31,78 @@ public class CellaItem extends BlockItem {
         super(block, properties);
     }
 
+    /** Vanilla's own bar is thirteen pixels of it. */
+    private static final int BAR = 13;
+
+    private static final int BLUE = 0x3B48D8;
+
     @Override
     public int getMaxStackSize(ItemStack stack) {
         return stack.has(CellaRegistry.KEPT.get()) ? 1 : super.getMaxStackSize(stack);
+    }
+
+    /**
+     * The little bar under the icon, so a full one can be told from an empty one without
+     * hovering over it.
+     *
+     * <p>An item picked up empty carries nothing and shows nothing, which is the whole
+     * distinction: a bar means there is a chest in there. An item written by an older
+     * version carries a name and no counts, and shows nothing either - it does not know,
+     * and drawing a bar at nought would be saying that it does.
+     */
+    @Override
+    public boolean isBarVisible(ItemStack stack) {
+        Held held = stack.get(CellaRegistry.KEPT.get());
+        return held != null && held.counted();
+    }
+
+    @Override
+    public int getBarWidth(ItemStack stack) {
+        Held held = stack.get(CellaRegistry.KEPT.get());
+        if (held == null) {
+            return 0;
+        }
+        int width = Math.round(held.filled() * BAR);
+        // Something is not nothing. A single item in a Cella Max is a thousandth of a
+        // pixel, and rounding it away would draw a chest with things in it as empty.
+        return held.used() > 0 ? Math.clamp(width, 1, BAR) : 0;
+    }
+
+    @Override
+    public int getBarColor(ItemStack stack) {
+        return BLUE;
+    }
+
+    /** The wide bar, drawn by {@code FillBar} on the client. */
+    @Override
+    public Optional<TooltipComponent> getTooltipImage(ItemStack stack) {
+        return Optional.ofNullable(stack.get(CellaRegistry.KEPT.get()))
+                .filter(Held::counted)
+                .map(held -> held);
+    }
+
+    /**
+     * The figures the bar cannot give: how many slots, out of how many.
+     *
+     * <p>A percent alone is no use at this size - six percent of a Cella Max is thirteen
+     * thousand slots - and the raw pair is hard to picture, which is what the bar is for.
+     * Neither replaces the other.
+     */
+    @Override
+    public void appendHoverText(ItemStack stack, TooltipContext context,
+            List<Component> tooltip, TooltipFlag flag) {
+        Held held = stack.get(CellaRegistry.KEPT.get());
+        if (held == null || !held.counted()) {
+            return;
+        }
+        tooltip.add(Component.translatable("tooltip.cella.filled",
+                        count(held.used()), count(held.slots()),
+                        Math.round(held.filled() * 100.0F))
+                .withStyle(ChatFormatting.GRAY));
+    }
+
+    /** Grouped, because 221184 is not a number anybody reads at a glance. */
+    private static String count(int slots) {
+        return String.format(Locale.ROOT, "%,d", slots);
     }
 }
