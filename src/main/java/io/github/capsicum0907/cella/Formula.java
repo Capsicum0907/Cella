@@ -1,6 +1,10 @@
 package io.github.capsicum0907.cella;
 
 import java.util.LinkedHashMap;
+
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.CraftingInput;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -90,5 +94,45 @@ public record Formula(List<String> pattern, Map<Character, Supplier<ItemLike>> o
 
     public static Builder shaped(String top, String middle, String bottom) {
         return new Builder(top, middle, bottom);
+    }
+
+    /**
+     * Whether every Cella laid out has finished growing.
+     *
+     * <p><b>A recipe will not take one that has not.</b> Nothing here is put together out
+     * of parts that were not ready — a form is what it ate, and half of what it ate is not
+     * half a form, it is a form that is not done. So the check is on the ingredients rather
+     * than on the result.
+     *
+     * <p><b>Here rather than in either recipe class</b>, because both want it and they are
+     * different classes: {@code Fusing} eats what it is given and {@code Spawning} hands it
+     * back, which is a difference about the ingredients afterwards and not about whether
+     * they qualify.
+     *
+     * <p><b>Asked against the threshold written on the item</b>, not the one this version
+     * declares. The bar the player watched fill to the end was drawn from the figure on the
+     * item, and a bench that then refuses it would be calling that bar a liar. ⚠ Which also
+     * means a Cella from before any of this could be fed carries no threshold at all, and
+     * is refused: it never filled anything, and there is no way to tell whether it would
+     * have.
+     *
+     * <p>Nothing explains the refusal, in keeping with the fit check above — a recipe that
+     * does not hold simply is not a recipe, and the bench shows nothing. What tells the
+     * player which one is short is the percentage on each item.
+     */
+    public static boolean grown(CraftingInput input) {
+        for (int at = 0; at < input.size(); at++) {
+            ItemStack laid = input.getItem(at);
+            if (!(laid.getItem() instanceof BlockItem block)
+                    || !(block.getBlock() instanceof CellaBlock chest)
+                    || !chest.kind().grows()) {
+                continue;
+            }
+            Held held = laid.get(CellaRegistry.KEPT.get());
+            if (held == null || !held.grows() || held.grown() < 1.0F) {
+                return false;
+            }
+        }
+        return true;
     }
 }

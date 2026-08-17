@@ -466,11 +466,11 @@ public final class CellaTests {
         Fusing fusion = (Fusing) semiPerfect.value();
 
         // Eight Imperfects round obsidian, two of them with something in them.
+        // All eight full, because a recipe will not take one that is not - and two of
+        // them naming contents, which is what this is actually about.
         java.util.List<ItemStack> grid = new java.util.ArrayList<>();
         for (int at = 0; at < 9; at++) {
-            grid.add(at == 4
-                    ? new ItemStack(Items.OBSIDIAN)
-                    : new ItemStack(CellaRegistry.item(Kind.IMPERFECT).get()));
+            grid.add(at == 4 ? new ItemStack(Items.OBSIDIAN) : grown(Kind.IMPERFECT, 0));
         }
         java.util.List<java.util.UUID> filed = new java.util.ArrayList<>();
         for (int at : new int[] { 0, 8 }) {
@@ -480,8 +480,8 @@ public final class CellaTests {
                     one.serializeNBT(helper.getLevel().registryAccess()),
                     Kind.IMPERFECT, helper.getLevel().getGameTime(), 0);
             filed.add(name);
-            grid.get(at).set(CellaRegistry.KEPT.get(),
-                    new Held(java.util.List.of(name), 1, Kind.IMPERFECT.slots(), 0, 0));
+            grid.get(at).set(CellaRegistry.KEPT.get(), new Held(java.util.List.of(name), 1,
+                    Kind.IMPERFECT.slots(), Kind.IMPERFECT.growth(), Kind.IMPERFECT.growth()));
         }
 
         CraftingInput bench = CraftingInput.of(3, 3, grid);
@@ -490,8 +490,14 @@ public final class CellaTests {
         ItemStack made = fusion.assemble(bench, helper.getLevel().registryAccess());
         Held held = made.get(CellaRegistry.KEPT.get());
         check(held != null, "the result should carry what it ate");
-        check(held.chests().equals(filed),
-                "both names, in the order they were laid out: " + held.chests());
+        // All eight, in the order they were laid out - not just the two with something in
+        // them. ⚠ A chest fed to the top is worth keeping even with nothing inside it, so
+        // breaking one gives an item with a name on it either way, and a fusion of eight
+        // full Imperfects therefore carries eight names.
+        check(held.chests().size() == 8, "eight names, one per Cella: " + held.chests());
+        check(held.chests().getFirst().equals(filed.getFirst())
+                        && held.chests().get(7).equals(filed.getLast()),
+                "the two that were filed at the ends they were laid at: " + held.chests());
         check(held.used() == 2, "two slots between them: " + held.used());
         check(held.slots() == Kind.SEMI_PERFECT.slots(),
                 "in the room a Semi-Perfect has: " + held.slots());
@@ -520,17 +526,22 @@ public final class CellaTests {
 
         java.util.List<ItemStack> grid = new java.util.ArrayList<>();
         for (int at = 0; at < 9; at++) {
-            grid.add(at == 4
-                    ? new ItemStack(Items.OBSIDIAN)
-                    : new ItemStack(CellaRegistry.item(Kind.IMPERFECT).get()));
+            grid.add(at == 4 ? new ItemStack(Items.OBSIDIAN) : grown(Kind.IMPERFECT, 0));
         }
         check(fusion.matches(CraftingInput.of(3, 3, grid), helper.getLevel()),
-                "eight empty ones are a recipe");
+                "eight grown empty ones are a recipe");
+
+        // One that has not finished growing is not an ingredient at all.
+        grid.set(0, new ItemStack(CellaRegistry.item(Kind.IMPERFECT).get()));
+        check(!fusion.matches(CraftingInput.of(3, 3, grid), helper.getLevel()),
+                "and one that has never been fed is not");
+        grid.set(0, grown(Kind.IMPERFECT, 0));
 
         // One of them is fuller than the whole Semi-Perfect it would go into.
         grid.get(0).set(CellaRegistry.KEPT.get(), new Held(
                 java.util.List.of(java.util.UUID.randomUUID()),
-                Kind.SEMI_PERFECT.slots() + 1, Kind.SEMI_PERFECT.slots() + 1, 0, 0));
+                Kind.SEMI_PERFECT.slots() + 1, Kind.SEMI_PERFECT.slots() + 1,
+                Kind.IMPERFECT.growth(), Kind.IMPERFECT.growth()));
         check(!fusion.matches(CraftingInput.of(3, 3, grid), helper.getLevel()),
                 "and one that would not fit is not");
         helper.succeed();
@@ -581,10 +592,9 @@ public final class CellaTests {
         check(junior.value() instanceof Spawning, "a spawning, not a fusion");
         Spawning spawning = (Spawning) junior.value();
 
-        Held named = new Held(java.util.List.of(java.util.UUID.randomUUID()), 5,
-                Kind.PERFECT.slots(), 0, Kind.PERFECT.growth());
-        ItemStack perfect = new ItemStack(CellaRegistry.item(Kind.PERFECT).get());
-        perfect.set(CellaRegistry.KEPT.get(), named);
+        // Full, because a recipe will not take a Cella that has not finished growing.
+        ItemStack perfect = grown(Kind.PERFECT, 5);
+        Held named = perfect.get(CellaRegistry.KEPT.get());
 
         ItemStack diamond = new ItemStack(Items.DIAMOND_BLOCK);
         CraftingInput bench = CraftingInput.of(3, 3, java.util.List.of(
@@ -852,7 +862,7 @@ public final class CellaTests {
     public static void theParentIsSpentExceptWhenItSpawns(GameTestHelper helper) {
         var recipes = helper.getLevel().getServer().getRecipeManager();
 
-        ItemStack perfect = new ItemStack(CellaRegistry.block(Kind.PERFECT).get());
+        ItemStack perfect = grown(Kind.PERFECT, 0);
         ItemStack diamond = new ItemStack(Items.DIAMOND_BLOCK);
         var junior = recipes.byKey(ResourceLocation.fromNamespaceAndPath(Cella.MODID, "junior"))
                 .orElseThrow(() -> new GameTestAssertException("no junior recipe"));
@@ -868,7 +878,7 @@ public final class CellaTests {
         // The other half, on a fusion: what it eats does not come back. This used to ask
         // super_perfect, which is no longer a recipe at all - a Perfect that ends itself
         // comes back as one. Semi-Perfect is the same shape and still crafted.
-        ItemStack imperfect = new ItemStack(CellaRegistry.block(Kind.IMPERFECT).get());
+        ItemStack imperfect = grown(Kind.IMPERFECT, 0);
         var semiPerfect = recipes
                 .byKey(ResourceLocation.fromNamespaceAndPath(Cella.MODID, "semi_perfect"))
                 .orElseThrow(() -> new GameTestAssertException("no semi_perfect recipe"));
@@ -1131,14 +1141,16 @@ public final class CellaTests {
      * <p>Nought in the column means "has no use for experience", not "needs none". A bar
      * that could never move is worse than no bar: it says there is something to fill.
      *
-     * <p>Semi-Perfect is named rather than taken as whichever form happens not to grow,
-     * for the same reason {@link #KIND} is: a change to the ladder should fail this out
-     * loud instead of quietly testing a different thing. It was Laravel until Laravel grew.
+     * <p>Max is named rather than taken as whichever form happens not to grow, for the
+     * same reason {@link #KIND} is: a change to the ladder should fail this out loud
+     * instead of quietly testing a different thing. It was Laravel until Laravel grew and
+     * Semi-Perfect until every ingredient had to be full — Max is the last one, having
+     * nothing above it to grow into.
      */
     @GameTest(template = TestStructures.FLOOR)
     public static void aFormThatDoesNotGrowTakesNothing(GameTestHelper helper) {
-        check(!Kind.SEMI_PERFECT.grows(), "Semi-Perfect does not grow on experience");
-        CellaBlockEntity chest = place(helper, Kind.SEMI_PERFECT);
+        check(!Kind.MAX.grows(), "Max does not grow on experience, having nowhere to go");
+        CellaBlockEntity chest = place(helper, Kind.MAX);
         Player player = helper.makeMockPlayer(GameType.SURVIVAL);
         player.giveExperienceLevels(30);
         int had = Experience.points(player);
@@ -1209,9 +1221,9 @@ public final class CellaTests {
                 "and more than it can use stops at the top: " + chest.experience());
 
         // A form with no use for experience takes none of it back either.
-        CellaBlockEntity flat = place(helper, Kind.SEMI_PERFECT);
+        CellaBlockEntity flat = place(helper, Kind.MAX);
         flat.restore(registries, new Kept.Chest(
-                new ItemStackHandler(Kind.SEMI_PERFECT.slots()).serializeNBT(registries), 9999));
+                new ItemStackHandler(16).serializeNBT(registries), 9999));
         check(flat.experience() == 0, "a form that does not grow keeps none of it");
         helper.succeed();
     }
@@ -1489,6 +1501,21 @@ public final class CellaTests {
         pig.setNoAi(true);
         level.addFreshEntity(pig);
         return pig;
+    }
+
+    /**
+     * A Cella item stamped as having finished growing, which every recipe now requires.
+     *
+     * <p>Real ones get there by being placed, fed and broken. A test that did that eight
+     * times over would be testing the feeding, which has its own tests; what these want is
+     * an ingredient that qualifies.
+     */
+    private static ItemStack grown(Kind kind, int used) {
+        ItemStack stack = new ItemStack(CellaRegistry.item(kind).get());
+        stack.set(CellaRegistry.KEPT.get(),
+                new Held(java.util.List.of(java.util.UUID.randomUUID()), used, kind.slots(),
+                        kind.growth(), kind.growth()));
+        return stack;
     }
 
     /** The store as it is on disk, holding one entry. See the note on the migration test. */

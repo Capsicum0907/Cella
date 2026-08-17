@@ -12,6 +12,7 @@ import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.CraftingBookCategory;
 import net.minecraft.world.item.crafting.CraftingInput;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.ShapedRecipe;
@@ -46,6 +47,18 @@ public class Spawning extends ShapedRecipe {
     /** Kept for the codec: the superclass holds the result where nobody else can read it. */
     public ItemStack made() {
         return made;
+    }
+
+    /**
+     * The same requirement a fusion has: every Cella laid out has finished growing.
+     *
+     * <p>Spawning hands the parent back rather than eating it, which is a difference about
+     * what happens to the ingredients and not about which ingredients qualify. See
+     * {@link Formula#grown}.
+     */
+    @Override
+    public boolean matches(CraftingInput input, Level level) {
+        return super.matches(input, level) && Formula.grown(input);
     }
 
     @Override

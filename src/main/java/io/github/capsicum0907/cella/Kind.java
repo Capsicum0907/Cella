@@ -101,9 +101,9 @@ public enum Kind {
             .done()),
 
     /** Fed, not made. See {@link #formula()}. */
-    IMPERFECT("imperfect", "Imperfect Cella", 0x5AA33C, 6, 9, 216, true, 0, "", false, null),
+    IMPERFECT("imperfect", "Imperfect Cella", 0x5AA33C, 6, 9, 216, true, 315, "", false, null),
 
-    SEMI_PERFECT("semi_perfect", "Semi-Perfect Cella", 0x6FBA43, 6, 9, 1728, true, 0, "", false, () -> Formula
+    SEMI_PERFECT("semi_perfect", "Semi-Perfect Cella", 0x6FBA43, 6, 9, 1728, true, 550, "", false, () -> Formula
             .shaped("CCC",
                     "COC",
                     "CCC")
@@ -129,7 +129,7 @@ public enum Kind {
      * make the recipe a machine for making storage out of nothing rather than a strong
      * reward for reaching Perfect.
      */
-    JUNIOR("junior", "Cella Jr.", 0x3FB39A, 12, 16, 3456, true, 0, "", false, () -> Formula
+    JUNIOR("junior", "Cella Jr.", 0x3FB39A, 12, 16, 3456, true, 5345, "", false, () -> Formula
             .shaped("DDD",
                     "DCD",
                     "DDD")
@@ -150,15 +150,21 @@ public enum Kind {
      * middle</b>, of which a world has exactly one, so Cella Max — four of these — needed
      * four eggs and could not be built at all.
      */
-    SUPER_PERFECT("super_perfect", "Super Perfect Cella", 0xA3E052, 12, 16, 55296, true, 0, "", false, null),
+    SUPER_PERFECT("super_perfect", "Super Perfect Cella", 0xA3E052, 12, 16, 55296, true, 8670, "", false, null),
 
+    /**
+     * ⚠ <b>The elytra and three of the totems are gone.</b> The old shape wanted a dragon
+     * egg by way of Super Perfect, and a world has one — see {@link #SUPER_PERFECT}. What
+     * is left is four of those, four nether stars and the one totem, all of which a player
+     * can go and get again.
+     */
     MAX("max", "Cella Max", 0x8A3A2E, 12, 16, 221184, true, 0, "", false, () -> Formula
-            .shaped("CTC",
-                    "TET",
-                    "CTC")
+            .shaped("CSC",
+                    "STS",
+                    "CSC")
             .key('C', SUPER_PERFECT)
+            .key('S', () -> Items.NETHER_STAR)
             .key('T', () -> Items.TOTEM_OF_UNDYING)
-            .key('E', () -> Items.ELYTRA)
             .done());
 
     private final String id;
@@ -324,11 +330,17 @@ public enum Kind {
      * with no use for experience must not show a bar that never moves, so nought is read
      * as "does not grow" everywhere rather than as "needs nothing".
      *
-     * <p>⚠ <b>Perfect's figure is a first pass and wants playing with.</b> 5,345 points is
-     * level fifty in vanilla's own arithmetic - an evening of fighting rather than an
-     * afternoon - chosen because what it buys is the step to Super Perfect. The rest of
-     * the ladder is open: what a Laravel eats to become an Imperfect is a separate
-     * question, and it may not be this at all.
+     * <p><b>Every figure here is a whole level in vanilla's own arithmetic</b>, and there
+     * is a test that says so — 10, 15, 20, 50 and 60 — so a bar reaches its end exactly
+     * when a level lands rather than somewhere in the middle of one.
+     *
+     * <p><b>Every form that is ever an ingredient has one</b>, because a recipe will not
+     * accept a Cella that has not finished growing; see {@code Formula#grown}. A form with
+     * nothing above it needs none, which is why Max is the only nought left.
+     *
+     * <p>⚠ <b>The figures are a first pass and want playing with.</b> They compound: eight
+     * full Imperfects go into a Semi-Perfect and eight of those into a Perfect, so a
+     * number changed here is a number multiplied by sixty-four two rungs up.
      */
     public int growth() {
         return growth;

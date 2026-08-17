@@ -75,7 +75,7 @@ public class Fusing extends ShapedRecipe {
      */
     @Override
     public boolean matches(CraftingInput input, Level level) {
-        return super.matches(input, level) && used(input) <= room(made);
+        return super.matches(input, level) && Formula.grown(input) && used(input) <= room(made);
     }
 
     @Override

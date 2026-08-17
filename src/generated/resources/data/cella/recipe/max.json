@@ -5,17 +5,17 @@
     "C": {
       "item": "cella:super_perfect"
     },
-    "E": {
-      "item": "minecraft:elytra"
+    "S": {
+      "item": "minecraft:nether_star"
     },
     "T": {
       "item": "minecraft:totem_of_undying"
     }
   },
   "pattern": [
-    "CTC",
-    "TET",
-    "CTC"
+    "CSC",
+    "STS",
+    "CSC"
   ],
   "result": {
     "count": 1,
