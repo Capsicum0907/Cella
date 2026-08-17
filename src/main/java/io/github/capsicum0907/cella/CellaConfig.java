@@ -43,13 +43,12 @@ public final class CellaConfig {
         for (Kind kind : Kind.values()) {
             builder.push(kind.id());
             ROWS.put(kind, builder
-                    .comment("Rows on one page. Six is a large chest; eight is what the",
-                            "forms from Perfect up use, and that is about the ceiling.",
-                            "The screen is 114 pixels plus 18 a row, and Minecraft picks",
-                            "its automatic GUI scale so as to leave at least 320x240 - so",
-                            "eight rows is 258 and fits 1920x1080 (270) with twelve pixels",
-                            "over, while 1366x768 (256) is two short and wants the scale",
-                            "set a step lower. Anything above eight is for a large screen",
+                    .comment("Rows on one page. Six everywhere, and six is the ceiling.",
+                            "The screen is 114 pixels plus 18 a row, and Minecraft's",
+                            "automatic GUI scale leaves as little as 320x240 - which this",
+                            "game's own default window of 854x480 does, at scale 2. So the",
+                            "budget is 240, seven rows is 240 exactly and eight is 258,",
+                            "which is one row off the top. Above six is for a large screen",
                             "and nothing else.")
                     .defineInRange("rows", kind.defaultRows(), 1, 12));
             COLUMNS.put(kind, builder
