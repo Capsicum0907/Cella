@@ -1004,6 +1004,14 @@ public final class CellaTests {
         check(kept.list().size() == 1, "and listing it does not spend it either");
         check(kept.size() == 1, "so the store still holds one");
 
+        // Handing a name out does not spend it either, and that it went out is remembered
+        // - which is the only thing anybody can do about a claim that cannot be recalled.
+        check(kept.hand(name) == 0, "the first hand-out should say it was the first");
+        check(kept.trace(name).orElseThrow().claimed(), "and the entry should know");
+        check(kept.hand(name) == 1, "the second should say there was one before it");
+        check(kept.trace(name).orElseThrow().handed() == 2, "and count both");
+        check(kept.trace(name).isPresent(), "and handing out still does not spend it");
+
         check(kept.forget(name), "forgetting should say it found something");
         check(kept.trace(name).isEmpty(), "and then there is nothing to look at");
         check(kept.take(name).isEmpty(), "nor anything to take, which is what it is for");

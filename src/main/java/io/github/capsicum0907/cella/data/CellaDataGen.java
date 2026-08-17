@@ -206,6 +206,11 @@ public final class CellaDataGen {
                     "%s chests kept, %s slots spoken for between them:");
             add("commands.cella.kept.header.one", "One chest kept, %s slots spoken for:");
             add("commands.cella.kept.row", "%s - %s of %s slots, %s");
+            add("commands.cella.kept.row.claimed", "%s - %s of %s slots, %s, already given out");
+            add("commands.cella.kept.again",
+                    "It had been given out %s times already. Only the first one placed gets "
+                            + "the contents; the others go down empty, and their tooltips "
+                            + "will not say so.");
             add("commands.cella.kept.unformed", "form unrecorded");
             add("commands.cella.kept.foreign", "%s, which this version does not have");
             add("commands.cella.kept.age", "filed %s ago");
@@ -224,6 +229,9 @@ public final class CellaDataGen {
                             + "is placed, and come back once.");
             add("commands.cella.kept.missing", "Nothing is kept under %s.");
             add("commands.cella.kept.noform", "There is no form called %s.");
+            add("commands.cella.kept.forgot.claimed",
+                    "A name for it had been given out %s times. Those chests go down empty "
+                            + "now, and their tooltips will not say so.");
             add("commands.cella.kept.forgot",
                     "Destroyed the contents kept as %s: %s of %s slots. That cannot be "
                             + "undone.");

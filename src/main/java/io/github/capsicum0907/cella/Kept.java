@@ -76,6 +76,7 @@ public class Kept extends SavedData {
     private static final String KIND = "Kind";
     private static final String WHEN = "When";
     private static final String EXPERIENCE = "Experience";
+    private static final String HANDED = "Handed";
 
     /**
      * {@code ItemStackHandler}'s own two keys, read here and never written.
@@ -109,8 +110,11 @@ public class Kept extends SavedData {
      * @param when game time, or {@link #UNDATED}
      * @param experience points it had been fed, which is nought for most entries and for
      *              every entry written before a Cella could be fed at all
+     * @param handed how many times a name for it has been handed out by {@code /cella kept
+     *              give} without being spent. See {@link #hand}.
      */
-    private record Filed(CompoundTag contents, String kind, long when, int experience) {
+    private record Filed(CompoundTag contents, String kind, long when, int experience,
+            int handed) {
     }
 
     /**
@@ -147,7 +151,7 @@ public class Kept extends SavedData {
      *             recorded — ask {@link #dated()} rather than comparing
      */
     public record Trace(UUID id, String named, Optional<Kind> kind, long when,
-            int used, int slots, int experience) {
+            int used, int slots, int experience, int handed) {
         /** Whether it knows when it was filed at all. */
         public boolean dated() {
             return when >= 0;
@@ -161,6 +165,11 @@ public class Kept extends SavedData {
         /** Whether it had been fed anything. One way, so this only ever went up. */
         public boolean grown() {
             return experience > 0;
+        }
+
+        /** Whether somebody is already walking around with a name for this. */
+        public boolean claimed() {
+            return handed > 0;
         }
     }
 
@@ -203,7 +212,7 @@ public class Kept extends SavedData {
      */
     public UUID put(CompoundTag contents, Kind kind, long when, int experience) {
         UUID id = UUID.randomUUID();
-        chests.put(id, new Filed(contents, kind.id(), when, experience));
+        chests.put(id, new Filed(contents, kind.id(), when, experience, 0));
         setDirty();
         return id;
     }
@@ -223,6 +232,29 @@ public class Kept extends SavedData {
         }
         return Optional.ofNullable(filed)
                 .map(one -> new Chest(one.contents(), one.experience()));
+    }
+
+    /**
+     * Records that a name for it has been handed out, and says how many times it had been
+     * before.
+     *
+     * <p><b>Not a lock.</b> An operator who loses the item they were just given still has
+     * to be able to ask for another, so this refuses nothing — but two items naming one
+     * chest is a state where one of them carries a tooltip it cannot honour, and this mod
+     * mints that state on request now rather than only meeting it. What can be done about
+     * a state that cannot be prevented is to stop making it quietly.
+     *
+     * @return how many times it had been handed out before this one
+     */
+    public int hand(UUID id) {
+        Filed filed = chests.get(id);
+        if (filed == null) {
+            return 0;
+        }
+        chests.put(id, new Filed(filed.contents(), filed.kind(), filed.when(),
+                filed.experience(), filed.handed() + 1));
+        setDirty();
+        return filed.handed();
     }
 
     /**
@@ -273,7 +305,8 @@ public class Kept extends SavedData {
 
     private static Trace trace(UUID id, Filed filed) {
         return new Trace(id, filed.kind(), Kind.named(filed.kind()), filed.when(),
-                usedIn(filed.contents()), slotsIn(filed.contents()), filed.experience());
+                usedIn(filed.contents()), slotsIn(filed.contents()), filed.experience(),
+                filed.handed());
     }
 
     /** How many slots have something in them; see the note on {@link #ITEMS}. */
@@ -308,7 +341,8 @@ public class Kept extends SavedData {
                             entry.contains(WHEN, Tag.TAG_LONG)
                                     ? entry.getLong(WHEN)
                                     : UNDATED,
-                            entry.getInt(EXPERIENCE))));
+                            entry.getInt(EXPERIENCE),
+                            entry.getInt(HANDED))));
         }
         return new Kept(chests);
     }
@@ -329,6 +363,9 @@ public class Kept extends SavedData {
             }
             if (filed.experience() > 0) {
                 entry.putInt(EXPERIENCE, filed.experience());
+            }
+            if (filed.handed() > 0) {
+                entry.putInt(HANDED, filed.handed());
             }
             list.add(entry);
         });

@@ -153,6 +153,8 @@ public final class KeptCommand {
         }
 
         Kept.Trace trace = found.get();
+        // Counted before the item is in a hand, because after that it looks like any other.
+        int before = store(source).hand(id);
         // What was asked for, else what it was, else what would hold it. The last is a
         // derivation from the size and is not pretending to be the history: see
         // Kind.fitting.
@@ -168,6 +170,15 @@ public final class KeptCommand {
         source.sendSuccess(() -> Component.translatable("commands.cella.kept.gave",
                 Component.literal(kind.displayName()),
                 Held.count(trace.used()), Held.count(trace.slots())), true);
+        // ⚠ The second item for one chest carries a tooltip it cannot honour: the figures
+        // were true when they were written and the contents leave the store once, so
+        // whichever is placed second goes down empty while still describing what it is not
+        // carrying. Nothing on the item can say so - it is on a client, and the client is
+        // never told what the store holds - so the only place left to say it is here.
+        if (before > 0) {
+            source.sendSuccess(() -> Component.translatable("commands.cella.kept.again",
+                    before).withStyle(net.minecraft.ChatFormatting.YELLOW), false);
+        }
         return 1;
     }
 
@@ -205,16 +216,30 @@ public final class KeptCommand {
         Kept.Trace trace = found.get();
         source.sendSuccess(() -> Component.translatable("commands.cella.kept.forgot",
                 form(trace), Held.count(trace.used()), Held.count(trace.slots())), true);
+        // ⚠ Louder here than for a repeat give, because this one cannot be walked back.
+        // Somebody is carrying an item that still says what this held; destroying it turns
+        // that item into one naming nothing, and its tooltip will go on describing what it
+        // no longer points at. The item cannot be told - it is on a client - so the person
+        // doing the destroying is the only one who can be.
+        if (trace.claimed()) {
+            source.sendSuccess(() -> Component.translatable("commands.cella.kept.forgot.claimed",
+                    trace.handed()).withStyle(net.minecraft.ChatFormatting.YELLOW), false);
+        }
         return 1;
     }
 
     /** One entry, with the click that writes its own name into the next command. */
     private static Component row(Kept.Trace trace, long now) {
+        // A row somebody is already holding a name for is a row whose contents may be gone
+        // by the time anybody acts on it.
+        String key = trace.claimed()
+                ? "commands.cella.kept.row.claimed"
+                : "commands.cella.kept.row";
         Component age = trace.dated()
                 ? Component.translatable("commands.cella.kept.age",
                         elapsed(Math.max(0L, now - trace.when())))
                 : Component.translatable("commands.cella.kept.undated");
-        return Component.translatable("commands.cella.kept.row", form(trace),
+        return Component.translatable(key, form(trace),
                         Held.count(trace.used()), Held.count(trace.slots()), age)
                 .withStyle(Style.EMPTY
                         .withColor(ChatFormatting.GRAY)

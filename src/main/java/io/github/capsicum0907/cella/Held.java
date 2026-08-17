@@ -21,11 +21,22 @@ import net.minecraft.world.inventory.tooltip.TooltipComponent;
  * never told any of that, so anything a player is to be shown about a chest in their hand
  * has to travel on the item.
  *
- * <p><b>A snapshot that cannot go stale.</b> Filed contents are reachable by exactly one
- * operation, {@link Kept#take}, which hands the whole chest back and forgets it. Nothing
- * can put an item into a chest that is in somebody's pocket, so the count written when it
- * was picked up is still exact when it is put down. This is a summary that happens to be
- * the truth rather than an estimate of it.
+ * <p><b>A snapshot, and it is exact for whichever item gets there first.</b> Filed contents
+ * are reachable by exactly one operation, {@link Kept#take}, which hands the whole chest
+ * back and forgets it. Nothing can put an item into a chest that is in somebody's pocket,
+ * so the count written when it was picked up is still what comes out when it is put down.
+ *
+ * <p>⚠ <b>This used to say the snapshot could not go stale, and that is no longer true.</b>
+ * It was true while the only way to hold a name was to have picked the chest up: one chest,
+ * one item, and two of them only if some other mod duplicated a stack. {@code /cella kept
+ * give} hands out a name without spending it, so the mod itself can now mint a second item
+ * for a chest that already has one — and the loser of that race carries a tooltip
+ * describing contents it will not deliver. The figures on it were true when it was written
+ * and stay written; what changed is that something else may have taken them since.
+ *
+ * <p>Nothing on the item can fix that, because the item is on a client and the client is
+ * never told what the store holds. What can be done is not to make the state quietly:
+ * {@code KeptCommand} says so when it hands out a name that has been handed out before.
  *
  * <p><b>Slots and not stacks.</b> How full a Cella is means how many of its slots are
  * spoken for: slots are the scarce thing here, and a chest of two hundred thousand of
