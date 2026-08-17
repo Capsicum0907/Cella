@@ -181,7 +181,8 @@ public final class CellaDataGen {
             add("container.cella.grown", "%s (%s%%)");
             add("tooltip.cella.grown", "%s%% grown");
             add("message.cella.fed", "Absorbed. %s%% grown.");
-            add("message.cella.grown", "It has taken in all it can use.");
+            add("message.cella.full", "Absorbed. It has taken in all it can use.");
+            add("message.cella.grown", "It has already taken in all it can use.");
             add("message.cella.nothing", "You have no experience to give it.");
 
             // /cella kept — see KeptCommand. Three answers about a form rather than two,

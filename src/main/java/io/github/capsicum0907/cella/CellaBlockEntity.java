@@ -159,15 +159,18 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
     }
 
     /**
-     * Takes a level's worth off a player and keeps it.
+     * Takes everything it can use off a player and keeps it.
      *
-     * <p><b>A level at a time, not the lot.</b> The transfer cannot be undone, so the
-     * gesture that performs it should not be able to empty a player in one misclick. A
-     * level is also the unit the player is watching go up, which makes what happened
-     * legible without a message.
+     * <p><b>In one go, not a level at a time.</b> This is not something being fed; it is
+     * something absorbing, and a creature that takes what it needs in mouthfuls is a
+     * different creature. The press is already deliberate — sneaking, empty-handed, at the
+     * block — so making the amount small bought a safety that the gesture had already
+     * bought, at the price of the one thing this is meant to feel like.
      *
-     * <p>Never more than the form can use: a chest that has finished growing takes
-     * nothing, rather than swallowing experience that will never mean anything.
+     * <p>Bounded on both sides and by whichever runs out first: a player is emptied rather
+     * than short-changed, and <b>a chest that has finished growing takes nothing</b> —
+     * never a point past its threshold, since anything over it is experience that can no
+     * longer mean anything, taken from somebody who cannot get it back.
      *
      * @return how many points moved, which is nought when the chest is full or the player
      *         is empty — the caller decides what to say about each
@@ -178,7 +181,7 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
         if (!kind.grows() || room <= 0) {
             return 0;
         }
-        int taken = Experience.take(player, Math.min(room, Experience.oneLevel(player)));
+        int taken = Experience.take(player, room);
         if (taken > 0) {
             experience += taken;
             setChanged();

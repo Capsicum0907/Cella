@@ -188,10 +188,18 @@ public class CellaBlock extends BaseEntityBlock {
         }
         int taken = chest.absorb(player);
         if (taken > 0) {
-            level.playSound(null, pos, SoundEvents.EXPERIENCE_ORB_PICKUP, SoundSource.BLOCKS,
-                    0.6F, 0.8F + level.getRandom().nextFloat() * 0.2F);
-            player.displayClientMessage(Component.translatable("message.cella.fed",
-                    Math.round(chest.grown() * 100.0F)), true);
+            // Reaching the top is a state change and gets its own sound, because one press
+            // can now be the whole of it: without a mark for it, the moment the chest
+            // became capable of something else would pass in silence.
+            boolean done = chest.grown() >= 1.0F;
+            level.playSound(null, pos,
+                    done ? SoundEvents.PLAYER_LEVELUP : SoundEvents.EXPERIENCE_ORB_PICKUP,
+                    SoundSource.BLOCKS, done ? 1.0F : 0.6F,
+                    0.8F + level.getRandom().nextFloat() * 0.2F);
+            player.displayClientMessage(done
+                    ? Component.translatable("message.cella.full")
+                    : Component.translatable("message.cella.fed",
+                            Math.round(chest.grown() * 100.0F)), true);
         } else {
             // Which of the two it was, because the fixes are opposite: go and fight, or
             // stop feeding a chest that has finished growing.

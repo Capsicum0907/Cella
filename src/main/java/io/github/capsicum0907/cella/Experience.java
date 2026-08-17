@@ -52,24 +52,6 @@ public final class Experience {
     }
 
     /**
-     * What the level a player is standing on cost them to reach.
-     *
-     * <p><b>Not {@code getXpNeededForNextLevel}, which is the one above.</b> Levels are not
-     * the same price going up as coming down: leaving level thirty costs 112 and arriving
-     * at it cost 107, so taking the first of those drops a player two levels and leaves
-     * them most of the way up the second. The points are right either way — nothing is
-     * lost — but "one press, one level" stops being true, and that is what the press is
-     * meant to mean.
-     *
-     * <p>Below the first level there is no level to give back, so it is the price of the
-     * first one; {@link #take} then hands over whatever short of that they have.
-     */
-    public static int oneLevel(Player player) {
-        int level = player.experienceLevel;
-        return level > 0 ? total(level) - total(level - 1) : total(1);
-    }
-
-    /**
      * Takes up to that many points off a player, and says how many actually moved.
      *
      * <p>Less than asked for when they do not have it, and nothing at all when they have

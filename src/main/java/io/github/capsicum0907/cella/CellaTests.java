@@ -1061,32 +1061,28 @@ public final class CellaTests {
     }
 
     /**
-     * Feeding takes a level off the player and puts the points in the chest.
+     * Absorbing takes everything the player has, when the chest can still use it.
      *
-     * <p>Points and not levels, because a level is worth seven at the bottom and hundreds
-     * at the top. And never more than the form can use: a chest that has finished growing
-     * takes nothing rather than swallowing experience that would never mean anything.
+     * <p>Not a mouthful at a time. The press is already deliberate — sneaking, empty
+     * handed, at the block — so a small amount bought no safety the gesture had not
+     * bought already, and cost the one thing this is meant to feel like.
      */
     @GameTest(template = TestStructures.FLOOR)
-    public static void feedingMovesPointsOneLevelAtATime(GameTestHelper helper) {
+    public static void absorbingTakesEverythingItCanUse(GameTestHelper helper) {
         CellaBlockEntity chest = place(helper, KIND);
         Player player = helper.makeMockPlayer(GameType.SURVIVAL);
         player.giveExperienceLevels(30);
         int had = Experience.points(player);
+        check(had < KIND.growth(), "thirty levels should be less than a Perfect wants");
 
         int taken = chest.absorb(player);
-        check(taken > 0, "a level should have moved");
-        check(chest.experience() == taken, "and landed in the chest: " + chest.experience());
-        check(Experience.points(player) == had - taken,
-                "and left the player: " + Experience.points(player));
-        check(player.experienceLevel == 29, "one level down: " + player.experienceLevel);
-        check(player.experienceProgress == 0.0F,
-                "and standing where it was, not most of the way up a lower one: "
-                        + player.experienceProgress);
+        check(taken == had, "all of it should have moved: " + taken + " of " + had);
+        check(chest.experience() == had, "and landed in the chest: " + chest.experience());
+        check(Experience.points(player) == 0,
+                "and the player should be empty: " + Experience.points(player));
+        check(player.experienceLevel == 0, "no levels left: " + player.experienceLevel);
 
         // An empty player gives nothing, rather than the chest filling itself from one.
-        player.giveExperienceLevels(-player.experienceLevel);
-        player.experienceProgress = 0.0F;
         int before = chest.experience();
         check(chest.absorb(player) == 0, "an empty player should give nothing");
         check(chest.experience() == before, "and the chest should not have grown");
@@ -1100,18 +1096,21 @@ public final class CellaTests {
      * somebody who cannot get it back.
      */
     @GameTest(template = TestStructures.FLOOR)
-    public static void feedingStopsAtTheTop(GameTestHelper helper) {
+    public static void absorbingStopsAtTheTop(GameTestHelper helper) {
         CellaBlockEntity chest = place(helper, KIND);
         Player rich = helper.makeMockPlayer(GameType.SURVIVAL);
         rich.giveExperienceLevels(200);
+        int had = Experience.points(rich);
+        check(had > KIND.growth(), "two hundred levels should be more than a Perfect wants");
 
-        while (chest.absorb(rich) > 0) {
-            // Until it stops taking, which it must.
-        }
+        int taken = chest.absorb(rich);
         check(chest.experience() == KIND.growth(),
                 "it should stop exactly full: " + chest.experience());
         check(chest.grown() == 1.0F, "which is all the way grown");
-        check(Experience.points(rich) > 0, "and the player should have change left over");
+        check(taken == KIND.growth(), "having taken only what it could use: " + taken);
+        check(Experience.points(rich) == had - taken,
+                "and left the change with the player: " + Experience.points(rich));
+        check(chest.absorb(rich) == 0, "and a full one takes nothing more");
         helper.succeed();
     }
 

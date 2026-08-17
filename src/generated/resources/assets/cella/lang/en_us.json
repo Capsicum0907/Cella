@@ -33,7 +33,8 @@
   "gui.cella.take.shift": "Shift: as much as will fit",
   "itemGroup.cella": "Cella",
   "message.cella.fed": "Absorbed. %s%% grown.",
-  "message.cella.grown": "It has taken in all it can use.",
+  "message.cella.full": "Absorbed. It has taken in all it can use.",
+  "message.cella.grown": "It has already taken in all it can use.",
   "message.cella.nothing": "You have no experience to give it.",
   "tooltip.cella.filled": "%s of %s slots used (%s%%)",
   "tooltip.cella.grown": "%s%% grown"
