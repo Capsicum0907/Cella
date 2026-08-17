@@ -83,7 +83,7 @@ public enum Kind {
      * <p>Junior is off the ramp because it is off the chain, and Max is red-brown because
      * it is barely the same creature.
      */
-    LARAVEL("laravel", "Laravel Cella", 0xB89A5E, 6, 9, 54, false, 0, "", () -> Formula
+    LARAVEL("laravel", "Laravel Cella", 0xB89A5E, 6, 9, 54, false, 160, "imperfect", true, () -> Formula
             .shaped("BPM",
                     "HCR",
                     "OSF")
@@ -99,9 +99,9 @@ public enum Kind {
             .done()),
 
     /** Fed, not made. See {@link #formula()}. */
-    IMPERFECT("imperfect", "Imperfect Cella", 0x5AA33C, 6, 9, 216, true, 0, "", null),
+    IMPERFECT("imperfect", "Imperfect Cella", 0x5AA33C, 6, 9, 216, true, 0, "", false, null),
 
-    SEMI_PERFECT("semi_perfect", "Semi-Perfect Cella", 0x6FBA43, 6, 9, 1728, true, 0, "", () -> Formula
+    SEMI_PERFECT("semi_perfect", "Semi-Perfect Cella", 0x6FBA43, 6, 9, 1728, true, 0, "", false, () -> Formula
             .shaped("CCC",
                     "COC",
                     "CCC")
@@ -109,7 +109,7 @@ public enum Kind {
             .key('O', () -> Blocks.OBSIDIAN)
             .done()),
 
-    PERFECT("perfect", "Perfect Cella", 0x8ACF48, 12, 16, 13824, true, 5345, "super_perfect", () -> Formula
+    PERFECT("perfect", "Perfect Cella", 0x8ACF48, 12, 16, 13824, true, 5345, "super_perfect", false, () -> Formula
             .shaped("CCC",
                     "CGC",
                     "CCC")
@@ -127,7 +127,7 @@ public enum Kind {
      * make the recipe a machine for making storage out of nothing rather than a strong
      * reward for reaching Perfect.
      */
-    JUNIOR("junior", "Cella Jr.", 0x3FB39A, 12, 16, 3456, true, 0, "", () -> Formula
+    JUNIOR("junior", "Cella Jr.", 0x3FB39A, 12, 16, 3456, true, 0, "", false, () -> Formula
             .shaped("DDD",
                     "DCD",
                     "DDD")
@@ -137,7 +137,7 @@ public enum Kind {
             .spawning()
             .done()),
 
-    SUPER_PERFECT("super_perfect", "Super Perfect Cella", 0xA3E052, 12, 16, 55296, true, 0, "", () -> Formula
+    SUPER_PERFECT("super_perfect", "Super Perfect Cella", 0xA3E052, 12, 16, 55296, true, 0, "", false, () -> Formula
             .shaped("CSC",
                     "SES",
                     "CSC")
@@ -146,7 +146,7 @@ public enum Kind {
             .key('E', () -> Blocks.DRAGON_EGG)
             .done()),
 
-    MAX("max", "Cella Max", 0x8A3A2E, 12, 16, 221184, true, 0, "", () -> Formula
+    MAX("max", "Cella Max", 0x8A3A2E, 12, 16, 221184, true, 0, "", false, () -> Formula
             .shaped("CTC",
                     "TET",
                     "CTC")
@@ -164,6 +164,7 @@ public enum Kind {
     private final boolean keeps;
     private final int growth;
     private final String becomes;
+    private final boolean ripens;
     private final Supplier<Formula> formula;
 
     /**
@@ -184,8 +185,9 @@ public enum Kind {
      *              {@link #keeps()}.
      * @param growth how much experience this form takes before it is done growing, in
      *              points, or nought for a form that takes none. See {@link #growth()}.
-     * @param becomes the id of what it turns into when it destroys itself, or empty for
-     *              a form that has nowhere to go. <b>An id and not the constant</b>, because
+     * @param ripens whether being full is the whole of it. See {@link #ripens()}.
+     * @param becomes the id of what it turns into once it is full, or empty for a form
+     *              that has nowhere to go. <b>An id and not the constant</b>, because
      *              this one names a form further down the list and Java will not let an
      *              enum constant refer forwards to another, in a lambda or out of it. A
      *              test walks the column so that a name with no form behind it is found by
@@ -196,7 +198,8 @@ public enum Kind {
      *              do in its own argument list, but a lambda can put off until asked.
      */
     Kind(String id, String name, int stain, int rows, int columns, int slots,
-            boolean keeps, int growth, String becomes, Supplier<Formula> formula) {
+            boolean keeps, int growth, String becomes, boolean ripens,
+            Supplier<Formula> formula) {
         this.id = id;
         this.name = name;
         this.stain = stain;
@@ -206,6 +209,7 @@ public enum Kind {
         this.keeps = keeps;
         this.growth = growth;
         this.becomes = becomes;
+        this.ripens = ripens;
         this.formula = formula;
     }
 
@@ -348,6 +352,27 @@ public enum Kind {
      */
     public java.util.Optional<Kind> becomes() {
         return named(becomes);
+    }
+
+    /**
+     * Whether being full is the whole of it.
+     *
+     * <p><b>The two changes in this list are not the same event, and that is the source
+     * material's doing rather than the code's.</b> A larva that has eaten enough grows up,
+     * which is what growing up is: nothing else happens and nothing is spent but time and
+     * prey. Going from Perfect to Super Perfect is not growing up — it is nearly dying and
+     * coming back, and that has to be done to it.
+     *
+     * <p>So a form that ripens turns the moment it is fed its last point, and one that
+     * does not stands there full, waiting to be ended. <b>One column rather than two
+     * mechanisms</b>: both read {@link #growth} to know when they are ready and
+     * {@link #becomes} to know what for, and this says only which of the two ways.
+     *
+     * <p>Which is also why a form that ripens can never be lit — it is never standing
+     * there full for anybody to put a star to.
+     */
+    public boolean ripens() {
+        return ripens;
     }
 
     /** The id as written, so a test can tell "names nothing" from "names something absent". */

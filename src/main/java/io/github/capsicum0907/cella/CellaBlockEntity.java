@@ -383,6 +383,21 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
                 contents.setStackInSlot(slot, ItemStack.EMPTY);
             }
         }
+        // ⚠ And what it has eaten, back on the floor as orbs.
+        //
+        // The larva keeps nothing, and that has to include this. The alternative was to
+        // let it vanish, which is the silent loss this mod keeps closing - and worse here
+        // than for items, because experience is one way and there is no picking it back
+        // up off the ground unless something puts it there.
+        //
+        // It does sit oddly beside "one way": a Laravel can be broken to get its feeding
+        // back. But a chest that has to be destroyed to open it is not a bank, and nothing
+        // comes out that did not go in, so what it costs is the chest and not the rule.
+        if (experience > 0 && level instanceof net.minecraft.server.level.ServerLevel server) {
+            net.minecraft.world.entity.ExperienceOrb.award(server,
+                    net.minecraft.world.phys.Vec3.atCenterOf(pos), experience);
+            experience = 0;
+        }
     }
 
     /**
@@ -449,7 +464,7 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
      * @return whether it took
      */
     public boolean light() {
-        if (lit() || kind().becomes().isEmpty() || grown() < 1.0F) {
+        if (lit() || kind().becomes().isEmpty() || kind().ripens() || grown() < 1.0F) {
             return false;
         }
         fuse = FUSE_TICKS;
@@ -489,15 +504,63 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
      * <p>The experience is spent. It bought this.
      */
     private void end(net.minecraft.server.level.ServerLevel server) {
+        BlockPos pos = getBlockPos();
+        if (!become(server)) {
+            return;
+        }
+        // Vanilla's explosion for what vanilla's explosion is good at - the noise, the
+        // light and throwing whatever is standing about. It is not what removes the
+        // ground; see Blast for why it cannot be.
+        server.explode(null, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, 8.0F,
+                Level.ExplosionInteraction.NONE);
+        Blast.start(server, pos, Blast.REACH);
+    }
+
+    /**
+     * It has eaten enough and grows up, there and then.
+     *
+     * <p>The other way a form changes, and the quiet one. Nothing is spent and nothing is
+     * destroyed — see {@link Kind#ripens} for why the two are different events rather than
+     * one mechanism with a flag on it.
+     *
+     * @return whether it changed
+     */
+    public boolean ripen(net.minecraft.server.level.ServerLevel server) {
+        if (!kind().ripens() || grown() < 1.0F || !become(server)) {
+            return false;
+        }
+        said(server, getBlockPos(), SoundEvents.PLAYER_LEVELUP);
+        return true;
+    }
+
+    /**
+     * Turns into whatever it becomes, in place, keeping what is inside it.
+     *
+     * <p><b>The contents move from block to block and never become an item.</b> For the
+     * ending that matters most — an item at the centre of that would be thrown by the
+     * explosion, in a dimension largely made of somewhere to fall, so the one thing that
+     * has to survive would be the one thing put where it could not. For growing up it is
+     * simply the truth: nothing was dropped, it is the same chest and it got bigger.
+     *
+     * <p><b>Poured rather than restored</b>, because what it comes back as is bigger. See
+     * {@link #restore}: putting a filed chest back brings its size with it, which is right
+     * when it is the same chest at the same size and wrong when the point is that it is
+     * not.
+     *
+     * <p>The experience is spent either way. It bought this.
+     *
+     * @return whether there was anywhere to go
+     */
+    private boolean become(net.minecraft.server.level.ServerLevel server) {
         Kind next = kind().becomes().orElse(null);
         if (next == null) {
-            return;
+            return false;
         }
         BlockPos pos = getBlockPos();
         CompoundTag was = contents.serializeNBT(server.registryAccess());
 
         // Emptied before the block is replaced, so that onRemove finds nothing worth
-        // keeping and neither files it nor drops an item naming it.
+        // keeping and neither files it, drops an item naming it, nor spills it.
         contents.setSize(contents.getSlots());
         experience = 0;
 
@@ -505,16 +568,9 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
                 .setValue(CellaBlock.FACING, getBlockState().getValue(CellaBlock.FACING));
         server.setBlockAndUpdate(pos, born);
         if (server.getBlockEntity(pos) instanceof CellaBlockEntity reborn) {
-            reborn.pour(server.registryAccess(),
-                    java.util.List.of(new Kept.Chest(was, 0)));
+            reborn.pour(server.registryAccess(), java.util.List.of(new Kept.Chest(was, 0)));
         }
-
-        // Vanilla's explosion for what vanilla's explosion is good at - the noise, the
-        // light and throwing whatever is standing about. It is not what removes the
-        // ground; see Blast for why it cannot be.
-        server.explode(null, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, 8.0F,
-                Level.ExplosionInteraction.NONE);
-        Blast.start(server, pos, Blast.REACH);
+        return true;
     }
 
     /** The client's half: the lid swings towards where the block event said it should be. */

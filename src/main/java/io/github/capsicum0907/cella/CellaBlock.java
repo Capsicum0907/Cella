@@ -153,7 +153,9 @@ public class CellaBlock extends BaseEntityBlock {
     @Override
     protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level,
             BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
-        if (!stack.is(Items.NETHER_STAR) || kind.becomes().isEmpty()) {
+        // A form that ripens is never standing there full, so a star has nothing to do to
+        // it: the star passes through and behaves like any other item on any other chest.
+        if (!stack.is(Items.NETHER_STAR) || kind.becomes().isEmpty() || kind.ripens()) {
             return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
         }
         if (level.isClientSide) {
@@ -248,6 +250,15 @@ public class CellaBlock extends BaseEntityBlock {
             return InteractionResult.PASS;
         }
         int taken = chest.absorb(player);
+        // Grown up rather than merely fed. Asked after absorbing and before anything is
+        // said about it, because ripening replaces the block entity - reading the old one
+        // afterwards would report a percentage belonging to a chest that no longer exists.
+        if (taken > 0 && kind.ripens() && level instanceof net.minecraft.server.level.ServerLevel
+                server && chest.ripen(server)) {
+            player.displayClientMessage(Component.translatable("message.cella.ripened",
+                    CellaRegistry.block(kind.becomes().orElseThrow()).get().getName()), true);
+            return InteractionResult.CONSUME;
+        }
         if (taken > 0) {
             // Reaching the top is a state change and gets its own sound, because one press
             // can now be the whole of it: without a mark for it, the moment the chest

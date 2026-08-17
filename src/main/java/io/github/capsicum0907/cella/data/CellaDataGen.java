@@ -187,6 +187,7 @@ public final class CellaDataGen {
 
             // Ending itself. Three refusals rather than one, because there are three
             // different things to go and do about it.
+            add("message.cella.ripened", "It has eaten enough. It is a %s now.");
             add("message.cella.lighting", "It begins to shake.");
             add("message.cella.lit", "It has already begun.");
             add("message.cella.notyet", "It has not taken in enough to survive that.");

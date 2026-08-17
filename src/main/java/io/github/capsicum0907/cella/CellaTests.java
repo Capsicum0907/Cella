@@ -1119,11 +1119,15 @@ public final class CellaTests {
      *
      * <p>Nought in the column means "has no use for experience", not "needs none". A bar
      * that could never move is worse than no bar: it says there is something to fill.
+     *
+     * <p>Semi-Perfect is named rather than taken as whichever form happens not to grow,
+     * for the same reason {@link #KIND} is: a change to the ladder should fail this out
+     * loud instead of quietly testing a different thing. It was Laravel until Laravel grew.
      */
     @GameTest(template = TestStructures.FLOOR)
     public static void aFormThatDoesNotGrowTakesNothing(GameTestHelper helper) {
-        check(!Kind.LARAVEL.grows(), "Laravel does not grow on experience yet");
-        CellaBlockEntity chest = place(helper, Kind.LARAVEL);
+        check(!Kind.SEMI_PERFECT.grows(), "Semi-Perfect does not grow on experience");
+        CellaBlockEntity chest = place(helper, Kind.SEMI_PERFECT);
         Player player = helper.makeMockPlayer(GameType.SURVIVAL);
         player.giveExperienceLevels(30);
         int had = Experience.points(player);
@@ -1194,10 +1198,10 @@ public final class CellaTests {
                 "and more than it can use stops at the top: " + chest.experience());
 
         // A form with no use for experience takes none of it back either.
-        CellaBlockEntity larva = place(helper, Kind.LARAVEL);
-        larva.restore(registries, new Kept.Chest(
-                new ItemStackHandler(Kind.LARAVEL.slots()).serializeNBT(registries), 9999));
-        check(larva.experience() == 0, "a form that does not grow keeps none of it");
+        CellaBlockEntity flat = place(helper, Kind.SEMI_PERFECT);
+        flat.restore(registries, new Kept.Chest(
+                new ItemStackHandler(Kind.SEMI_PERFECT.slots()).serializeNBT(registries), 9999));
+        check(flat.experience() == 0, "a form that does not grow keeps none of it");
         helper.succeed();
     }
 
@@ -1332,6 +1336,102 @@ public final class CellaTests {
             check(!level.getBlockState(centre.offset(reach + 2, 0, 0)).isAir(),
                     "and past the reach nothing is touched");
         });
+    }
+
+    /**
+     * Every form can be reached from somewhere.
+     *
+     * <p><b>This is the test that should have existed already.</b> Imperfect has no recipe
+     * on purpose — a Laravel that has eaten enough becomes one — but nothing implemented
+     * that, so for a long while there was no way to obtain an Imperfect at all, and since
+     * every form above it is fused out of Imperfects, the whole ladder above the first rung
+     * was unreachable outside creative. Nothing failed and nothing said so: the recipes
+     * that existed were all correct, and the one that was missing was missing by design.
+     *
+     * <p>So the property is not "every form has a recipe" — the point of Imperfect is that
+     * it does not — but <b>every form is either made or grown into</b>.
+     */
+    @GameTest(template = TestStructures.FLOOR)
+    public static void everyFormCanBeReached(GameTestHelper helper) {
+        for (Kind kind : Kind.values()) {
+            if (kind.formula().isPresent()) {
+                continue;
+            }
+            boolean grownInto = false;
+            for (Kind from : Kind.values()) {
+                grownInto |= from.becomes().orElse(null) == kind;
+            }
+            check(grownInto, kind.id() + " has no recipe and nothing grows into it, "
+                    + "so nothing in a survival world can ever have one");
+        }
+        helper.succeed();
+    }
+
+    /**
+     * A larva that has eaten enough grows up, there and then, keeping what is inside it.
+     *
+     * <p>The other way a form changes. Nothing is spent, nothing is destroyed and nothing
+     * has to be done to it — which is what growing up is, and why it is one column rather
+     * than a second mechanism. See {@link Kind#ripens}.
+     */
+    @GameTest(template = TestStructures.FLOOR)
+    public static void aFedLarvaGrowsUp(GameTestHelper helper) {
+        check(Kind.LARAVEL.ripens(), "a larva grows up on its own");
+        check(Kind.LARAVEL.becomes().orElse(null) == Kind.IMPERFECT, "into an Imperfect");
+        check(!Kind.PERFECT.ripens(), "and a Perfect does not - it has to be ended");
+
+        CellaBlockEntity larva = place(helper, Kind.LARAVEL);
+        larva.contents().setStackInSlot(3, new ItemStack(Items.GOLD_INGOT, 9));
+        Player player = helper.makeMockPlayer(GameType.SURVIVAL);
+        player.giveExperienceLevels(30);
+
+        larva.absorb(player);
+        check(larva.grown() == 1.0F, "it should be full");
+        check(!larva.light(), "and a form that ripens can never be lit");
+
+        check(larva.ripen(helper.getLevel()), "so it grows up instead");
+        check(helper.getBlockState(WHERE).is(CellaRegistry.block(Kind.IMPERFECT).get()),
+                "the block should be an Imperfect now");
+
+        CellaBlockEntity grown = (CellaBlockEntity) helper.getBlockEntity(WHERE);
+        check(grown.contents().getSlots() == Kind.IMPERFECT.slots(),
+                "at the new size, not the old one: " + grown.contents().getSlots());
+        check(grown.contents().getStackInSlot(0).getCount() == 9,
+                "with what was inside it, closed up to the front");
+        check(grown.experience() == 0, "and the feeding spent");
+        helper.succeed();
+    }
+
+    /**
+     * Breaking a larva gives back what it has eaten, as orbs.
+     *
+     * <p>The larva keeps nothing — that is why it is the one form that spills — and this
+     * has to be part of that. ⚠ It sits oddly beside experience being one way, and the
+     * reading that settles it is that a chest which must be destroyed to open it is not a
+     * bank: nothing comes out that did not go in, and what it costs is the chest. Letting
+     * it vanish instead would be the silent loss this mod keeps closing, and worse than for
+     * items, because there is no picking experience up off the ground unless something puts
+     * it there.
+     */
+    @GameTest(template = TestStructures.FLOOR)
+    public static void aBrokenLarvaGivesBackWhatItAte(GameTestHelper helper) {
+        check(!Kind.LARAVEL.keeps(), "the larva is the one that spills");
+        CellaBlockEntity larva = place(helper, Kind.LARAVEL);
+        Player player = helper.makeMockPlayer(GameType.SURVIVAL);
+        player.giveExperienceLevels(10);
+        int fed = larva.absorb(player);
+        check(fed > 0, "it should have eaten something to give back");
+
+        larva.spill(helper.getLevel(), helper.absolutePos(WHERE));
+        check(larva.experience() == 0, "it should be holding none afterwards");
+
+        int onTheFloor = helper.getLevel()
+                .getEntitiesOfClass(net.minecraft.world.entity.ExperienceOrb.class,
+                        new net.minecraft.world.phys.AABB(helper.absolutePos(WHERE)).inflate(8))
+                .stream().mapToInt(net.minecraft.world.entity.ExperienceOrb::getValue).sum();
+        check(onTheFloor == fed,
+                "and all of it should be on the floor: " + onTheFloor + " of " + fed);
+        helper.succeed();
     }
 
     /** The store as it is on disk, holding one entry. See the note on the migration test. */

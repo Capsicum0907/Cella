@@ -40,6 +40,7 @@
   "message.cella.lit": "It has already begun.",
   "message.cella.nothing": "You have no experience to give it.",
   "message.cella.notyet": "It has not taken in enough to survive that.",
+  "message.cella.ripened": "It has eaten enough. It is a %s now.",
   "tooltip.cella.filled": "%s of %s slots used (%s%%)",
   "tooltip.cella.grown": "%s%% grown"
 }
