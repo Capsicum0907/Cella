@@ -18,8 +18,21 @@ import net.neoforged.neoforge.common.Tags;
  * forms that share it, and the cumulative reading is a property of the numbers rather than
  * of the lookup: every column only ever goes up.
  *
- * <p>There are five of these and seven forms, because <b>Junior is a Perfect</b> in
- * everything but size and Max has not been given anything of its own yet.
+ * <h2>⚠ Super Perfect is the ceiling, and that is a rule rather than a coincidence</h2>
+ *
+ * <p>There are five of these and seven forms. <b>Junior is a Perfect</b> in everything but
+ * size, and <b>Max is a Super Perfect on purpose</b>: it is not waiting for something of
+ * its own, it is not getting one.
+ *
+ * <p>The reason is not that the columns happen to be full — though they are, and that is
+ * worth knowing: blast resistance is at bedrock, the tool is netherite, and wither immunity
+ * and surviving as an item are both simply true, so there is no headroom left on any axis
+ * Super Perfect did not already take. The reason is that <b>nothing may have a property
+ * Super Perfect lacks</b>. A Perfect Cell is stronger than a Cell Max, and a ladder where
+ * the last rung outdoes it would be saying otherwise.
+ *
+ * <p>So <b>Max buys room and nothing else</b>, which is also what it is: bigger, and less.
+ * If a new column is ever added, it belongs to Super Perfect first or to nobody.
  *
  * <h2>⚠ Two of these are not the mechanism their name suggests</h2>
  *

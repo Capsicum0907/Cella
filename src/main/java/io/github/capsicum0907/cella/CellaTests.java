@@ -1631,8 +1631,15 @@ public final class CellaTests {
         // And the forms are wired to rungs in order, so the chain above describes them.
         check(Kind.LARAVEL.trait() == Trait.LARVA, "the larva is the larva");
         check(Kind.JUNIOR.trait() == Kind.PERFECT.trait(), "Junior is a Perfect");
+        // ⚠ A rule and not a gap: nothing may have a property Super Perfect lacks, because
+        // a Perfect Cell is stronger than a Cell Max and a ladder whose last rung outdid it
+        // would be saying otherwise. Max buys room, which is what it is - bigger, and less.
         check(Kind.MAX.trait() == Kind.SUPER_PERFECT.trait(),
-                "and Max has not been given anything of its own yet");
+                "Max must not out-do Super Perfect, so it shares its trait");
+        for (Kind kind : Kind.values()) {
+            check(kind.trait().ordinal() <= Trait.SUPER_PERFECT.ordinal(),
+                    kind.id() + " is above the ceiling, and there is not supposed to be one");
+        }
         helper.succeed();
     }
 
