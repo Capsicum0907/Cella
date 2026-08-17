@@ -36,9 +36,13 @@ public enum Kind {
      * enough becomes one. That is why a formula is allowed to be absent rather than every
      * kind having to have one.
      *
-     * <p>Capacity climbs with the form. The last stops at thirty-two pages because that is
-     * where the config stops, and the config stops there because every slot is in the menu
-     * — see the README.
+     * <p><b>Capacity is meant to be what went into it.</b> Imperfect is four large chests
+     * and each step after multiplies by what its recipe eats: eight, eight, four, four.
+     * That reaches four thousand large chests at the top, and the numbers above are
+     * <em>not</em> that yet — everything past Imperfect is still small, because the
+     * screen sends every slot it has when it opens and thirteen thousand of them does not
+     * fit in a packet. Raising them waits on the menu holding a page again rather than
+     * the whole chest.
      *
      * <p><b>The colour is taken from the forms rather than chosen to be legible.</b> The
      * larva is sand, not green - it was drawn khaki and looks it. From there the green
@@ -65,7 +69,7 @@ public enum Kind {
             .done()),
 
     /** Fed, not made. See {@link #formula()}. */
-    IMPERFECT("imperfect", "Imperfect Cella", 0x5AA33C, 4, 9, 3, null),
+    IMPERFECT("imperfect", "Imperfect Cella", 0x5AA33C, 6, 9, 4, null),
 
     SEMI_PERFECT("semi_perfect", "Semi-Perfect Cella", 0x6FBA43, 5, 9, 5, () -> Formula
             .shaped("CCC",
