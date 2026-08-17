@@ -243,6 +243,23 @@ a 1080p screen at scale 3. Minecraft's automatic scale leaves as little as 320×
 eight and twelve rows were all watched in a client before any of this, which is how those
 numbers are known rather than guessed.
 
+**A fusion carries what it ate.** Eight Imperfects become a Semi-Perfect and everything
+in the eight is in the one afterwards. It fits because the ladder is built so that it
+fits: eight Imperfects are 8 × 216 = 1,728 slots and a Semi-Perfect is 1,728, all the way
+up to 221,184. That invariant is why capacity is not a setting.
+
+The names travel on the item and the pouring happens when the new chest is **put down**.
+`assemble` runs every time the ingredients sit on a bench, not when the result is taken,
+so filing anything there would make a chest out of every idle glance at a recipe. Reading
+the names off the ingredients and adding up how full they were has no such cost, and a
+name is spent when it is taken, so it cannot pour twice.
+
+**A fusion that would not fit is not a recipe.** Prevention rather than handling: the
+alternative is to make the chest anyway and put the remainder somewhere, and the only
+somewhere is the floor — thousands of item entities on one block, landing on exactly the
+people who filled their chests. With capacity fixed it cannot arise at all; a world still
+holding chests built to older numbers can, and there the bench simply shows nothing.
+
 **The Perfect that makes Cella Jr. is not spent.** Seven come out and the parent is
 still standing there, which is what happened. That is a property of the one recipe and
 not of the block: a Perfect that came back every time it was crafted with — the bucket

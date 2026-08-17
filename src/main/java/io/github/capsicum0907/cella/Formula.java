@@ -24,13 +24,14 @@ import net.minecraft.world.level.ItemLike;
  * until they exist.
  */
 public record Formula(List<String> pattern, Map<Character, Supplier<ItemLike>> of,
-        int count, boolean spawns) {
+        int count, boolean spawns, boolean fuses) {
     /** A builder, because a map literal of nine entries is not a thing Java says nicely. */
     public static class Builder {
         private final List<String> pattern;
         private final Map<Character, Supplier<ItemLike>> of = new LinkedHashMap<>();
         private int count = 1;
         private boolean spawns;
+        private boolean eatsAChest;
 
         private Builder(String top, String middle, String bottom) {
             this.pattern = List.of(top, middle, bottom);
@@ -41,8 +42,15 @@ public record Formula(List<String> pattern, Map<Character, Supplier<ItemLike>> o
             return this;
         }
 
-        /** The letter stands for another of these chests. */
+        /**
+         * The letter stands for another of these chests.
+         *
+         * <p>Which is also how a recipe knows it is a fusion: something that eats a Cella
+         * has contents to carry into what it makes. Said by using this rather than by a
+         * second flag, so the two cannot disagree.
+         */
         public Builder key(char letter, Kind kind) {
+            eatsAChest = true;
             return key(letter, () -> CellaRegistry.block(kind).get());
         }
 
@@ -76,7 +84,7 @@ public record Formula(List<String> pattern, Map<Character, Supplier<ItemLike>> o
         public Formula done() {
             return new Formula(pattern,
                     java.util.Collections.unmodifiableMap(new LinkedHashMap<>(of)),
-                    count, spawns);
+                    count, spawns, eatsAChest && !spawns);
         }
     }
 

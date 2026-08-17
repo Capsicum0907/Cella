@@ -60,6 +60,10 @@ public final class CellaRegistry {
     public static final DeferredHolder<RecipeSerializer<?>, Spawning.Serializer> SPAWNING =
             RECIPES.register("spawning", Spawning.Serializer::new);
 
+    /** The recipe that carries the contents of what it ate; see {@link Fusing}. */
+    public static final DeferredHolder<RecipeSerializer<?>, Fusing.Serializer> FUSING =
+            RECIPES.register("fusing", Fusing.Serializer::new);
+
     private static final Map<Kind, DeferredBlock<CellaBlock>> BLOCK = new EnumMap<>(Kind.class);
     private static final Map<Kind, DeferredItem<BlockItem>> ITEM = new EnumMap<>(Kind.class);
 

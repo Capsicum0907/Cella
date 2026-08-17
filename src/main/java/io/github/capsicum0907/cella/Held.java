@@ -1,5 +1,6 @@
 package io.github.capsicum0907.cella;
 
+import java.util.List;
 import java.util.UUID;
 
 import com.mojang.serialization.Codec;
@@ -34,28 +35,48 @@ import net.minecraft.world.inventory.tooltip.TooltipComponent;
  * <p>It is also the {@link TooltipComponent} the item hands the screen — the same fact,
  * so the same record, rather than a second one copied from it.
  */
-public record Held(UUID chest, int used, int slots) implements TooltipComponent {
+public record Held(List<UUID> chests, int used, int slots) implements TooltipComponent {
+    /**
+     * <b>Several names, because a fusion carries what it ate.</b> Eight Imperfects go into
+     * a Semi-Perfect and their eight chests go with them — poured in when the new one is
+     * put down, not when it is crafted, so that laying the ingredients on a bench to look
+     * at the result does not file anything anywhere. See {@link Fusing}.
+     */
     private static final Codec<Held> FULL = RecordCodecBuilder.create(instance -> instance.group(
-            UUIDUtil.CODEC.fieldOf("chest").forGetter(Held::chest),
+            UUIDUtil.CODEC.listOf().fieldOf("chests").forGetter(Held::chests),
             Codec.INT.fieldOf("used").forGetter(Held::used),
             Codec.INT.fieldOf("slots").forGetter(Held::slots))
             .apply(instance, Held::new));
 
+    /** The one-name form this had before fusions existed. */
+    private static final Codec<Held> ONE = RecordCodecBuilder.create(instance -> instance.group(
+            UUIDUtil.CODEC.fieldOf("chest").forGetter(held -> held.chests().getFirst()),
+            Codec.INT.fieldOf("used").forGetter(Held::used),
+            Codec.INT.fieldOf("slots").forGetter(Held::slots))
+            .apply(instance, (chest, used, slots) -> new Held(List.of(chest), used, slots)));
+
     /**
-     * <b>A bare name is still read.</b> The component used to be the {@code UUID} alone,
-     * and items written by that version are in worlds. Refusing them would not be a
-     * cosmetic loss - the item would stop naming anything and its contents would sit in
-     * the store with nothing left to ask for them. So an old one loads with no counts,
-     * which shows no bar and is honest about knowing nothing.
+     * <b>Older forms are still read.</b> This was a bare {@code UUID} first and a single
+     * named chest after that, and items written by both are in worlds. Refusing one would
+     * not be a cosmetic loss - the item would stop naming anything and its contents would
+     * sit in the store with nothing left to ask for them. A bare name loads with no
+     * counts, which shows no bar and is honest about knowing nothing.
      */
-    public static final Codec<Held> CODEC = Codec.withAlternative(FULL,
-            UUIDUtil.CODEC.xmap(chest -> new Held(chest, 0, 0), Held::chest));
+    public static final Codec<Held> CODEC = Codec.withAlternative(
+            Codec.withAlternative(FULL, ONE),
+            UUIDUtil.CODEC.xmap(chest -> new Held(List.of(chest), 0, 0),
+                    held -> held.chests().getFirst()));
 
     public static final StreamCodec<ByteBuf, Held> STREAM_CODEC = StreamCodec.composite(
-            UUIDUtil.STREAM_CODEC, Held::chest,
+            UUIDUtil.STREAM_CODEC.apply(ByteBufCodecs.list()), Held::chests,
             ByteBufCodecs.VAR_INT, Held::used,
             ByteBufCodecs.VAR_INT, Held::slots,
             Held::new);
+
+    /** One chest is put back as it was; several are poured together. See {@code CellaBlock}. */
+    public boolean fused() {
+        return chests.size() > 1;
+    }
 
     /** Whether it knows how full it is at all; see the note on {@link #CODEC}. */
     public boolean counted() {

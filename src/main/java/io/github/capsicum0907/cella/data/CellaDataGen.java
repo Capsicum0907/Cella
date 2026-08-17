@@ -5,6 +5,7 @@ import java.util.concurrent.CompletableFuture;
 import io.github.capsicum0907.cella.Cella;
 import io.github.capsicum0907.cella.CellaRegistry;
 import io.github.capsicum0907.cella.Formula;
+import io.github.capsicum0907.cella.Fusing;
 import io.github.capsicum0907.cella.Kind;
 import io.github.capsicum0907.cella.Spawning;
 
@@ -196,15 +197,20 @@ public final class CellaDataGen {
          * walks the pattern rather than knowing any of them.
          */
         /**
-         * Swaps the shaped recipe for one that gives the parent back.
+         * Swaps the shaped recipe for the kind of recipe it actually is.
          *
          * <p>{@code ShapedRecipeBuilder} only ever makes a plain {@code ShapedRecipe}, so
-         * this catches it on the way out and rebuilds it as a {@link Spawning}. The
+         * this catches it on the way out and rebuilds it as a {@link Spawning} or a
+         * {@link Fusing} - a recipe that eats a Cella carries its contents, unless it is
+         * the one that spawns rather than fuses. The
          * result is put together here rather than read off the recipe, because a shaped
          * recipe will not tell anyone outside its package what it makes without being
          * handed the registries.
          */
-        private RecipeOutput spawning(RecipeOutput output, Kind kind, Formula formula) {
+        private RecipeOutput rebuilt(RecipeOutput output, Kind kind, Formula formula) {
+            if (!formula.spawns() && !formula.fuses()) {
+                return output;
+            }
             return new RecipeOutput() {
                 @Override
                 public Advancement.Builder advancement() {
@@ -214,11 +220,16 @@ public final class CellaDataGen {
                 @Override
                 public void accept(ResourceLocation id, Recipe<?> recipe,
                         AdvancementHolder advancement, ICondition... conditions) {
-                    Recipe<?> given = recipe instanceof ShapedRecipe shaped
-                            ? new Spawning(shaped.getGroup(), shaped.category(), shaped.pattern,
-                                    new ItemStack(CellaRegistry.block(kind).get(),
-                                            formula.count()))
-                            : recipe;
+                    Recipe<?> given = recipe;
+                    if (recipe instanceof ShapedRecipe shaped) {
+                        ItemStack result = new ItemStack(CellaRegistry.block(kind).get(),
+                                formula.count());
+                        given = formula.spawns()
+                                ? new Spawning(shaped.getGroup(), shaped.category(),
+                                        shaped.pattern, result)
+                                : new Fusing(shaped.getGroup(), shaped.category(),
+                                        shaped.pattern, result);
+                    }
                     output.accept(id, given, advancement, conditions);
                 }
             };
@@ -239,7 +250,7 @@ public final class CellaDataGen {
                     ItemLike first = formula.of().values().iterator().next().get();
                     shaped.unlockedBy("has_" + BuiltInRegistries.ITEM.getKey(first.asItem())
                             .getPath(), has(first));
-                    shaped.save(formula.spawns() ? spawning(output, kind, formula) : output);
+                    shaped.save(rebuilt(output, kind, formula));
                 });
             }
         }

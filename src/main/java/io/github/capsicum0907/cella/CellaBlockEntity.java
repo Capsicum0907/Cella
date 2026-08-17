@@ -209,16 +209,62 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
             // anything that still has hold of it.
             contents.setSize(contents.getSlots());
             ItemStack stack = new ItemStack(getBlockState().getBlock());
-            stack.set(CellaRegistry.KEPT.get(), new Held(id, used, slots));
+            stack.set(CellaRegistry.KEPT.get(),
+                    new Held(java.util.List.of(id), used, slots));
             Containers.dropItemStack(level, pos.getX(), pos.getY(), pos.getZ(), stack);
             given = true;
         });
     }
 
-    /** Puts a filed chest back into this one, at the size it was filed at. */
+    /**
+     * Puts a filed chest back into this one, at the size and in the arrangement it was
+     * filed at.
+     *
+     * <p>Breaking a chest and putting it down again gives you back <em>that chest</em>,
+     * which is why this replaces rather than pours: the size comes back too, so a chest
+     * built when the numbers were different stays the size it was.
+     */
     public void restore(HolderLookup.Provider registries, CompoundTag kept) {
         contents.deserializeNBT(registries, kept);
         setChanged();
+    }
+
+    /**
+     * Pours several filed chests into this one, in order, closing up the gaps.
+     *
+     * <p>What a fusion gives you is the <em>contents</em> of what it ate rather than any
+     * one of the chests, so this appends instead of replacing and does not touch the size.
+     * Eight chests a tenth full become one chest a tenth full with everything at the
+     * front, which is the only arrangement that means anything after eight were merged.
+     *
+     * @return what would not fit, which {@link Fusing} makes impossible and this counts
+     *         anyway - the caller decides what to do about a world that has one
+     */
+    public java.util.List<ItemStack> pour(HolderLookup.Provider registries,
+            java.util.List<CompoundTag> filed) {
+        java.util.List<ItemStack> over = new java.util.ArrayList<>();
+        int cursor = 0;
+        for (CompoundTag one : filed) {
+            ItemStackHandler from = new ItemStackHandler();
+            from.deserializeNBT(registries, one);
+            for (int slot = 0; slot < from.getSlots(); slot++) {
+                ItemStack stack = from.getStackInSlot(slot);
+                if (stack.isEmpty()) {
+                    continue;
+                }
+                while (cursor < contents.getSlots()
+                        && !contents.getStackInSlot(cursor).isEmpty()) {
+                    cursor++;
+                }
+                if (cursor >= contents.getSlots()) {
+                    over.add(stack);
+                } else {
+                    contents.setStackInSlot(cursor++, stack);
+                }
+            }
+        }
+        setChanged();
+        return over;
     }
 
     /**

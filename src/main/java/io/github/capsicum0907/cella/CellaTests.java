@@ -348,7 +348,7 @@ public final class CellaTests {
                 filed.serializeNBT(helper.getLevel().registryAccess()));
 
         ItemStack stack = new ItemStack(CellaRegistry.item(KIND).get());
-        stack.set(CellaRegistry.KEPT.get(), new Held(name, 1, KIND.slots()));
+        stack.set(CellaRegistry.KEPT.get(), new Held(java.util.List.of(name), 1, KIND.slots()));
         check(stack.getMaxStackSize() == 1, "a named chest should not stack");
 
         CellaBlockEntity chest = place(helper, KIND);
@@ -438,6 +438,122 @@ public final class CellaTests {
                     "and how many there were altogether: " + held.slots());
             check(held.counted(), "which is enough to draw a bar from");
         });
+    }
+
+    /**
+     * A fusion carries the contents of everything it ate into what it made.
+     *
+     * <p>Names and counts only — nothing is filed or opened while a bench is being looked
+     * at, because {@code assemble} runs every time the ingredients sit there. The pouring
+     * is at placement.
+     */
+    @GameTest(template = TestStructures.FLOOR)
+    public static void aFusionCarriesWhatItAte(GameTestHelper helper) {
+        Kept kept = Kept.of(helper.getLevel()).orElseThrow(
+                () -> new GameTestAssertException("there should be a store on a server"));
+        var recipes = helper.getLevel().getServer().getRecipeManager();
+        var semiPerfect = recipes
+                .byKey(ResourceLocation.fromNamespaceAndPath(Cella.MODID, "semi_perfect"))
+                .orElseThrow(() -> new GameTestAssertException("no semi_perfect recipe"));
+        check(semiPerfect.value() instanceof Fusing, "a fusion, since it eats Cellas");
+        Fusing fusion = (Fusing) semiPerfect.value();
+
+        // Eight Imperfects round obsidian, two of them with something in them.
+        java.util.List<ItemStack> grid = new java.util.ArrayList<>();
+        for (int at = 0; at < 9; at++) {
+            grid.add(at == 4
+                    ? new ItemStack(Items.OBSIDIAN)
+                    : new ItemStack(CellaRegistry.item(Kind.IMPERFECT).get()));
+        }
+        java.util.List<java.util.UUID> filed = new java.util.ArrayList<>();
+        for (int at : new int[] { 0, 8 }) {
+            ItemStackHandler one = new ItemStackHandler(Kind.IMPERFECT.slots());
+            one.setStackInSlot(at, new ItemStack(Items.GOLD_INGOT, 7));
+            java.util.UUID name = kept.put(
+                    one.serializeNBT(helper.getLevel().registryAccess()));
+            filed.add(name);
+            grid.get(at).set(CellaRegistry.KEPT.get(),
+                    new Held(java.util.List.of(name), 1, Kind.IMPERFECT.slots()));
+        }
+
+        CraftingInput bench = CraftingInput.of(3, 3, grid);
+        check(fusion.matches(bench, helper.getLevel()), "it should be a recipe");
+
+        ItemStack made = fusion.assemble(bench, helper.getLevel().registryAccess());
+        Held held = made.get(CellaRegistry.KEPT.get());
+        check(held != null, "the result should carry what it ate");
+        check(held.chests().equals(filed),
+                "both names, in the order they were laid out: " + held.chests());
+        check(held.used() == 2, "two slots between them: " + held.used());
+        check(held.slots() == Kind.SEMI_PERFECT.slots(),
+                "in the room a Semi-Perfect has: " + held.slots());
+
+        // And nothing was taken out of the store by looking at the bench.
+        check(kept.take(filed.getFirst()).isPresent(), "assembling must not have spent them");
+        kept.take(filed.getLast());
+        helper.succeed();
+    }
+
+    /**
+     * A fusion that would not fit is not a recipe at all.
+     *
+     * <p>Prevention, not handling. The alternative is to make the chest and put the
+     * remainder somewhere, and the only somewhere is the floor — thousands of item
+     * entities on one block, landing on whoever filled their chests. With capacity fixed
+     * this cannot arise; a world holding chests built to older numbers still can.
+     */
+    @GameTest(template = TestStructures.FLOOR)
+    public static void aFusionThatWouldNotFitIsNotARecipe(GameTestHelper helper) {
+        var recipes = helper.getLevel().getServer().getRecipeManager();
+        var semiPerfect = recipes
+                .byKey(ResourceLocation.fromNamespaceAndPath(Cella.MODID, "semi_perfect"))
+                .orElseThrow(() -> new GameTestAssertException("no semi_perfect recipe"));
+        Fusing fusion = (Fusing) semiPerfect.value();
+
+        java.util.List<ItemStack> grid = new java.util.ArrayList<>();
+        for (int at = 0; at < 9; at++) {
+            grid.add(at == 4
+                    ? new ItemStack(Items.OBSIDIAN)
+                    : new ItemStack(CellaRegistry.item(Kind.IMPERFECT).get()));
+        }
+        check(fusion.matches(CraftingInput.of(3, 3, grid), helper.getLevel()),
+                "eight empty ones are a recipe");
+
+        // One of them is fuller than the whole Semi-Perfect it would go into.
+        grid.get(0).set(CellaRegistry.KEPT.get(), new Held(
+                java.util.List.of(java.util.UUID.randomUUID()),
+                Kind.SEMI_PERFECT.slots() + 1, Kind.SEMI_PERFECT.slots() + 1));
+        check(!fusion.matches(CraftingInput.of(3, 3, grid), helper.getLevel()),
+                "and one that would not fit is not");
+        helper.succeed();
+    }
+
+    /**
+     * Pouring closes up the gaps, and stops at the end rather than overwriting.
+     *
+     * <p>Eight chests a tenth full become one chest a tenth full with everything at the
+     * front. Any other arrangement is a fiction after eight were merged.
+     */
+    @GameTest(template = TestStructures.FLOOR)
+    public static void pouringClosesUpTheGaps(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper, KIND);
+        var registries = helper.getLevel().registryAccess();
+
+        java.util.List<net.minecraft.nbt.CompoundTag> filed = new java.util.ArrayList<>();
+        for (int which = 0; which < 2; which++) {
+            ItemStackHandler one = new ItemStackHandler(Kind.SEMI_PERFECT.slots());
+            one.setStackInSlot(100, new ItemStack(Items.GOLD_INGOT, which + 1));
+            one.setStackInSlot(900, new ItemStack(Items.DIAMOND, which + 1));
+            filed.add(one.serializeNBT(registries));
+        }
+
+        check(chest.pour(registries, filed).isEmpty(), "all of it should fit");
+        check(chest.contents().getStackInSlot(0).is(Items.GOLD_INGOT), "first in, first slot");
+        check(chest.contents().getStackInSlot(1).is(Items.DIAMOND), "then the rest of it");
+        check(chest.contents().getStackInSlot(2).getCount() == 2, "then the second chest's");
+        check(chest.contents().getStackInSlot(4).isEmpty(), "and nothing after them");
+        check(chest.used() == 4, "four slots spoken for: " + chest.used());
+        helper.succeed();
     }
 
     private static java.util.List<ItemStack> dropped(GameTestHelper helper) {

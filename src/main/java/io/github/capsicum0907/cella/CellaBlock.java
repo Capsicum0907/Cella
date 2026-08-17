@@ -9,6 +9,7 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.Containers;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.entity.LivingEntity;
@@ -220,8 +221,28 @@ public class CellaBlock extends BaseEntityBlock {
                 || !(level.getBlockEntity(pos) instanceof CellaBlockEntity chest)) {
             return;
         }
-        Kept.of(level).flatMap(kept -> kept.take(held.chest()))
-                .ifPresent(contents -> chest.restore(level.registryAccess(), contents));
+        Kept.of(level).ifPresent(kept -> {
+            List<net.minecraft.nbt.CompoundTag> filed = held.chests().stream()
+                    .map(kept::take)
+                    .flatMap(java.util.Optional::stream)
+                    .toList();
+            if (filed.isEmpty()) {
+                return;
+            }
+            // One is that chest, put back as it was. Several are the contents of several,
+            // which belong to no one arrangement - see CellaBlockEntity.
+            if (filed.size() == 1 && !held.fused()) {
+                chest.restore(level.registryAccess(), filed.getFirst());
+                return;
+            }
+            for (ItemStack over : chest.pour(level.registryAccess(), filed)) {
+                // Fusing will not let this happen. If a world has an item from before it
+                // did, the leftovers are handed over rather than dropped: one item on the
+                // floor is a thing to pick up, and a thousand is a world that stops
+                // opening.
+                Containers.dropItemStack(level, pos.getX(), pos.getY(), pos.getZ(), over);
+            }
+        });
     }
 
     /**
