@@ -89,25 +89,23 @@ public class Fusing extends ShapedRecipe {
             }
         }
         if (!chests.isEmpty()) {
-            // How full it will be is how full they were, in the room the new one has -
-            // and the same for what they had been fed, against what the new form can use.
-            // Both are snapshots for the tooltip; the pouring happens at placement.
+            // How full it will be is how full they were, in the room the new one has. The
+            // contents carry; ⚠ the experience does not.
+            //
+            // It used to, added up the same way, on the reasoning that what several were
+            // fed adds up like what several held. That reasoning was wrong, and the rule it
+            // broke is one line: a Cella that changes form starts again at nothing. Growing
+            // up spends what it ate and so does ending itself, and a fusion is no less a
+            // change of form for having eight of them go into it.
+            //
+            // It also did not survive its own arithmetic. Eight full Imperfects are 11,160
+            // points against a Semi-Perfect's 5,345, so a fusion arrived already finished -
+            // a rung of the ladder that could never be climbed because it was never at the
+            // bottom of it.
             result.set(CellaRegistry.KEPT.get(), new Held(List.copyOf(chests), used(input),
-                    room(result), Math.min(fed(input), growth(result)), growth(result)));
+                    room(result), 0, growth(result)));
         }
         return result;
-    }
-
-    /** What the ingredients had been fed, added up off their own snapshots. */
-    private static int fed(CraftingInput input) {
-        int fed = 0;
-        for (int at = 0; at < input.size(); at++) {
-            Held held = input.getItem(at).get(CellaRegistry.KEPT.get());
-            if (held != null) {
-                fed += held.experience();
-            }
-        }
-        return fed;
     }
 
     /** What the thing being made can use. Nought if it is not one of ours, or does not grow. */

@@ -93,7 +93,7 @@ public enum Kind {
      * <p>Junior is off the ramp because it is off the chain, and Max is red-brown because
      * it is barely the same creature.
      */
-    LARAVEL("laravel", "Laravel Cella", 0xB89A5E, 6, 9, 54, false, 160, "imperfect", true, Trait.LARVA, () -> Formula
+    LARAVEL("laravel", "Laravel Cella", 0xB89A5E, 6, 9, 54, false, 1395, "imperfect", true, Trait.LARVA, () -> Formula
             .shaped("BPM",
                     "HCR",
                     "OSF")
@@ -109,9 +109,9 @@ public enum Kind {
             .done()),
 
     /** Fed, not made. See {@link #formula()}. */
-    IMPERFECT("imperfect", "Imperfect Cella", 0x5AA33C, 6, 9, 216, true, 315, "", false, Trait.IMPERFECT, null),
+    IMPERFECT("imperfect", "Imperfect Cella", 0x5AA33C, 6, 9, 216, true, 1395, "", false, Trait.IMPERFECT, null),
 
-    SEMI_PERFECT("semi_perfect", "Semi-Perfect Cella", 0x6FBA43, 6, 16, 1728, true, 550, "", false, Trait.SEMI_PERFECT, () -> Formula
+    SEMI_PERFECT("semi_perfect", "Semi-Perfect Cella", 0x6FBA43, 6, 16, 1728, true, 5345, "", false, Trait.SEMI_PERFECT, () -> Formula
             .shaped("CCC",
                     "COC",
                     "CCC")
@@ -119,7 +119,7 @@ public enum Kind {
             .key('O', () -> Blocks.OBSIDIAN)
             .done()),
 
-    PERFECT("perfect", "Perfect Cella", 0x8ACF48, 12, 16, 13824, true, 5345, "super_perfect", false, Trait.PERFECT, () -> Formula
+    PERFECT("perfect", "Perfect Cella", 0x8ACF48, 12, 16, 13824, true, 30970, "super_perfect", false, Trait.PERFECT, () -> Formula
             .shaped("CCC",
                     "CGC",
                     "CCC")
@@ -137,7 +137,7 @@ public enum Kind {
      * make the recipe a machine for making storage out of nothing rather than a strong
      * reward for reaching Perfect.
      */
-    JUNIOR("junior", "Cella Jr.", 0x3FB39A, 12, 16, 3456, true, 5345, "", false, Trait.PERFECT, () -> Formula
+    JUNIOR("junior", "Cella Jr.", 0x3FB39A, 12, 16, 3456, true, 30970, "", false, Trait.PERFECT, () -> Formula
             .shaped("DDD",
                     "DCD",
                     "DDD")
@@ -158,7 +158,7 @@ public enum Kind {
      * middle</b>, of which a world has exactly one, so Cella Max — four of these — needed
      * four eggs and could not be built at all.
      */
-    SUPER_PERFECT("super_perfect", "Super Perfect Cella", 0xA3E052, 12, 16, 55296, true, 8670, "", false, Trait.SUPER_PERFECT, null),
+    SUPER_PERFECT("super_perfect", "Super Perfect Cella", 0xA3E052, 12, 16, 55296, true, 149720, "", false, Trait.SUPER_PERFECT, null),
 
     /**
      * ⚠ <b>The elytra and three of the totems are gone.</b> The old shape wanted a dragon
@@ -342,8 +342,14 @@ public enum Kind {
      * as "does not grow" everywhere rather than as "needs nothing".
      *
      * <p><b>Every figure here is a whole level in vanilla's own arithmetic</b>, and there
-     * is a test that says so — 10, 15, 20, 50 and 60 — so a bar reaches its end exactly
+     * is a test that says so — 30, 30, 50, 100 and 200 — so a bar reaches its end exactly
      * when a level lands rather than somewhere in the middle of one.
+     *
+     * <p>⚠ <b>An Imperfect is fed twice.</b> Once as a larva, to grow up, and once as
+     * itself, to be worth putting on a bench — growing up spends what it ate, so the two
+     * thresholds add rather than the second absorbing the first. Both being thirty levels
+     * is not sixty levels of chest, it is sixty levels per Imperfect, and there are
+     * sixty-four of those in a Perfect.
      *
      * <p><b>Every form that is ever an ingredient has one</b>, because a recipe will not
      * accept a Cella that has not finished growing; see {@code Formula#grown}. A form with

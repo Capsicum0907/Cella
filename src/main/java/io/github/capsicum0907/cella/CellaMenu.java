@@ -223,6 +223,31 @@ public class CellaMenu extends AbstractContainerMenu {
                 window.told(told, onPage);
             }
         });
+
+        // How grown it is, as a percentage, because that is what is shown and a percentage
+        // fits in a short with room to spare. The screen decides whether there is space to
+        // write it; this only carries it.
+        addDataSlot(new DataSlot() {
+            @Override
+            public int get() {
+                return access.evaluate((level, at) ->
+                        level.getBlockEntity(at) instanceof CellaBlockEntity chest
+                                ? Math.round(chest.grown() * 100.0F)
+                                : 0).orElse(0);
+            }
+
+            @Override
+            public void set(int value) {
+                grown = value;
+            }
+        });
+    }
+
+    /** Nought to a hundred. Nought for a form that does not grow, which never shows it. */
+    private int grown;
+
+    public int grown() {
+        return grown;
     }
 
     /** The two figures the client is told, kept so either can be set without the other. */

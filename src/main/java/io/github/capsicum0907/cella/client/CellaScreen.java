@@ -495,7 +495,20 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
         Component page = Component.literal((menu.page() + 1) + " / " + menu.pages());
         if (!finding) {
-            graphics.drawString(font, fitted(title, room(page)), titleLabelX, titleLabelY,
+            // ⚠ The percentage is an extra, and an extra that does not fit is dropped
+            // whole. Trimming the composed string instead is what produced "Imperfect
+            // Cella (..." - half a percentage is worse than none, because it reads as the
+            // name having been cut when it is the figure that was.
+            int room = room(page);
+            Component named = title;
+            if (menu.kind().grows()) {
+                Component both = Component.translatable("container.cella.grown", title,
+                        menu.grown());
+                if (font.width(both) <= room) {
+                    named = both;
+                }
+            }
+            graphics.drawString(font, fitted(named, room), titleLabelX, titleLabelY,
                     LABEL, false);
         }
         graphics.drawString(font, playerInventoryTitle, inventoryLabelX, inventoryLabelY,

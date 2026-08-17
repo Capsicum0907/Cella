@@ -341,11 +341,10 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
             java.util.List<Kept.Chest> filed) {
         java.util.List<ItemStack> over = new java.util.ArrayList<>();
         int cursor = 0;
-        int grown = experience;
+        // ⚠ What was in them comes across; what they had been fed does not. A Cella that
+        // changes form starts again at nothing, and being made out of eight of something
+        // is still changing form. See Fusing.
         for (Kept.Chest one : filed) {
-            // What several were fed adds up, the way what several held does. Capped at the
-            // end rather than per chest, so the order they were eaten in cannot change it.
-            grown += one.experience();
             ItemStackHandler from = new ItemStackHandler();
             from.deserializeNBT(registries, one.contents());
             for (int slot = 0; slot < from.getSlots(); slot++) {
@@ -364,7 +363,6 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
                 }
             }
         }
-        experience = capped(grown);
         setChanged();
         return over;
     }
@@ -647,15 +645,12 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
      * two answers to one question. The block makes both now; see {@code CellaBlock}.
      */
     public Component getDisplayName() {
-        Component name = Component.translatable(getBlockState().getBlock().getDescriptionId());
-        if (!kind().grows()) {
-            return name;
-        }
-        // Worked out as the screen is opened, which is when it is true: the only thing
-        // that moves this figure is a player feeding the block, and that cannot be done
-        // while its screen is in the way.
-        return Component.translatable("container.cella.grown", name,
-                Math.round(grown() * 100.0F));
+        // ⚠ The name and nothing else. How grown it is used to be baked in here, which put
+        // the decision in the one place that cannot see the screen - and on a nine-wide
+        // panel the title is trimmed to fit, so it came out as "Imperfect Cella (..." with
+        // the percentage cut in half. The figure travels as a number now and the screen,
+        // which knows how much room there is, decides whether to write it. See CellaMenu.
+        return Component.translatable(getBlockState().getBlock().getDescriptionId());
     }
 
 }

@@ -502,6 +502,15 @@ public final class CellaTests {
         check(held.slots() == Kind.SEMI_PERFECT.slots(),
                 "in the room a Semi-Perfect has: " + held.slots());
 
+        // ⚠ And none of what they were fed. A Cella that changes form starts again at
+        // nothing, and eight going into one is still a change of form. Left to add up, the
+        // eight full Imperfects would have overflowed a Semi-Perfect's own threshold and it
+        // would have arrived finished - a rung that could never be climbed.
+        check(held.experience() == 0,
+                "a fusion should arrive unfed: " + held.experience());
+        check(held.grows() && held.growth() == Kind.SEMI_PERFECT.growth(),
+                "with its own threshold to fill, so the bar means something");
+
         // And nothing was taken out of the store by looking at the bench.
         check(kept.take(filed.getFirst()).isPresent(), "assembling must not have spent them");
         kept.take(filed.getLast());
@@ -1075,9 +1084,22 @@ public final class CellaTests {
                             + " to leave, not " + step);
         }
 
-        // And the figure Perfect is written with is the level it is meant to be.
-        check(Experience.total(50) == Kind.PERFECT.growth(),
-                "Perfect should want level fifty: " + Experience.total(50));
+        // And every threshold is a whole level, so a bar reaches its end exactly when one
+        // lands rather than somewhere in the middle of one. Asked of all of them rather
+        // than of a named figure, which is a thing that goes stale the first time somebody
+        // retunes the ladder.
+        for (Kind kind : Kind.values()) {
+            if (!kind.grows()) {
+                continue;
+            }
+            int level = 0;
+            while (Experience.total(level) < kind.growth()) {
+                level++;
+            }
+            check(Experience.total(level) == kind.growth(),
+                    kind.id() + " wants " + kind.growth() + ", which is between levels "
+                            + (level - 1) + " and " + level);
+        }
         helper.succeed();
     }
 
