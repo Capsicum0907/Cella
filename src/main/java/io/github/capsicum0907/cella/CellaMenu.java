@@ -1,7 +1,6 @@
 package io.github.capsicum0907.cella;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Set;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Inventory;
@@ -10,6 +9,7 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ContainerLevelAccess;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.ItemStackLinkedSet;
 import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.items.IItemHandlerModifiable;
 import net.neoforged.neoforge.items.ItemHandlerHelper;
@@ -211,13 +211,17 @@ public class CellaMenu extends AbstractContainerMenu {
             return false;
         }
         if (!player.level().isClientSide) {
-            switch (id) {
-                case SORT -> Tidy.everything(contents);
-                case STOW -> stow(player, false);
-                case MATCHING -> stow(player, true);
-                case TAKE -> take(player, false);
-                default -> take(player, true);
-            }
+            // Every one of these writes most of the chest, so the neighbours are told
+            // once at the end rather than once per slot. See CellaBlockEntity#inOneGo.
+            inOneGo(() -> {
+                switch (id) {
+                    case SORT -> Tidy.everything(contents);
+                    case STOW -> stow(player, false);
+                    case MATCHING -> stow(player, true);
+                    case TAKE -> take(player, false);
+                    default -> take(player, true);
+                }
+            });
         }
         return true;
     }
@@ -238,11 +242,11 @@ public class CellaMenu extends AbstractContainerMenu {
      */
     private void take(Player player, boolean matchingOnly) {
         Inventory inventory = player.getInventory();
-        List<ItemStack> carried = matchingOnly ? carried(inventory) : List.of();
+        Set<ItemStack> carried = matchingOnly ? carried(inventory) : Set.of();
 
         for (int slot = 0; slot < contents.getSlots(); slot++) {
             ItemStack stack = contents.getStackInSlot(slot);
-            if (stack.isEmpty() || (matchingOnly && !isOneOf(carried, stack))) {
+            if (stack.isEmpty() || (matchingOnly && !carried.contains(stack))) {
                 continue;
             }
             ItemStack moving = stack.copy();
@@ -255,16 +259,27 @@ public class CellaMenu extends AbstractContainerMenu {
         inventory.setChanged();
     }
 
-    /** One of each kind the player has, the hand included. */
-    private static List<ItemStack> carried(Inventory inventory) {
-        List<ItemStack> kinds = new ArrayList<>();
+    /** Every kind the player has, the hand included. */
+    private static Set<ItemStack> carried(Inventory inventory) {
+        Set<ItemStack> kinds = ItemStackLinkedSet.createTypeAndComponentsSet();
         for (int slot = 0; slot < Inventory.INVENTORY_SIZE; slot++) {
             ItemStack stack = inventory.getItem(slot);
-            if (!stack.isEmpty() && !isOneOf(kinds, stack)) {
+            if (!stack.isEmpty()) {
                 kinds.add(stack);
             }
         }
         return kinds;
+    }
+
+    /** Through the block entity when there is one; a menu without one has nobody to tell. */
+    private void inOneGo(Runnable work) {
+        access.execute((level, pos) -> {
+            if (level.getBlockEntity(pos) instanceof CellaBlockEntity chest) {
+                chest.inOneGo(work);
+            } else {
+                work.run();
+            }
+        });
     }
 
     /**
@@ -283,14 +298,14 @@ public class CellaMenu extends AbstractContainerMenu {
      */
     private void stow(Player player, boolean matchingOnly) {
         Inventory inventory = player.getInventory();
-        List<ItemStack> kept = matchingOnly ? kinds() : List.of();
+        Set<ItemStack> kept = matchingOnly ? kinds() : Set.of();
 
         for (int slot = 0; slot < Inventory.INVENTORY_SIZE; slot++) {
             if (slot == inventory.selected) {
                 continue;
             }
             ItemStack stack = inventory.getItem(slot);
-            if (stack.isEmpty() || (matchingOnly && !isOneOf(kept, stack))) {
+            if (stack.isEmpty() || (matchingOnly && !kept.contains(stack))) {
                 continue;
             }
             inventory.setItem(slot, ItemHandlerHelper.insertItemStacked(contents, stack, false));
@@ -299,35 +314,25 @@ public class CellaMenu extends AbstractContainerMenu {
     }
 
     /**
-     * One of each kind the chest holds, gathered once.
+     * Every kind the chest holds, as a set that can be asked.
      *
-     * <p>Once rather than per stack: the alternative walks the whole chest thirty-six
-     * times, and the chest can be seventeen hundred slots.
+     * <p>A set rather than a list walked per stack: the chest can be eighteen hundred
+     * slots and the player has thirty-six, and a list makes that a multiplication.
+     * {@code ItemStackLinkedSet} hashes on item <em>and</em> components, which is the
+     * question being asked.
      */
-    private List<ItemStack> kinds() {
-        List<ItemStack> kept = new ArrayList<>();
+    private Set<ItemStack> kinds() {
+        Set<ItemStack> kept = ItemStackLinkedSet.createTypeAndComponentsSet();
         for (int slot = 0; slot < contents.getSlots(); slot++) {
             ItemStack stack = contents.getStackInSlot(slot);
-            if (!stack.isEmpty() && !isOneOf(kept, stack)) {
+            if (!stack.isEmpty()) {
                 kept.add(stack);
             }
         }
         return kept;
     }
 
-    /**
-     * Same item <em>and</em> same components, which is what "matching" has to mean: an
-     * enchanted pickaxe is not one of the plain ones, and putting it in with them because
-     * the button said "matching" would be a quiet way to lose it.
-     */
-    private static boolean isOneOf(List<ItemStack> kinds, ItemStack stack) {
-        for (ItemStack kind : kinds) {
-            if (ItemStack.isSameItemSameComponents(kind, stack)) {
-                return true;
-            }
-        }
-        return false;
-    }
+
 
     @Override
     public boolean stillValid(Player player) {

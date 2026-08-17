@@ -3,9 +3,13 @@ package io.github.capsicum0907.cella;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenCustomHashMap;
 
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.ItemStackLinkedSet;
 import net.neoforged.neoforge.items.IItemHandlerModifiable;
 
 /**
@@ -60,26 +64,38 @@ public final class Tidy {
     /**
      * Pours partial stacks of the same thing together.
      *
-     * <p>Quadratic in the number of <em>kinds</em>, not of slots, because anything that
-     * is already full stops being a candidate. A chest of four hundred slots holding one
-     * kind of stone does eight comparisons.
+     * <p><b>Looked up, not searched for.</b> The obvious way is to scan what has been
+     * gathered so far for something this will go into, which is fine for a chest holding
+     * three kinds and quadratic for one holding a thousand. A chest of eighteen hundred
+     * slots full of distinct things is about a million and a half comparisons; ten
+     * thousand slots would be fifty million, and that is the wall this design walks into
+     * as chests get bigger.
+     *
+     * <p>So the open stack of each kind is kept in a map keyed on item <em>and</em>
+     * components - {@code ItemStackLinkedSet.TYPE_AND_TAG} is the game's own hash for
+     * exactly that question, so an enchanted pickaxe still does not pour into the plain
+     * ones. One lookup per stack, and the whole thing is linear.
      */
     private static List<ItemStack> merge(List<ItemStack> gathered) {
         List<ItemStack> merged = new ArrayList<>();
+        Map<ItemStack, ItemStack> open =
+                new Object2ObjectOpenCustomHashMap<>(ItemStackLinkedSet.TYPE_AND_TAG);
+
         for (ItemStack stack : gathered) {
-            for (ItemStack into : merged) {
-                if (stack.isEmpty()) {
-                    break;
-                }
+            ItemStack into = open.get(stack);
+            if (into != null) {
                 int room = into.getMaxStackSize() - into.getCount();
-                if (room > 0 && ItemStack.isSameItemSameComponents(into, stack)) {
-                    int moved = Math.min(room, stack.getCount());
-                    into.grow(moved);
-                    stack.shrink(moved);
+                int moved = Math.min(room, stack.getCount());
+                into.grow(moved);
+                stack.shrink(moved);
+                if (into.getCount() >= into.getMaxStackSize()) {
+                    // Full: it can take no more, so it stops being the one to look up.
+                    open.remove(into);
                 }
             }
             if (!stack.isEmpty()) {
                 merged.add(stack);
+                open.put(stack, stack);
             }
         }
         return merged;

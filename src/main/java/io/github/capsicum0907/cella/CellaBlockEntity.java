@@ -79,17 +79,44 @@ public class CellaBlockEntity extends BlockEntity implements MenuProvider, LidBl
             @Override
             protected void onContentsChanged(int slot) {
                 setChanged();
-                // A comparator reads how full this is, so it has to hear about every
-                // change - including one made on a page nobody has open.
-                if (level != null && !level.isClientSide) {
-                    level.updateNeighbourForOutputSignal(worldPosition, getBlockState().getBlock());
-                }
+                told();
             }
         };
     }
 
     public ItemStackHandler contents() {
         return contents;
+    }
+
+    /** Set while a whole-chest operation is running; see {@link #inOneGo}. */
+    private boolean bulk;
+
+    /**
+     * Runs something that writes many slots, and tells the neighbours once at the end.
+     *
+     * <p>A comparator reads how full this is, so every write has to be announced - and
+     * announcing each one separately is fine for a hopper moving an item and absurd for a
+     * sort. Sorting eighteen hundred slots clears them all and writes them all back, so
+     * the naive version is three and a half thousand neighbour updates inside one tick,
+     * every one of them saying the same thing to the same blocks.
+     *
+     * <p>Only the telling is held back. {@code setChanged} still runs per write, which is
+     * a flag rather than work.
+     */
+    public void inOneGo(Runnable work) {
+        bulk = true;
+        try {
+            work.run();
+        } finally {
+            bulk = false;
+        }
+        told();
+    }
+
+    private void told() {
+        if (!bulk && level != null && !level.isClientSide) {
+            level.updateNeighbourForOutputSignal(worldPosition, getBlockState().getBlock());
+        }
     }
 
     /**
