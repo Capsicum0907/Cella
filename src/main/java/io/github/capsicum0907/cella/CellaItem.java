@@ -52,6 +52,31 @@ public class CellaItem extends BlockItem {
         return !kind().trait().unbreakableAsAnItem() && super.canBeHurtBy(stack, source);
     }
 
+    /**
+     * The five minutes a dropped item has, taken away.
+     *
+     * <p>⚠ <b>The commonest way a Cella is lost is not fire or a creeper, it is waiting.</b>
+     * Everything else on this axis was already closed for the top of the ladder — burning,
+     * blowing up, touching a cactus — and an item that survived all three and then timed
+     * out would be the same loss arriving five minutes later.
+     *
+     * <p>It is also the biggest source of the orphans {@code /cella kept} exists to rescue,
+     * and it is closed for exactly the chests worth rescuing: a Super Perfect is four
+     * hundred thousand points of somebody's fighting, and there will never be many of them
+     * lying about.
+     *
+     * <p>Set every tick rather than once, which costs a comparison and cannot be missed by
+     * an item that arrived some other way.
+     */
+    @Override
+    public boolean onEntityItemUpdate(ItemStack stack,
+            net.minecraft.world.entity.item.ItemEntity entity) {
+        if (kind().trait().unbreakableAsAnItem()) {
+            entity.setUnlimitedLifetime();
+        }
+        return false;
+    }
+
     /** Which form this is. Everything that differs between them is asked of it. */
     private Kind kind() {
         return getBlock() instanceof CellaBlock chest ? chest.kind() : Kind.values()[0];

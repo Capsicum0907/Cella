@@ -74,9 +74,10 @@ public enum Trait {
     /**
      * As hard as the world's floor, safe from a wither, and <b>done taking anything in</b>.
      *
-     * <p>The absorption goes, which is the one place this ladder subtracts. It has finished
-     * growing and there is nothing above it to grow into, so a thing that reaches out for
-     * experience would be reaching for something it can no longer use.
+     * <p>The absorption goes, which is the one place this ladder subtracts. Partly because
+     * it has finished growing and there is nothing above it to grow into — but mostly
+     * because <b>a thing that has become complete has no reason to take in whatever happens
+     * to be lying about</b>. Reaching stopped being what it is.
      */
     SUPER_PERFECT(false, 3600000.0F, true, BlockTags.MINEABLE_WITH_PICKAXE,
             Tags.Blocks.NEEDS_NETHERITE_TOOL, 0, true, true);
@@ -101,9 +102,15 @@ public enum Trait {
      * @param level how good that tool has to be, or null for "any"
      * @param reach how far it pulls experience orbs in, in blocks, or nought for a form
      *              that does not
-     * @param unbreakableAsAnItem whether the dropped item survives fire, explosions and
-     *              cactus. Vanilla's {@code fireResistant()} is only the first of those;
-     *              the rest are {@code CellaItem#canBeHurtBy}
+     * @param unbreakableAsAnItem whether the dropped item goes away at all — <b>by any
+     *              means, including time</b>. Fire and lava are vanilla's
+     *              {@code fireResistant()}; explosions and cactus arrive as ordinary damage
+     *              and are {@code CellaItem#canBeHurtBy}; and the five minutes every dropped
+     *              item has left are {@code CellaItem#onEntityItemUpdate}.
+     *              <p>⚠ One column rather than three, because a promise that a thing does
+     *              not disappear is one promise. Splitting it would invite a form that
+     *              survives being blown up and then quietly times out, which is the same
+     *              loss arriving later.
      * @param finds whether its screen has a search box. ⚠ <b>It arrives where turning
      *              pages stops working</b>, not where that becomes unbearable: 1,728 slots
      *              is eighteen pages, and making somebody climb to 144 before offering

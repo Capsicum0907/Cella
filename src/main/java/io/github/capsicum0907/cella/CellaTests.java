@@ -1644,6 +1644,46 @@ public final class CellaTests {
     }
 
     /**
+     * The top of the ladder does not time out; everything below it does.
+     *
+     * <p>⚠ <b>Waiting is the commonest way one is lost</b> — commoner than fire or a
+     * creeper, and the biggest source of the orphans the cleanup command exists for. So
+     * this is asked the way the game asks it: give the item a lifespan it has already
+     * outlived and tick it, and see which one is still there.
+     */
+    @GameTest(template = TestStructures.FLOOR)
+    public static void theTopOfTheLadderDoesNotTimeOut(GameTestHelper helper) {
+        check(Kind.SUPER_PERFECT.trait().unbreakableAsAnItem(), "a Super Perfect does not go");
+        check(!Kind.PERFECT.trait().unbreakableAsAnItem(), "a Perfect does");
+
+        net.minecraft.world.entity.item.ItemEntity lasting = dropped(helper, Kind.SUPER_PERFECT);
+        net.minecraft.world.entity.item.ItemEntity fading = dropped(helper, Kind.PERFECT);
+        for (int tick = 0; tick < 12; tick++) {
+            lasting.tick();
+            fading.tick();
+        }
+
+        check(lasting.isAlive(), "the Super Perfect should still be lying there");
+        check(fading.isRemoved(), "and the Perfect should be gone: " + fading.isAlive());
+        helper.succeed();
+    }
+
+    /** One on the floor, with a lifespan short enough that a few ticks settle it. */
+    private static net.minecraft.world.entity.item.ItemEntity dropped(GameTestHelper helper,
+            Kind kind) {
+        net.minecraft.world.entity.item.ItemEntity entity =
+                new net.minecraft.world.entity.item.ItemEntity(helper.getLevel(), 0, 0, 0,
+                        new ItemStack(CellaRegistry.item(kind).get()));
+        entity.moveTo(helper.absolutePos(WHERE).getX() + 0.5,
+                helper.absolutePos(WHERE).getY() + 1.0,
+                helper.absolutePos(WHERE).getZ() + 0.5);
+        entity.lifespan = 3;
+        entity.setPickUpDelay(0);
+        helper.getLevel().addFreshEntity(entity);
+        return entity;
+    }
+
+    /**
      * A Cella item stamped as having finished growing, which every recipe now requires.
      *
      * <p>Real ones get there by being placed, fed and broken. A test that did that eight
