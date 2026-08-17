@@ -10,6 +10,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -28,6 +29,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.DirectionProperty;
 import net.minecraft.world.level.storage.loot.LootParams;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
@@ -141,33 +143,66 @@ public class CellaBlock extends BaseEntityBlock {
     }
 
     /**
-     * The contents fall out, the way a chest's do.
+     * Broken: the contents either fall out or come with it.
      *
-     * <p>Deliberately not carried on the item. A chest holds an amount a floor can take,
-     * and keeping contents in a component is the whole family of duplication bugs that
-     * comes of one set of data being shared by a stack of items. There is nothing on
-     * this item to copy.
+     * <p>Which one is {@link Kind#keeps}, and it is Laravel against everything else. The
+     * larva spills, because 54 slots is a pile a player can pick up; the rest hand the
+     * contents to {@link Kept} and drop an item that names them. Neither of them puts
+     * the contents <em>on</em> the item — see that class for the three ceilings that stop
+     * it and the family of bugs it avoids.
+     *
+     * <p>Done here rather than in the drops because here runs whatever removed the block.
      */
     @Override
     protected void onRemove(BlockState state, Level level, BlockPos pos, BlockState replacement,
             boolean moved) {
         if (!state.is(replacement.getBlock())
                 && level.getBlockEntity(pos) instanceof CellaBlockEntity chest) {
-            chest.spill(level, pos);
+            if (kind.keeps()) {
+                chest.handOver(level, pos);
+            } else {
+                chest.spill(level, pos);
+            }
             level.updateNeighbourForOutputSignal(pos, this);
         }
         super.onRemove(state, level, pos, replacement, moved);
     }
 
     /**
-     * One block, and no loot table to disagree with this.
+     * One block, and no loot table to disagree with this — unless one has been handed
+     * over already.
      *
-     * <p>The contents are not here: they are already on the floor by the time anything
-     * asks what the block dropped, because {@link #onRemove} put them there.
+     * <p>A chest that kept its contents dropped itself in {@link #onRemove}, with the
+     * name of what it kept on it. Dropping a second, empty one here would be a chest for
+     * free. The block entity is the one that was standing here: the game holds on to it
+     * across the removal so that loot can ask it things, and this is one of them.
      */
     @Override
     public List<ItemStack> getDrops(BlockState state, LootParams.Builder params) {
+        if (params.getOptionalParameter(LootContextParams.BLOCK_ENTITY)
+                instanceof CellaBlockEntity chest && chest.given()) {
+            return List.of();
+        }
         return List.of(new ItemStack(this));
+    }
+
+    /**
+     * Put down: if the item names a chest, that chest is what this becomes.
+     *
+     * <p>The name is spent in the taking, so a second item naming the same one puts down
+     * an empty chest rather than a second copy of the contents. See {@link Kept#take}.
+     */
+    @Override
+    public void setPlacedBy(Level level, BlockPos pos, BlockState state,
+            @javax.annotation.Nullable LivingEntity placer, ItemStack stack) {
+        super.setPlacedBy(level, pos, state, placer, stack);
+        java.util.UUID id = stack.get(CellaRegistry.KEPT.get());
+        if (level.isClientSide || id == null
+                || !(level.getBlockEntity(pos) instanceof CellaBlockEntity chest)) {
+            return;
+        }
+        Kept.of(level).flatMap(kept -> kept.take(id))
+                .ifPresent(contents -> chest.restore(level.registryAccess(), contents));
     }
 
     /**

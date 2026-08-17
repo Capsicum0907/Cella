@@ -4,7 +4,7 @@ A chest with more than one page.
 
 *Cella* is Latin for a storeroom, and also a compartment inside one.
 
-> **Status: the chest works.** Seventeen game tests, watched in a client.
+> **Status: the chest works.** Nineteen game tests, watched in a client.
 
 ## Target
 
@@ -279,13 +279,33 @@ way. `ContainerOpenersCounter` is what that is for, `blockEvent` carries the cou
 everyone watching, and the server rechecks periodically because a player can stop
 having a chest open without saying so: dying, a portal, a lost connection.
 
-### The contents drop
+### Broken, it keeps what is inside — except the larva
 
-Broken, it spills onto the floor the way a chest does — rather than carrying its
-contents on the item the way a shulker box does. Both work; this one is chosen
-because a chest holds an amount a floor can take, and because contents kept in an
-item component are shared by every item in a stack, which is a whole family of
-duplication bugs this mod then cannot have.
+Laravel spills onto the floor the way a chest does. Everything from Imperfect up hands
+its contents to the world and drops an item that **names** them.
+
+The line is where it is because **what spills has to be pickable up**. A player carries
+thirty-six stacks and an item on the ground lasts five minutes, so 54 slots is a trip and
+a half and 216 is six. Semi-Perfect's 1,728 would be forty-eight: not a mess to clear up,
+but the contents being destroyed by the act of moving the chest. (The source material
+agrees — the larva has what the others have and cannot use any of it yet.)
+
+**The name is not the contents.** Putting them on the item is the shulker box's answer
+and it does not reach: vanilla's `ItemContainerContents` stops at **256 slots** against
+Perfect's 13,824; a full Cella Max is one to four megabytes of stacks against a **2,097,151
+byte** packet frame; and whatever that came to would be re-sent on every inventory change.
+So the contents go into saved data on the overworld — one store for every dimension, since
+a chest dug up in the Nether is the same chest at home — and the item carries a UUID.
+
+That also **removes** the duplication family rather than managing it. A component belongs
+to the `ItemStack`, so two in a stack are one set of contents with a count of two, which
+is the shape of both bugs Acervus had. Copying this stack copies a name. Taking a name
+spends it, so two items naming one chest put down one full chest and one empty one — and
+they do not stack anyway, because that is not a thing to hand a player by accident.
+
+⚠ Nothing collects orphans yet: an item that goes into lava leaves its contents in the
+save for good. A few kilobytes, and the alternative — deleting when the item dies — is a
+way to throw away the wrong chest.
 
 ### Size is decided when the chest is made
 

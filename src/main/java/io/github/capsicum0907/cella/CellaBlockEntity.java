@@ -156,14 +156,64 @@ public class CellaBlockEntity extends BlockEntity implements MenuProvider, LidBl
         contents.deserializeNBT(registries, tag.getCompound(CONTENTS));
     }
 
+    /** Set once {@link #handOver} has dropped the item itself. See {@code CellaBlock}. */
+    private boolean given;
+
+    /** Whether the item for this chest has already been dropped, contents and all. */
+    public boolean given() {
+        return given;
+    }
+
+    /** Nothing in any slot. Asked before deciding there is anything worth keeping. */
+    public boolean isEmpty() {
+        for (int slot = 0; slot < contents.getSlots(); slot++) {
+            if (!contents.getStackInSlot(slot).isEmpty()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Files the contents away and drops the chest as an item that names them.
+     *
+     * <p>The forms that {@link Kind#keeps} do this instead of spilling. <b>The item is
+     * dropped from here rather than from the loot table</b>, because here is the one
+     * place that runs however the block came to be removed — broken in survival, broken
+     * in creative, replaced by a command. The loot table runs only when something is
+     * harvesting, and a chest that keeps its contents except when it does not would be
+     * worse than one that never did.
+     *
+     * <p>An empty one is not filed. Nothing to keep, no name to give, and it drops the
+     * ordinary way.
+     */
+    public void handOver(Level level, BlockPos pos) {
+        if (level.isClientSide || isEmpty()) {
+            return;
+        }
+        Kept.of(level).ifPresent(kept -> {
+            java.util.UUID id = kept.put(contents.serializeNBT(level.registryAccess()));
+            // The block entity is on its way out, but an emptied one cannot be read by
+            // anything that still has hold of it.
+            contents.setSize(contents.getSlots());
+            ItemStack stack = new ItemStack(getBlockState().getBlock());
+            stack.set(CellaRegistry.KEPT.get(), id);
+            Containers.dropItemStack(level, pos.getX(), pos.getY(), pos.getZ(), stack);
+            given = true;
+        });
+    }
+
+    /** Puts a filed chest back into this one, at the size it was filed at. */
+    public void restore(HolderLookup.Provider registries, CompoundTag kept) {
+        contents.deserializeNBT(registries, kept);
+        setChanged();
+    }
+
     /**
      * Everything inside, onto the floor.
      *
-     * <p>Contents drop rather than riding on the item, which is the opposite of what a
-     * heap does and is right for the opposite reason: a chest holds an amount a floor
-     * can take. It also puts this mod entirely outside the family of duplication bugs
-     * that come of keeping contents in a component — there is nothing on the item to
-     * copy.
+     * <p>What Laravel does, and only Laravel — see {@link Kind#keeps}. It is the one whose
+     * contents a player can actually pick back up.
      */
     public void spill(Level level, BlockPos pos) {
         for (int slot = 0; slot < contents.getSlots(); slot++) {

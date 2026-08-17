@@ -271,27 +271,100 @@ public final class CellaTests {
     }
 
     /**
-     * What is on a later page survives being broken and put back down.
+     * Breaking one that keeps: nothing on the floor but the chest, and it has a name.
      *
-     * <p>Contents drop rather than riding on the item, so "survives" means they are on
-     * the floor — all of them, including the pages nobody looked at.
+     * <p>Everything from Imperfect up survives being broken. The contents go to
+     * {@link Kept} and the item carries the name of what was filed - not the contents
+     * themselves, for the three reasons on that class.
+     *
+     * <p>The gold is on a later page, because a design that only kept the first one would
+     * pass anything simpler than this.
      */
     @GameTest(template = TestStructures.FLOOR)
-    public static void breakingItSpillsEveryPage(GameTestHelper helper) {
-        CellaBlockEntity chest = place(helper);
+    public static void breakingOneThatKeepsGivesItAName(GameTestHelper helper) {
+        check(KIND.keeps(), "this test is about a kind that keeps");
+        CellaBlockEntity chest = place(helper, KIND);
         chest.contents().setStackInSlot(LATER * KIND.pageSize(),
                 new ItemStack(Items.GOLD_INGOT, 11));
 
         helper.destroyBlock(WHERE);
 
         helper.succeedWhen(() -> {
-            long gold = helper.getEntities(net.minecraft.world.entity.EntityType.ITEM).stream()
-                    .map(entity -> ((net.minecraft.world.entity.item.ItemEntity) entity).getItem())
-                    .filter(stack -> stack.is(Items.GOLD_INGOT))
-                    .mapToLong(ItemStack::getCount)
-                    .sum();
-            check(gold == 11, "the eleven gold on page three should be on the floor, not " + gold);
+            java.util.List<ItemStack> dropped = dropped(helper);
+            check(dropped.stream().noneMatch(stack -> stack.is(Items.GOLD_INGOT)),
+                    "the gold should not be on the floor");
+            java.util.List<ItemStack> chests = dropped.stream()
+                    .filter(stack -> stack.is(CellaRegistry.item(KIND).get()))
+                    .toList();
+            check(chests.size() == 1, "exactly one chest should have dropped: " + chests.size());
+            check(chests.get(0).has(CellaRegistry.KEPT.get()),
+                    "and it should carry the name of what it kept");
+            check(chests.get(0).getMaxStackSize() == 1, "and a full one should not stack");
         });
+    }
+
+    /**
+     * Laravel spills, because Laravel is the one whose contents can be picked back up.
+     *
+     * <p>Fifty-four slots is a stack and a half of trips for a player with thirty-six of
+     * them, against a five-minute despawn. Semi-Perfect's 1,728 would be forty-eight,
+     * which is not a mess to clear up - it is the contents being destroyed by the act of
+     * moving the chest. That is the whole reason the line is drawn where it is.
+     */
+    @GameTest(template = TestStructures.FLOOR)
+    public static void theLarvaSpillsBecauseItCanBePickedUp(GameTestHelper helper) {
+        check(!Kind.LARAVEL.keeps(), "this test is about the one that does not keep");
+        CellaBlockEntity chest = place(helper, Kind.LARAVEL);
+        chest.contents().setStackInSlot(3, new ItemStack(Items.GOLD_INGOT, 11));
+
+        helper.destroyBlock(WHERE);
+
+        helper.succeedWhen(() -> {
+            java.util.List<ItemStack> dropped = dropped(helper);
+            long gold = dropped.stream().filter(stack -> stack.is(Items.GOLD_INGOT))
+                    .mapToLong(ItemStack::getCount).sum();
+            check(gold == 11, "the eleven gold should be on the floor, not " + gold);
+            check(dropped.stream().filter(stack -> stack.is(CellaRegistry.item(Kind.LARAVEL).get()))
+                            .noneMatch(stack -> stack.has(CellaRegistry.KEPT.get())),
+                    "and the chest should not be carrying a name it never filed");
+        });
+    }
+
+    /**
+     * Put down again, a named chest is the chest that was filed - and the name is spent.
+     *
+     * <p>Spent in the taking, so a second item naming the same chest puts down an empty
+     * one. Two items naming one chest are two views of one chest, and only the first of
+     * them can be looking at anything.
+     */
+    @GameTest(template = TestStructures.FLOOR)
+    public static void aNamedChestComesBackAndTheNameIsSpent(GameTestHelper helper) {
+        Kept kept = Kept.of(helper.getLevel()).orElseThrow(
+                () -> new GameTestAssertException("there should be a store on a server"));
+
+        ItemStackHandler filed = new ItemStackHandler(KIND.slots());
+        filed.setStackInSlot(LATER * KIND.pageSize(), new ItemStack(Items.GOLD_INGOT, 11));
+        java.util.UUID name = kept.put(
+                filed.serializeNBT(helper.getLevel().registryAccess()));
+
+        ItemStack stack = new ItemStack(CellaRegistry.item(KIND).get());
+        stack.set(CellaRegistry.KEPT.get(), name);
+        check(stack.getMaxStackSize() == 1, "a named chest should not stack");
+
+        CellaBlockEntity chest = place(helper, KIND);
+        CellaRegistry.block(KIND).get().setPlacedBy(helper.getLevel(),
+                helper.absolutePos(WHERE), chest.getBlockState(), null, stack);
+
+        check(chest.contents().getStackInSlot(LATER * KIND.pageSize()).getCount() == 11,
+                "the gold should be back, on the page it was on");
+        check(kept.take(name).isEmpty(), "and the name should have been spent");
+        helper.succeed();
+    }
+
+    private static java.util.List<ItemStack> dropped(GameTestHelper helper) {
+        return helper.getEntities(net.minecraft.world.entity.EntityType.ITEM).stream()
+                .map(entity -> ((net.minecraft.world.entity.item.ItemEntity) entity).getItem())
+                .toList();
     }
 
     /**
@@ -564,7 +637,11 @@ public final class CellaTests {
     }
 
     private static CellaBlockEntity place(GameTestHelper helper) {
-        helper.setBlock(WHERE, CellaRegistry.block(KIND).get());
+        return place(helper, KIND);
+    }
+
+    private static CellaBlockEntity place(GameTestHelper helper, Kind kind) {
+        helper.setBlock(WHERE, CellaRegistry.block(kind).get());
         return (CellaBlockEntity) helper.getBlockEntity(WHERE);
     }
 

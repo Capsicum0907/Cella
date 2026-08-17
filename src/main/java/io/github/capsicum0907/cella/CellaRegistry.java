@@ -3,6 +3,10 @@ package io.github.capsicum0907.cella;
 import java.util.EnumMap;
 import java.util.Map;
 
+import java.util.UUID;
+
+import net.minecraft.core.UUIDUtil;
+import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.BlockItem;
@@ -36,6 +40,21 @@ public final class CellaRegistry {
             DeferredRegister.create(Registries.MENU, Cella.MODID);
     public static final DeferredRegister<RecipeSerializer<?>> RECIPES =
             DeferredRegister.create(Registries.RECIPE_SERIALIZER, Cella.MODID);
+    public static final DeferredRegister<DataComponentType<?>> COMPONENTS =
+            DeferredRegister.create(Registries.DATA_COMPONENT_TYPE, Cella.MODID);
+
+    /**
+     * The name of the chest this item is carrying, for the forms that survive breaking.
+     *
+     * <p><b>A name and not the contents.</b> What it names lives in {@link Kept}, which is
+     * where the reasons are. Absent on an item that was picked up empty, so its presence
+     * is also the answer to "is this one full" - see {@link CellaItem}.
+     */
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<UUID>> KEPT =
+            COMPONENTS.register("kept", () -> DataComponentType.<UUID>builder()
+                    .persistent(UUIDUtil.CODEC)
+                    .networkSynchronized(UUIDUtil.STREAM_CODEC)
+                    .build());
 
     /** The recipe that gives its parent back; see {@link Spawning}. */
     public static final DeferredHolder<RecipeSerializer<?>, Spawning.Serializer> SPAWNING =
@@ -52,7 +71,7 @@ public final class CellaRegistry {
                             .strength(2.5F)
                             .sound(SoundType.WOOD))));
             ITEM.put(kind, ITEMS.register(kind.id(),
-                    () -> new BlockItem(BLOCK.get(kind).get(), new Item.Properties())));
+                    () -> new CellaItem(BLOCK.get(kind).get(), new Item.Properties())));
         }
     }
 

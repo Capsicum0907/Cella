@@ -74,7 +74,7 @@ public enum Kind {
      * <p>Junior is off the ramp because it is off the chain, and Max is red-brown because
      * it is barely the same creature.
      */
-    LARAVEL("laravel", "Laravel Cella", 0xB89A5E, 6, 9, 54, () -> Formula
+    LARAVEL("laravel", "Laravel Cella", 0xB89A5E, 6, 9, 54, false, () -> Formula
             .shaped("BPM",
                     "HCR",
                     "OSF")
@@ -90,9 +90,9 @@ public enum Kind {
             .done()),
 
     /** Fed, not made. See {@link #formula()}. */
-    IMPERFECT("imperfect", "Imperfect Cella", 0x5AA33C, 6, 9, 216, null),
+    IMPERFECT("imperfect", "Imperfect Cella", 0x5AA33C, 6, 9, 216, true, null),
 
-    SEMI_PERFECT("semi_perfect", "Semi-Perfect Cella", 0x6FBA43, 6, 9, 1728, () -> Formula
+    SEMI_PERFECT("semi_perfect", "Semi-Perfect Cella", 0x6FBA43, 6, 9, 1728, true, () -> Formula
             .shaped("CCC",
                     "COC",
                     "CCC")
@@ -100,7 +100,7 @@ public enum Kind {
             .key('O', () -> Blocks.OBSIDIAN)
             .done()),
 
-    PERFECT("perfect", "Perfect Cella", 0x8ACF48, 8, 16, 13824, () -> Formula
+    PERFECT("perfect", "Perfect Cella", 0x8ACF48, 8, 16, 13824, true, () -> Formula
             .shaped("CCC",
                     "CGC",
                     "CCC")
@@ -118,7 +118,7 @@ public enum Kind {
      * make the recipe a machine for making storage out of nothing rather than a strong
      * reward for reaching Perfect.
      */
-    JUNIOR("junior", "Cella Jr.", 0x3FB39A, 8, 16, 3456, () -> Formula
+    JUNIOR("junior", "Cella Jr.", 0x3FB39A, 8, 16, 3456, true, () -> Formula
             .shaped("DDD",
                     "DCD",
                     "DDD")
@@ -128,7 +128,7 @@ public enum Kind {
             .spawning()
             .done()),
 
-    SUPER_PERFECT("super_perfect", "Super Perfect Cella", 0xA3E052, 8, 16, 55296, () -> Formula
+    SUPER_PERFECT("super_perfect", "Super Perfect Cella", 0xA3E052, 8, 16, 55296, true, () -> Formula
             .shaped("CSC",
                     "SES",
                     "CSC")
@@ -137,7 +137,7 @@ public enum Kind {
             .key('E', () -> Blocks.DRAGON_EGG)
             .done()),
 
-    MAX("max", "Cella Max", 0x8A3A2E, 8, 16, 221184, () -> Formula
+    MAX("max", "Cella Max", 0x8A3A2E, 8, 16, 221184, true, () -> Formula
             .shaped("CTC",
                     "TET",
                     "CTC")
@@ -152,6 +152,7 @@ public enum Kind {
     private final int rows;
     private final int columns;
     private final int slots;
+    private final boolean keeps;
     private final Supplier<Formula> formula;
 
     /**
@@ -168,19 +169,22 @@ public enum Kind {
      *              the ladder is written in those: 54 is one, 216 is four, and so on up.
      *              The pages follow from this and the page size, and need not come out
      *              whole - see the note on the list above.
+     * @param keeps whether it survives being broken with its contents inside. See
+     *              {@link #keeps()}.
      * @param formula how it is made, or null for the one that is not made at all. A
      *              supplier for two reasons: a kind is built before the registries are,
      *              and several of these name other kinds - which an enum constant cannot
      *              do in its own argument list, but a lambda can put off until asked.
      */
     Kind(String id, String name, int stain, int rows, int columns, int slots,
-            Supplier<Formula> formula) {
+            boolean keeps, Supplier<Formula> formula) {
         this.id = id;
         this.name = name;
         this.stain = stain;
         this.rows = rows;
         this.columns = columns;
         this.slots = slots;
+        this.keeps = keeps;
         this.formula = formula;
     }
 
@@ -207,6 +211,23 @@ public enum Kind {
 
     public int defaultSlots() {
         return slots;
+    }
+
+    /**
+     * Whether breaking one keeps what is inside it.
+     *
+     * <p><b>Everything but Laravel.</b> The larva has what the others have and cannot use
+     * any of it yet, so it is the one that spills — and the arithmetic agrees, which is
+     * why the line is here and not one step further up. What spills has to be pickable
+     * up: a player carries thirty-six stacks and an item on the ground lasts five
+     * minutes, so 54 slots is one and a half trips and 216 is six. Semi-Perfect's 1,728
+     * would be forty-eight, which is not a mess to clear up, it is the contents being
+     * destroyed by the act of moving the chest.
+     *
+     * <p>Where the kept contents go is {@link Kept}, and it is not the item.
+     */
+    public boolean keeps() {
+        return keeps;
     }
 
     /**
