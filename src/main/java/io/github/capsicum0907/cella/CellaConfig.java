@@ -26,7 +26,7 @@ public final class CellaConfig {
 
     private static final Map<Kind, ModConfigSpec.IntValue> ROWS = new EnumMap<>(Kind.class);
     private static final Map<Kind, ModConfigSpec.IntValue> COLUMNS = new EnumMap<>(Kind.class);
-    private static final Map<Kind, ModConfigSpec.IntValue> PAGES = new EnumMap<>(Kind.class);
+    private static final Map<Kind, ModConfigSpec.IntValue> SLOTS = new EnumMap<>(Kind.class);
 
     public static final ModConfigSpec SPEC = build();
 
@@ -50,14 +50,17 @@ public final class CellaConfig {
                     .comment("How wide a page is. Nine is a vanilla chest; wider is drawn by",
                             "this mod and the player's own inventory stays nine, in the middle.")
                     .defineInRange("columns", kind.defaultColumns(), 1, 15));
-            PAGES.put(kind, builder
-                    .comment("Pages in one chest. What an open screen costs is one page,",
-                            "however many there are - that is all the menu holds and all",
-                            "the server sends or walks. The whole chest is only ever read",
-                            "by the sort and the two movers, which is once per press.",
-                            "So the ceiling here is a design question rather than a",
-                            "technical one, and it has not been settled.")
-                    .defineInRange("pages", kind.defaultPages(), 1, 32));
+            SLOTS.put(kind, builder
+                    .comment("How big the chest is. Fifty-four is a large chest, and the",
+                            "forms are written in those: four of them, then eight times",
+                            "that, and so on. It need not divide by a page - the last one",
+                            "is allowed to be short, and is drawn short.",
+                            "An open screen costs one page however big this is, since that",
+                            "is all the menu holds and all the server sends or walks. What",
+                            "does grow with it is the sort and the two movers, which read",
+                            "the whole chest once per press, and the memory a placed chest",
+                            "takes up.")
+                    .defineInRange("slots", kind.defaultSlots(), 1, 262144));
             builder.pop();
         }
         return builder.build();
@@ -71,7 +74,7 @@ public final class CellaConfig {
         return COLUMNS.get(kind).get();
     }
 
-    public static int pages(Kind kind) {
-        return PAGES.get(kind).get();
+    public static int slots(Kind kind) {
+        return SLOTS.get(kind).get();
     }
 }

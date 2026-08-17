@@ -36,14 +36,25 @@ public enum Kind {
      * enough becomes one. That is why a formula is allowed to be absent rather than every
      * kind having to have one.
      *
-     * <p><b>Capacity is meant to be what went into it.</b> Imperfect is four large chests
-     * and each step after multiplies by what its recipe eats: eight, eight, four, four.
-     * That reaches four thousand large chests at the top, and the numbers above are
-     * <em>not</em> that yet. Imperfect and Semi-Perfect are; everything past them is
-     * still small, because the screen sends every slot it has when it opens and walks
-     * every slot it has each tick, and thirteen thousand of them does not hold up.
-     * Raising them waits on the menu holding a page again rather than the whole chest.
-     * Junior is held under Perfect in the meantime, for the reason on it.
+     * <p><b>Capacity is what went into it.</b> A large chest is fifty-four slots, and
+     * Imperfect is four of them. Each step after multiplies by what its recipe eats —
+     * eight, eight, four, four — so the chain runs 4, 32, 256, 1024, 4096 large chests,
+     * and Junior is a quarter of the Perfect it came off. Laravel is half of one, being
+     * three rows and no more.
+     *
+     * <p><b>The column is the capacity, and the number of pages follows from it.</b> Not
+     * the other way round, which is how it was written first: how big the chest is is a
+     * fact about the chest, and how it is cut into pages is a fact about looking at it.
+     * Writing the pages down instead made the second decide the first, and the two do not
+     * even divide — Cella Max is 221,184 slots and its page is fifteen wide, which comes
+     * to 2,457 pages and a last one holding fifty-four. That is fine and it is drawn
+     * honestly; see {@code CellaScreen}. It is only wrong if the capacity is made to bend
+     * so the pages come out round.
+     *
+     * <p><b>Multiplying by what a recipe eats is addition, not fusion.</b> That is the
+     * open question and it is deliberately left open here: four put together giving four
+     * times the room is the part that is merely arithmetic, and whatever a form is worth
+     * beyond that is not room. Nothing in this list buys anything but room yet.
      *
      * <p><b>The colour is taken from the forms rather than chosen to be legible.</b> The
      * larva is sand, not green - it was drawn khaki and looks it. From there the green
@@ -54,7 +65,7 @@ public enum Kind {
      * <p>Junior is off the ramp because it is off the chain, and Max is red-brown because
      * it is barely the same creature.
      */
-    LARAVEL("laravel", "Laravel Cella", 0xB89A5E, 3, 9, 1, () -> Formula
+    LARAVEL("laravel", "Laravel Cella", 0xB89A5E, 3, 9, 27, () -> Formula
             .shaped("BPM",
                     "HCR",
                     "OSF")
@@ -70,9 +81,9 @@ public enum Kind {
             .done()),
 
     /** Fed, not made. See {@link #formula()}. */
-    IMPERFECT("imperfect", "Imperfect Cella", 0x5AA33C, 6, 9, 4, null),
+    IMPERFECT("imperfect", "Imperfect Cella", 0x5AA33C, 6, 9, 216, null),
 
-    SEMI_PERFECT("semi_perfect", "Semi-Perfect Cella", 0x6FBA43, 6, 9, 32, () -> Formula
+    SEMI_PERFECT("semi_perfect", "Semi-Perfect Cella", 0x6FBA43, 6, 9, 1728, () -> Formula
             .shaped("CCC",
                     "COC",
                     "CCC")
@@ -80,7 +91,7 @@ public enum Kind {
             .key('O', () -> Blocks.OBSIDIAN)
             .done()),
 
-    PERFECT("perfect", "Perfect Cella", 0x8ACF48, 6, 9, 8, () -> Formula
+    PERFECT("perfect", "Perfect Cella", 0x8ACF48, 6, 9, 13824, () -> Formula
             .shaped("CCC",
                     "CGC",
                     "CCC")
@@ -99,7 +110,7 @@ public enum Kind {
      * lopsided table, it is a way of making storage out of nothing. So it stays under
      * Perfect until both can go up together.
      */
-    JUNIOR("junior", "Cella Jr.", 0x3FB39A, 6, 9, 6, () -> Formula
+    JUNIOR("junior", "Cella Jr.", 0x3FB39A, 6, 9, 3456, () -> Formula
             .shaped("DDD",
                     "DCD",
                     "DDD")
@@ -109,7 +120,7 @@ public enum Kind {
             .spawning()
             .done()),
 
-    SUPER_PERFECT("super_perfect", "Super Perfect Cella", 0xA3E052, 6, 12, 12, () -> Formula
+    SUPER_PERFECT("super_perfect", "Super Perfect Cella", 0xA3E052, 6, 12, 55296, () -> Formula
             .shaped("CSC",
                     "SES",
                     "CSC")
@@ -118,7 +129,7 @@ public enum Kind {
             .key('E', () -> Blocks.DRAGON_EGG)
             .done()),
 
-    MAX("max", "Cella Max", 0x8A3A2E, 6, 15, 20, () -> Formula
+    MAX("max", "Cella Max", 0x8A3A2E, 6, 15, 221184, () -> Formula
             .shaped("CTC",
                     "TET",
                     "CTC")
@@ -132,7 +143,7 @@ public enum Kind {
     private final int stain;
     private final int rows;
     private final int columns;
-    private final int pages;
+    private final int slots;
     private final Supplier<Formula> formula;
 
     /**
@@ -144,20 +155,23 @@ public enum Kind {
      *              is a screen this mod draws itself</b>, which it can, because the panel
      *              is drawn rather than blitted whole - see {@code CellaScreen}. The
      *              player's own inventory stays nine and sits in the middle.
-     * @param pages pages in one chest — the config may say otherwise, this is the default
+     * @param slots how big the chest is, in slots. <b>Fifty-four is a large chest</b>, and
+     *              the ladder is written in those: 27 is half of one, 216 is four, and so
+     *              on up. The pages follow from this and the page size, and need not come
+     *              out whole - see the note on the list above.
      * @param formula how it is made, or null for the one that is not made at all. A
      *              supplier for two reasons: a kind is built before the registries are,
      *              and several of these name other kinds - which an enum constant cannot
      *              do in its own argument list, but a lambda can put off until asked.
      */
-    Kind(String id, String name, int stain, int rows, int columns, int pages,
+    Kind(String id, String name, int stain, int rows, int columns, int slots,
             Supplier<Formula> formula) {
         this.id = id;
         this.name = name;
         this.stain = stain;
         this.rows = rows;
         this.columns = columns;
-        this.pages = pages;
+        this.slots = slots;
         this.formula = formula;
     }
 
@@ -182,8 +196,8 @@ public enum Kind {
         return columns;
     }
 
-    public int defaultPages() {
-        return pages;
+    public int defaultSlots() {
+        return slots;
     }
 
     /**
@@ -203,6 +217,18 @@ public enum Kind {
 
     /** Slots in a whole chest of this kind, as one is made today. */
     public int slots() {
-        return pageSize() * CellaConfig.pages(this);
+        return CellaConfig.slots(this);
+    }
+
+    /**
+     * How many pages that comes to, the last one possibly short.
+     *
+     * <p>Derived rather than given. A chest is a number of slots and a page is a way of
+     * cutting them up; whether the second divides the first is not something the first
+     * should have to care about.
+     */
+    public int pages() {
+        int page = pageSize();
+        return Math.max(1, (slots() + page - 1) / page);
     }
 }

@@ -173,13 +173,33 @@ Seven of them: Laravel, Imperfect, Semi-Perfect, Perfect, Super Perfect, Cella M
 and Cella Jr. off the side of Perfect. Capacity climbs with the form, and a page gets
 wider as well as taller towards the top.
 
-**The ladder is not finished.** Capacity is meant to be what went into the chest: four
-large chests for Imperfect, then multiplied by what each recipe eats — eight, eight,
-four, four, which reaches four thousand large chests at the top. Imperfect and
-Semi-Perfect are that; everything past them is still small, and Cella Jr. is held under
-the Perfect it comes from until Perfect can move. What is left is not a technical limit
-any more — it is the design question of how far the forms should go, and whether the
-upper ones buy something other than room.
+**Capacity is what went into the chest.** A large chest is fifty-four slots, Imperfect is
+four of them, and each step multiplies by what its recipe eats.
+
+| | large chests | slots | page | pages |
+|---|---|---|---|---|
+| Laravel | ½ | 27 | 3×9 | 1 |
+| Imperfect | 4 | 216 | 6×9 | 4 |
+| Semi-Perfect | 32 | 1,728 | 6×9 | 32 |
+| Perfect | 256 | 13,824 | 6×9 | 256 |
+| Cella Jr. | 64 | 3,456 | 6×9 | 64 |
+| Super Perfect | 1,024 | 55,296 | 6×12 | 768 |
+| Cella Max | 4,096 | 221,184 | 6×15 | 2,458 |
+
+**The column in `Kind` is the capacity and the pages follow from it**, which is the way
+round it was not written first. How big a chest is is a fact about the chest; how it is
+cut into pages is a fact about looking at it. Writing the pages down made the second
+decide the first, and the two do not even divide: Cella Max's last page holds fifty-four
+of its ninety squares. That is fine and it is drawn honestly. Bending the capacity so
+the pages come out round would not be.
+
+**Multiplying by what a recipe eats is addition, not fusion**, and that is the part left
+open. Four put together giving four times the room is arithmetic; whatever a form is
+worth beyond that is not room. Nothing here buys anything but room yet.
+
+Two consequences of the top of the ladder, neither solved: **2,458 pages cannot be
+reached with two arrows**, and the sort and the two movers read the whole chest once per
+press, which at 221,184 slots is a real amount of work for one keystroke.
 
 **The Perfect that makes Cella Jr. is not spent.** Seven come out and the parent is
 still standing there, which is what happened. That is a property of the one recipe and

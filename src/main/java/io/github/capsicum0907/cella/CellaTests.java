@@ -65,7 +65,7 @@ public final class CellaTests {
 
         check(menu.slots.size() == KIND.pageSize() + PLAYER_SLOTS,
                 "the menu should be a page and the player: " + menu.slots.size());
-        check(menu.pages() == CellaConfig.pages(KIND),
+        check(menu.pages() == KIND.pages(),
                 "and know how many pages there are behind it");
         helper.succeed();
     }
@@ -120,7 +120,7 @@ public final class CellaTests {
                 chest.contents().getSlots(),
                 CellaConfig.rows(KIND), CellaConfig.columns(KIND));
 
-        check(menu.pages() == CellaConfig.pages(KIND),
+        check(menu.pages() == KIND.pages(),
                 "a new chest should have as many pages as the config says");
         menu.clickMenuButton(player, menu.pages());
         check(menu.page() == 0, "a page past the end should be ignored");
@@ -260,11 +260,11 @@ public final class CellaTests {
                 helper.absolutePos(WHERE), null);
 
         check(offered != null, "the chest should offer an item handler");
-        check(offered.getSlots() == KIND.pageSize() * CellaConfig.pages(KIND),
+        check(offered.getSlots() == KIND.slots(),
                 "and it should be every page, not one: " + offered.getSlots());
 
         // Reaching past the first page has to work, not merely be counted.
-        int far = KIND.pageSize() * (CellaConfig.pages(KIND) - 1);
+        int far = KIND.pageSize() * (KIND.pages() - 1);
         offered.insertItem(far, new ItemStack(Items.REDSTONE, 7), false);
         check(offered.getStackInSlot(far).getCount() == 7, "and the last page should take items");
         helper.succeed();
