@@ -13,12 +13,10 @@ import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.loading.FMLEnvironment;
-import net.minecraft.world.item.CreativeModeTabs;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
@@ -42,9 +40,9 @@ public class Cella {
         CellaRegistry.MENUS.register(modEventBus);
         CellaRegistry.RECIPES.register(modEventBus);
         CellaRegistry.COMPONENTS.register(modEventBus);
+        CellaRegistry.TABS.register(modEventBus);
 
         modEventBus.addListener(Cella::capabilities);
-        modEventBus.addListener(Cella::creativeTab);
         modEventBus.addListener(Cella::payloads);
         NeoForge.EVENT_BUS.addListener(Cella::left);
         if (FMLEnvironment.dist == Dist.CLIENT) {
@@ -69,21 +67,6 @@ public class Cella {
     private static void capabilities(RegisterCapabilitiesEvent event) {
         event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, CellaRegistry.BLOCK_ENTITY.get(),
                 (chest, side) -> chest.contents());
-    }
-
-    /**
-     * Into the functional blocks tab, beside the chests and barrels.
-     *
-     * <p>Not decoration: a block registered into no tab at all is not merely tidy - it
-     * is invisible to anything that reads the creative menu, which is how a recipe
-     * browser builds its list. The mod was craftable and unfindable.
-     */
-    private static void creativeTab(BuildCreativeModeTabContentsEvent event) {
-        if (event.getTabKey() == CreativeModeTabs.FUNCTIONAL_BLOCKS) {
-            for (Kind kind : Kind.values()) {
-                event.accept(CellaRegistry.item(kind).get());
-            }
-        }
     }
 
     /**

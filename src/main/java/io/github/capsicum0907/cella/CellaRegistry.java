@@ -9,7 +9,9 @@ import net.minecraft.core.UUIDUtil;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.inventory.MenuType;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.level.block.Block;
@@ -96,6 +98,33 @@ public final class CellaRegistry {
                     (id, inventory, buffer) -> CellaMenu.at(id, inventory,
                             buffer.readBlockPos(), buffer.readVarInt(),
                             buffer.readVarInt(), buffer.readVarInt())));
+
+    public static final DeferredRegister<CreativeModeTab> TABS =
+            DeferredRegister.create(Registries.CREATIVE_MODE_TAB, Cella.MODID);
+
+    /**
+     * A tab of its own, rather than seven chests scattered through the vanilla one.
+     *
+     * <p><b>A tab is not decoration.</b> A block in no tab at all is invisible to anything
+     * that reads the creative menu, which is how a recipe browser builds its list - this
+     * mod was once craftable and unfindable for exactly that reason. What a tab of its own
+     * adds is that the seven are seen together, which is the only way the ramp of colours
+     * reads as a ramp.
+     *
+     * <p>The icon is Perfect: the middle of the chain and the one the mod is named after
+     * being the finished article. The contents are {@link Kind} in order, so a kind added
+     * there arrives here without anybody remembering to.
+     */
+    public static final DeferredHolder<CreativeModeTab, CreativeModeTab> TAB =
+            TABS.register("cella", () -> CreativeModeTab.builder()
+                    .title(Component.translatable("itemGroup." + Cella.MODID))
+                    .icon(() -> new net.minecraft.world.item.ItemStack(item(Kind.PERFECT).get()))
+                    .displayItems((parameters, output) -> {
+                        for (Kind kind : Kind.values()) {
+                            output.accept(item(kind).get());
+                        }
+                    })
+                    .build());
 
     private CellaRegistry() {
     }

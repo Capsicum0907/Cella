@@ -1,11 +1,11 @@
 {
   "parent": "minecraft:recipes/root",
   "criteria": {
-    "has_obsidian": {
+    "has_imperfect": {
       "conditions": {
         "items": [
           {
-            "items": "minecraft:obsidian"
+            "items": "cella:imperfect"
           }
         ]
       },
@@ -21,7 +21,7 @@
   "requirements": [
     [
       "has_the_recipe",
-      "has_obsidian"
+      "has_imperfect"
     ]
   ],
   "rewards": {

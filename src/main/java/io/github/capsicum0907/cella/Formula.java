@@ -63,8 +63,20 @@ public record Formula(List<String> pattern, Map<Character, Supplier<ItemLike>> o
             return this;
         }
 
+        /**
+         * <b>The order the letters were given in is kept.</b>
+         *
+         * <p>Not tidiness. {@code Map.copyOf} hands back an immutable map whose iteration
+         * order is randomised once per JVM run, so the first entry out of it is not the
+         * first entry in — and data generation reads exactly that to decide what unlocks
+         * the recipe. It was picking a different ingredient every time it ran: noise in
+         * every diff, and an advancement that said "has obsidian" where it meant "has an
+         * Imperfect Cella". A generator has to be a function of its input.
+         */
         public Formula done() {
-            return new Formula(pattern, Map.copyOf(of), count, spawns);
+            return new Formula(pattern,
+                    java.util.Collections.unmodifiableMap(new LinkedHashMap<>(of)),
+                    count, spawns);
         }
     }
 

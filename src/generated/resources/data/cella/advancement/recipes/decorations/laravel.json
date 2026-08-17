@@ -1,11 +1,11 @@
 {
   "parent": "minecraft:recipes/root",
   "criteria": {
-    "has_porkchop": {
+    "has_beef": {
       "conditions": {
         "items": [
           {
-            "items": "minecraft:porkchop"
+            "items": "minecraft:beef"
           }
         ]
       },
@@ -21,7 +21,7 @@
   "requirements": [
     [
       "has_the_recipe",
-      "has_porkchop"
+      "has_beef"
     ]
   ],
   "rewards": {
