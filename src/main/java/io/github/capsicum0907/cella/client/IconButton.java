@@ -44,6 +44,9 @@ public class IconButton extends AbstractWidget {
     private final ResourceLocation icon;
     private final Runnable pressed;
 
+    /** The picture's own size, which is the file's own size. See the note on {@link #SIZE}. */
+    private final int art;
+
     /**
      * Whether it is drawn on a raised square at all.
      *
@@ -56,13 +59,21 @@ public class IconButton extends AbstractWidget {
     private final boolean plate;
 
     public IconButton(int x, int y, ResourceLocation icon, Component tooltip, Runnable pressed) {
-        this(x, y, icon, tooltip, true, pressed);
+        this(x, y, SIZE, icon, ICON, tooltip, true, pressed);
     }
 
-    public IconButton(int x, int y, ResourceLocation icon, Component tooltip, boolean plate,
-            Runnable pressed) {
-        super(x, y, SIZE, SIZE, tooltip);
+    /**
+     * @param size how big the control is, which for a plated one is the plate
+     * @param art the picture's own size in its file. <b>Blitted at it and never scaled</b>:
+     *            pixel art resampled to a size it was not drawn at stops being pixel art,
+     *            which is why borrowing a twelve-pixel icon means a twelve-pixel control
+     *            rather than a squashed one
+     */
+    public IconButton(int x, int y, int size, ResourceLocation icon, int art, Component tooltip,
+            boolean plate, Runnable pressed) {
+        super(x, y, size, size, tooltip);
         this.icon = icon;
+        this.art = art;
         this.plate = plate;
         this.pressed = pressed;
         setTooltip(net.minecraft.client.gui.components.Tooltip.create(tooltip));
@@ -73,19 +84,19 @@ public class IconButton extends AbstractWidget {
         int x = getX();
         int y = getY();
         if (plate) {
-            graphics.fill(x, y, x + SIZE, y + SIZE, isHovered() ? LIT : FACE);
+            graphics.fill(x, y, x + width, y + height, isHovered() ? LIT : FACE);
             // The light two first, then the dark two over them, so the corners belong to
             // the shadow - which is how a raised edge actually looks.
-            graphics.fill(x, y, x + SIZE, y + 1, LIGHT);
-            graphics.fill(x, y, x + 1, y + SIZE, LIGHT);
-            graphics.fill(x, y + SIZE - 1, x + SIZE, y + SIZE, DARK);
-            graphics.fill(x + SIZE - 1, y, x + SIZE, y + SIZE, DARK);
+            graphics.fill(x, y, x + width, y + 1, LIGHT);
+            graphics.fill(x, y, x + 1, y + height, LIGHT);
+            graphics.fill(x, y + height - 1, x + width, y + height, DARK);
+            graphics.fill(x + width - 1, y, x + width, y + height, DARK);
         }
 
         // Centred by the pixel: seven in eleven leaves two either side, which is why both
         // are odd. The size passed is the file's own, the lesson from the background.
-        int inset = (SIZE - ICON) / 2;
-        graphics.blit(icon, x + inset, y + inset, 0, 0, ICON, ICON, ICON, ICON);
+        int inset = (width - art) / 2;
+        graphics.blit(icon, x + inset, y + inset, 0, 0, art, art, art, art);
     }
 
     @Override

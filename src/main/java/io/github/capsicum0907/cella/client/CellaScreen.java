@@ -94,6 +94,27 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     private static final int TEXT_Y = 6;
     private static final int BUTTON_Y = TEXT_Y - 2;
 
+    /**
+     * The game's own search icon, borrowed rather than drawn.
+     *
+     * <p>⚠ <b>Two attempts at a six-pixel magnifier were a lozenge with a tail.</b> Vanilla
+     * has one — twelve pixels, a grey rim, blue glass and a wooden handle, <b>painted as an
+     * object rather than drawn as an outline</b>, which is what both of mine were missing.
+     * Pointing at the file rather than copying it also means a resource pack that restyles
+     * the game restyles this too.
+     *
+     * <p>It is twelve and the other buttons are ten, and it is blitted at twelve: pixel art
+     * resampled to a size it was not drawn at stops being pixel art. Two pixels at the far
+     * end of the same row is not a difference anybody sees.
+     */
+    private static final ResourceLocation FIND =
+            ResourceLocation.withDefaultNamespace("textures/gui/sprites/icon/search.png");
+
+    private static final int FIND_SIZE = 12;
+
+    /** One higher than the ten-pixel buttons, which puts both their middles on the same line. */
+    private static final int FIND_Y = BUTTON_Y - 1;
+
     /** Two apart is the neighbours' spacing; four sets sorting off from paging. */
     private static final int SPACE = 2;
     private static final int APART = 4;
@@ -224,9 +245,9 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
         // switch for that row rather than for the contents, so it belongs beside the thing
         // it changes - and once the row is a box, a magnifier at its left edge is what a
         // search box looks like everywhere else.
-        this.titleLabelX = TITLE_X + BUTTON + SPACE;
-        addRenderableWidget(new IconButton(leftPos + TITLE_X, topPos + BUTTON_Y,
-                icon("find"), Component.translatable("gui.cella.find"), false, this::toggle));
+        this.titleLabelX = TITLE_X + FIND_SIZE + SPACE;
+        addRenderableWidget(new IconButton(leftPos + TITLE_X, topPos + FIND_Y, FIND_SIZE,
+                FIND, FIND_SIZE, Component.translatable("gui.cella.find"), false, this::toggle));
 
         // ⚠ At the title's own y, not near it. An unbordered EditBox draws its text at
         // getY() flat - the centring in the middle of its box only happens when it has a
@@ -260,6 +281,9 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     /** Whether the row is a box at the moment. */
     private boolean finding;
 
+    /** Set when the box opens; see the note in {@link #toggle}. */
+    private boolean grabbing;
+
     /**
      * Opens the box, or shuts it and puts the chest back.
      *
@@ -276,6 +300,12 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
             looking.setValue("");
         }
         settles = finding ? -1 : 0;
+        // ⚠ Asked for again next tick, because this is not the last word on it. The click
+        // that got here is still being dispatched, and when the handler returns the screen
+        // gives focus to whatever was clicked - which is the magnifier, not the box. Doing
+        // it now and again in a moment is the difference between a box that is open and a
+        // box you can type into.
+        grabbing = finding;
     }
 
     /** Arrows only where there is somewhere to go. Asked every tick, because it changes. */
@@ -289,6 +319,11 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     protected void containerTick() {
         super.containerTick();
         paging();
+        if (grabbing) {
+            setFocused(looking);
+            looking.setFocused(true);
+            grabbing = false;
+        }
         if (settles < 0) {
             return;
         }
