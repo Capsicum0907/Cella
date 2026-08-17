@@ -6,7 +6,20 @@ import java.util.Map;
 import net.neoforged.neoforge.common.ModConfigSpec;
 
 /**
- * Every tunable value lives here. Nothing else in the mod may hold a literal.
+ * The tunable values. <b>How big a chest is is not one of them.</b>
+ *
+ * <p>It was, and it should not have been. A fusion pours what it ate into what it made,
+ * and that fits because the ladder is built so that it fits exactly — eight Imperfects
+ * are 1,728 slots and a Semi-Perfect is 1,728 slots. <b>Fitting is an invariant of the
+ * design, not a coincidence of the numbers</b>, and a setting that lets it be broken
+ * turns a failure that cannot happen into one that can: a merge with nowhere to put the
+ * remainder, at a scale where the remainder is measured in thousands of item entities.
+ * Nobody edits a number in a text file expecting their world to stop opening.
+ *
+ * <p>So capacity lives in {@link Kind} and nowhere else. What is left here is the shape
+ * of a page, which <b>cannot break anything</b> — a page that does not divide the chest
+ * makes the last one short, and a short page is drawn short. That is the line: a setting
+ * may hold what cannot break an invariant.
  *
  * <p>SERVER, not COMMON: how big a chest is is world state, and a client gets the host's
  * values.
@@ -26,7 +39,6 @@ public final class CellaConfig {
 
     private static final Map<Kind, ModConfigSpec.IntValue> ROWS = new EnumMap<>(Kind.class);
     private static final Map<Kind, ModConfigSpec.IntValue> COLUMNS = new EnumMap<>(Kind.class);
-    private static final Map<Kind, ModConfigSpec.IntValue> SLOTS = new EnumMap<>(Kind.class);
 
     public static final ModConfigSpec SPEC = build();
 
@@ -61,17 +73,6 @@ public final class CellaConfig {
                             "still inside the 320 that Minecraft's automatic GUI scale",
                             "leaves at its narrowest. Eighteen would be 338 and would not.")
                     .defineInRange("columns", kind.defaultColumns(), 1, 18));
-            SLOTS.put(kind, builder
-                    .comment("How big the chest is. Fifty-four is a large chest, and the",
-                            "forms are written in those: four of them, then eight times",
-                            "that, and so on. It need not divide by a page - the last one",
-                            "is allowed to be short, and is drawn short.",
-                            "An open screen costs one page however big this is, since that",
-                            "is all the menu holds and all the server sends or walks. What",
-                            "does grow with it is the sort and the two movers, which read",
-                            "the whole chest once per press, and the memory a placed chest",
-                            "takes up.")
-                    .defineInRange("slots", kind.defaultSlots(), 1, 262144));
             builder.pop();
         }
         return builder.build();
@@ -85,7 +86,4 @@ public final class CellaConfig {
         return COLUMNS.get(kind).get();
     }
 
-    public static int slots(Kind kind) {
-        return SLOTS.get(kind).get();
-    }
 }

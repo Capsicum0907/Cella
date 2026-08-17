@@ -174,10 +174,10 @@ public enum Kind {
      *              is drawn rather than blitted whole - see {@code CellaScreen}. The
      *              player's own inventory stays nine and sits in the middle. Eighteen is
      *              338 pixels across, which is the widest here.
-     * @param slots how big the chest is, in slots. <b>Fifty-four is a large chest</b>, and
-     *              the ladder is written in those: 54 is one, 216 is four, and so on up.
-     *              The pages follow from this and the page size, and need not come out
-     *              whole - see the note on the list above.
+     * @param slots how big the chest is, in slots, and <b>the only place that is said</b>.
+     *              Fifty-four is a large chest and the ladder is written in those: 54 is
+     *              one, 216 is four, and so on up. The pages follow from this and the page
+     *              size, and need not come out whole - see the note on the list above.
      * @param keeps whether it survives being broken with its contents inside. See
      *              {@link #keeps()}.
      * @param formula how it is made, or null for the one that is not made at all. A
@@ -218,10 +218,6 @@ public enum Kind {
         return columns;
     }
 
-    public int defaultSlots() {
-        return slots;
-    }
-
     /**
      * Whether breaking one keeps what is inside it.
      *
@@ -254,9 +250,15 @@ public enum Kind {
         return CellaConfig.rows(this) * CellaConfig.columns(this);
     }
 
-    /** Slots in a whole chest of this kind, as one is made today. */
+    /**
+     * Slots in a whole chest of this kind, as one is made today.
+     *
+     * <p><b>Not settable.</b> Each step is exactly what its recipe ate, so a fusion has
+     * room for everything it fused and the fit is an invariant rather than an accident.
+     * See {@link CellaConfig} for why that means it cannot be a setting.
+     */
     public int slots() {
-        return CellaConfig.slots(this);
+        return slots;
     }
 
     /**
