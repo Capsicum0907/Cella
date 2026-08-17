@@ -16,6 +16,7 @@ import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 import net.neoforged.neoforge.items.IItemHandler;
+import net.neoforged.neoforge.items.ItemStackHandler;
 
 /**
  * What the paging is supposed to be, checked where it could go wrong: at the edge
@@ -134,8 +135,8 @@ public final class CellaTests {
      * The server turns the page, because the server is what a click is read against.
      *
      * <p>A page arrives as a button, as itself: the five real buttons are negative so the
-     * two can never collide however many pages a chest grows to. There is no client here
-     * to be one round trip behind, so the two agree straight away.
+     * two can never collide however many pages a chest grows to. The client asks and
+     * waits, so this is the only side that turns anything.
      */
     @GameTest(template = TestStructures.FLOOR)
     public static void theServerTurnsThePage(GameTestHelper helper) {
@@ -147,7 +148,43 @@ public final class CellaTests {
 
         check(menu.clickMenuButton(player, LATER), "a page should be a button it takes");
         check(menu.page() == LATER, "and it should have turned to it");
-        check(!menu.pending(), "the server is never waiting for itself");
+        helper.succeed();
+    }
+
+    /**
+     * The client's window has the page and not the chest, and still knows where it stops.
+     *
+     * <p>There is no client in a game test, so this asks the window directly — which is
+     * where the difference lives and the only place it does. The client is sent one page
+     * at a time and is told how many slots the chest has; from those two it can say how
+     * many pages there are and which squares of the last one are real, without holding
+     * two hundred thousand slots of nothing.
+     *
+     * <p><b>Writing goes through and showing does not.</b> A page turn arrives as the
+     * contents first and the page number second, so for that moment the window is
+     * answering about the page before — and a full page arriving while it still thinks it
+     * is on a short one must not be dropped on the floor.
+     */
+    @GameTest(template = TestStructures.FLOOR)
+    public static void theClientsWindowHoldsOnlyThePage(GameTestHelper helper) {
+        int size = KIND.pageSize();
+        int total = size * 2 + 5;
+        Window window = Window.of(new ItemStackHandler(size), size, total);
+
+        check(window.getSlots() == size, "the client holds a page: " + window.getSlots());
+        check(window.pages() == 3, "and knows there are three of them: " + window.pages());
+
+        window.openAt(2);
+        check(window.holds(4), "the five that are there are the chest's");
+        check(!window.holds(5), "and the rest of the grid is not");
+        check(window.insertItem(5, new ItemStack(Items.STONE, 1), false).getCount() == 1,
+                "nothing off the end takes an item");
+
+        // What the server sends still lands, whichever page this thinks it is on.
+        window.setStackInSlot(5, new ItemStack(Items.STONE, 1));
+        window.openAt(0);
+        check(window.getStackInSlot(5).is(Items.STONE),
+                "and the contents of a full page are not dropped for arriving first");
         helper.succeed();
     }
 

@@ -50,7 +50,16 @@ public class CellaMenu extends AbstractContainerMenu {
     public static final int TAKING = -5;
 
     private final ContainerLevelAccess access;
+
+    /**
+     * The chest on the server; on the client, the page it is looking at.
+     *
+     * <p>Which is all the client is ever sent, so it is all it keeps — a client-side copy
+     * of Cella Max would be two hundred thousand slots of nothing. Everything here that
+     * reads this as the whole chest is server-only and says so.
+     */
     private final IItemHandlerModifiable contents;
+
     private final Window window;
     private final int pageSize;
     private final int columns;
@@ -59,18 +68,6 @@ public class CellaMenu extends AbstractContainerMenu {
     /** Whether this is the server's copy of the menu. See {@link #turnTo}. */
     private final boolean server;
 
-    /** The page being shown. */
-    private int page;
-
-    /**
-     * The page the server has, which is what a click will be read against.
-     *
-     * <p>Sent as a data slot, so it arrives with the contents and by the same means. On
-     * the server it is always {@link #page}; on the client it lags it by one round trip,
-     * and the gap is what {@link #pending} is.
-     */
-    private int agreed;
-
     /**
      * Opened at a block, on both sides.
      *
@@ -78,39 +75,39 @@ public class CellaMenu extends AbstractContainerMenu {
      * How tall a page is could be read off the block at that position instead, and the
      * one branch below where there is no block would then have nothing to ask. One more
      * number in a packet that is already being sent is cheaper than a clever answer with
-     * a hole in it. A chest keeps the
-     * size it was built with, so a world whose config has since been turned down holds
-     * chests bigger than the config says. The client builds its menu from its own copy of
-     * the block entity, which was made at the config's size and knows nothing about the
-     * save — and a client whose page count disagrees with the server's is one that can
-     * ask for a page the server will refuse, and sit waiting for it.
+     * a hole in it. A chest keeps the size it was built with, so a world whose config has
+     * since been turned down holds chests bigger than the config says, and the client's
+     * own copy of the block entity was made at the config's size and knows nothing about
+     * the save. What the number decides on the client is how many pages there are, and
+     * the two sides have to agree on that: one that thinks there are fewer cannot reach
+     * the last page, and one that thinks there are more can ask for a page the server
+     * refuses.
      */
     public static CellaMenu at(int id, Inventory inventory, BlockPos pos, int size,
             int rows, int columns) {
         Level level = inventory.player.level();
-        IItemHandlerModifiable contents;
-        if (level.getBlockEntity(pos) instanceof CellaBlockEntity chest) {
-            contents = chest.contents();
-            // Only ever the client catching up. Resizing the server's own contents is how
-            // a chest gets emptied by somebody opening it.
-            if (level.isClientSide && contents.getSlots() != size) {
-                chest.contents().setSize(size);
-            }
-        } else {
-            contents = new ItemStackHandler(size);
+        int pageSize = rows * columns;
+        ContainerLevelAccess access = ContainerLevelAccess.create(level, pos);
+        if (!level.isClientSide && level.getBlockEntity(pos) instanceof CellaBlockEntity chest) {
+            return new CellaMenu(id, inventory, chest.contents(),
+                    Window.onto(chest.contents(), pageSize), columns, access);
         }
-        return new CellaMenu(id, inventory, contents, rows, columns,
-                ContainerLevelAccess.create(level, pos));
+        // A page, and the number of slots there are said to be. The client is told one
+        // page at a time and never holds more; the server reaches this only if the block
+        // has gone, in which case a page of nothing is the honest answer.
+        ItemStackHandler shown = new ItemStackHandler(pageSize);
+        return new CellaMenu(id, inventory, shown, Window.of(shown, pageSize, size),
+                columns, access);
     }
 
     private CellaMenu(int id, Inventory inventory, IItemHandlerModifiable contents,
-            int rows, int columns, ContainerLevelAccess access) {
+            Window window, int columns, ContainerLevelAccess access) {
         super(CellaRegistry.MENU.get(), id);
         this.access = access;
         this.contents = contents;
         this.columns = columns;
-        this.pageSize = rows * columns;
-        this.window = new Window(contents, pageSize);
+        this.pageSize = window.getSlots();
+        this.window = window;
         this.server = !inventory.player.level().isClientSide;
         // As wide as the widest of the two inventories, and never narrower than the
         // player's, which is nine whatever the chest is.
@@ -139,18 +136,17 @@ public class CellaMenu extends AbstractContainerMenu {
         }
 
         // The page, travelling the way every other number a menu has travels. Reading it
-        // is the server answering; being set is the client being told, and the client
-        // takes the answer as final - see turnTo.
+        // is the server answering, and being set is the client being told - which is the
+        // only way the client's page ever moves. See turnTo.
         addDataSlot(new DataSlot() {
             @Override
             public int get() {
-                return agreed;
+                return window.page();
             }
 
             @Override
             public void set(int value) {
-                agreed = value;
-                show(value);
+                window.openAt(value);
             }
         });
     }
@@ -196,7 +192,7 @@ public class CellaMenu extends AbstractContainerMenu {
     }
 
     public int page() {
-        return page;
+        return window.page();
     }
 
     public int pages() {
@@ -204,50 +200,28 @@ public class CellaMenu extends AbstractContainerMenu {
     }
 
     /**
-     * Whether the page on screen is one the server has not agreed to yet.
+     * Turns to a page, ignoring one that is not there. <b>The server's, only.</b>
      *
-     * <p>True for the length of one round trip after turning, and it matters for exactly
-     * one thing: <b>a click is read against the server's page, not the drawn one.</b>
-     * While these disagree the screen is showing the page that was asked for and the
-     * server would answer about the page before it, so a click in that gap takes an item
-     * other than the one under the pointer. The screen refuses chest clicks until this
-     * goes false — see {@code CellaScreen}. It is never true on the server.
-     */
-    public boolean pending() {
-        return page != agreed;
-    }
-
-    /** Shows a page, which is all that turning one is: the window moves, nothing is told. */
-    private void show(int wanted) {
-        page = wanted;
-        window.openAt(wanted);
-    }
-
-    /**
-     * Turns to a page, ignoring one that is not there.
+     * <p>The client asks and waits. It could turn at once and be corrected, and that was
+     * written and thrown away: what the screen shows has to be what a click will act on,
+     * and a click acts on the server's page. A screen that turns before the server does
+     * is a screen showing one page while the server would answer about another, which is
+     * the exact defect this mod has now had in three designs running. One round trip is
+     * the price of not having it a fourth time.
      *
-     * <p><b>The server owns which page a click means.</b> So the client turns at once and
-     * asks, and the server turns and answers with the page's contents and the page number
-     * together — one {@code sendAllDataToRemote}, which is the one call that says "forget
-     * what you were told about these slots". That call is the whole reason a window is
-     * workable: the game decides what to send by comparing each slot against what it last
-     * told the client that slot held, which is sound only while nothing moves underneath
-     * a slot. Under a window something does, every time a page turns, and this is how
-     * vanilla itself says so.
-     *
-     * <p>The client does not wait to draw, because a chest that answers the arrow key
-     * fifty milliseconds later feels broken. It waits to <em>act</em>, which is the part
-     * that can be wrong.
+     * <p>The answer is the page's contents and the page number together, as one
+     * {@code sendAllDataToRemote}. That call is the whole reason a window is workable:
+     * the game decides what to send by comparing each slot against what it last told the
+     * client that slot held, which is sound only while nothing moves underneath a slot.
+     * Under a window something does, every time a page turns, and this is vanilla's own
+     * way of saying so.
      */
     public void turnTo(int wanted) {
-        if (wanted < 0 || wanted >= pages()) {
+        if (!server || wanted < 0 || wanted >= pages()) {
             return;
         }
-        show(wanted);
-        if (server) {
-            agreed = wanted;
-            sendAllDataToRemote();
-        }
+        window.openAt(wanted);
+        sendAllDataToRemote();
     }
 
     /**
@@ -409,9 +383,18 @@ public class CellaMenu extends AbstractContainerMenu {
      * "the page is full" has to be the next page rather than the player's hand. So that
      * direction goes to the contents underneath — {@code insertItemStacked}, which tops
      * up partial stacks before it opens a new slot, on every page there is.
+     *
+     * <p><b>The client does not guess at this.</b> It runs the same method, to show the
+     * answer before the server's arrives, and it cannot: it does not have the chest, only
+     * the page. Guessing with a page in place of a chest gets it wrong whenever the page
+     * is full, which is the case the whole method exists for. So it says nothing moved
+     * and lets the server say what did, one tick later.
      */
     @Override
     public ItemStack quickMoveStack(Player player, int index) {
+        if (!server) {
+            return ItemStack.EMPTY;
+        }
         Slot slot = slots.get(index);
         if (!slot.hasItem()) {
             return ItemStack.EMPTY;

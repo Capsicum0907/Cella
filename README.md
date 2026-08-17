@@ -4,7 +4,7 @@ A chest with more than one page.
 
 *Cella* is Latin for a storeroom, and also a compartment inside one.
 
-> **Status: the chest works.** Sixteen game tests, watched in a client.
+> **Status: the chest works.** Seventeen game tests, watched in a client.
 
 ## Target
 
@@ -39,19 +39,24 @@ Three things follow:
 - **An open screen costs a page**, whatever the chest is. Opening one sends a page and
   each tick compares a page. That is what makes a chest of thirteen thousand slots
   possible at all.
-- **A page turn is a round trip.** The server decides what a click means, so it has to
-  be told which page. It answers with the page's contents and the page number
-  together, as one `sendAllDataToRemote()`.
+- **The client holds a page too.** It is only ever sent the one it is looking at, so
+  that is all it keeps — a client-side copy of Cella Max would be two hundred thousand
+  slots of nothing. `Window.onto` is the server's shape and `Window.of` is the
+  client's; everything above the class is written once.
 - **Slot *i* is not contents *i*** — and the game assumes it is. It decides what to
   send by comparing each slot against what it last told the client that slot held,
   which is sound only while nothing moves underneath a slot. Something does, exactly
-  once per page turn, and that same call is vanilla's own way of saying "forget what
-  you were told about these".
+  once per page turn, and `sendAllDataToRemote()` is vanilla's own way of saying
+  "forget what you were told about these". It carries the page number with the
+  contents, as a data slot.
 
-The client draws the new page immediately and refuses to **click** it until the answer
-lands. Drawing early is safe; acting early is not, because for that one round trip the
-screen shows the page that was asked for and the server would answer about the page
-before it. Fifty milliseconds, during which an arrow was just pressed.
+**A page turn is a round trip, and the screen waits for it.** Turning at once and being
+corrected was written and thrown away: what is on screen has to be what a click will act
+on, and a click acts on the server's page. A screen that turns early is a screen showing
+one page while the server would answer about another — which is this mod's recurring
+defect, in its third design running. Shift-click into the chest waits for the same
+reason: the client cannot guess where a stack lands when it does not have the chest, and
+the case the button exists for is exactly the one where this page is full.
 
 ### The road not taken
 
@@ -82,6 +87,13 @@ turn, so two pages holding the same thing in the same place sent nothing and the
 drew whatever it last saw there. It was patched with a full resend, which was written
 off at the time as papering over. It was not — it is the correct design, and it has a
 name in `AbstractContainerMenu`.
+
+The version before this one turned the page on the client at once and asked the server
+afterwards, to keep the arrow feeling instant. That is wrong twice over. A click in the
+gap is read against the server's page and takes an item other than the one under the
+pointer; and the reply, which arrives as contents first and page number second, lands in
+whatever page the client has since guessed its way to — so scrolling the wheel fast left
+pages holding each other's items. Both go away by not guessing.
 
 ### What the paging does *not* touch
 
