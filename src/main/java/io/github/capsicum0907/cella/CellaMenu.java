@@ -27,12 +27,14 @@ import net.neoforged.neoforge.items.ItemStackHandler;
  */
 public class CellaMenu extends AbstractContainerMenu {
     private static final int PLAYER_ROWS = 3;
-    private static final int HOTBAR = CellaConfig.COLUMNS;
+    private static final int HOTBAR = CellaConfig.PLAYER_COLUMNS;
     private static final int SLOT = 18;
 
-    /** Where the chest's own slots start, in the vanilla chest layout. */
-    private static final int FIRST_X = 8;
+    /** The lid is seventeen deep, and the first row of slots begins under it. */
     private static final int FIRST_Y = 18;
+
+    /** The margin either side of the widest thing on the panel. */
+    private static final int MARGIN = 7;
 
     /** The button ids that are not a page: there is no page for them to collide with. */
     public static final int SORT = -1;
@@ -44,6 +46,8 @@ public class CellaMenu extends AbstractContainerMenu {
     private final ContainerLevelAccess access;
     private final IItemHandlerModifiable contents;
     private final int pageSize;
+    private final int columns;
+    private final int width;
     private int page;
 
     /**
@@ -61,7 +65,8 @@ public class CellaMenu extends AbstractContainerMenu {
      * end of its own list while it is being filled. Under the old design that mismatch
      * was invisible; here it is a crash, so the number is sent.
      */
-    public static CellaMenu at(int id, Inventory inventory, BlockPos pos, int size, int page) {
+    public static CellaMenu at(int id, Inventory inventory, BlockPos pos, int size,
+            int rows, int columns) {
         Level level = inventory.player.level();
         IItemHandlerModifiable contents;
         if (level.getBlockEntity(pos) instanceof CellaBlockEntity chest) {
@@ -74,35 +79,42 @@ public class CellaMenu extends AbstractContainerMenu {
         } else {
             contents = new ItemStackHandler(size);
         }
-        return new CellaMenu(id, inventory, contents, page, ContainerLevelAccess.create(level, pos));
+        return new CellaMenu(id, inventory, contents, rows, columns,
+                ContainerLevelAccess.create(level, pos));
     }
 
     private CellaMenu(int id, Inventory inventory, IItemHandlerModifiable contents,
-            int pageSize, ContainerLevelAccess access) {
+            int rows, int columns, ContainerLevelAccess access) {
         super(CellaRegistry.MENU.get(), id);
         this.access = access;
         this.contents = contents;
-        this.pageSize = pageSize;
+        this.columns = columns;
+        this.pageSize = rows * columns;
+        // As wide as the widest of the two inventories, and never narrower than the
+        // player's, which is nine whatever the chest is.
+        this.width = Math.max(CellaConfig.PLAYER_COLUMNS, columns) * SLOT + 2 * MARGIN;
+        int chestLeft = (width - columns * SLOT) / 2;
+        int playerLeft = (width - CellaConfig.PLAYER_COLUMNS * SLOT) / 2;
 
         // Every page's slots, all at the same coordinates, stacked one page deep. Only
         // the page on show answers isActive, so only it is drawn or clicked.
         for (int index = 0; index < contents.getSlots(); index++) {
             int within = index % pageSize;
             addSlot(new PagedSlot(this, contents, index,
-                    FIRST_X + (within % CellaConfig.COLUMNS) * SLOT,
-                    FIRST_Y + (within / CellaConfig.COLUMNS) * SLOT));
+                    chestLeft + (within % columns) * SLOT,
+                    FIRST_Y + (within / columns) * SLOT));
         }
 
         // The vanilla chest layout, which grows downwards as rows are added.
         int below = (rows() - 4) * SLOT;
         for (int row = 0; row < PLAYER_ROWS; row++) {
-            for (int column = 0; column < CellaConfig.COLUMNS; column++) {
-                addSlot(new Slot(inventory, column + row * CellaConfig.COLUMNS + HOTBAR,
-                        FIRST_X + column * SLOT, 103 + row * SLOT + below));
+            for (int column = 0; column < CellaConfig.PLAYER_COLUMNS; column++) {
+                addSlot(new Slot(inventory, column + row * CellaConfig.PLAYER_COLUMNS + HOTBAR,
+                        playerLeft + column * SLOT, 103 + row * SLOT + below));
             }
         }
         for (int column = 0; column < HOTBAR; column++) {
-            addSlot(new Slot(inventory, column, FIRST_X + column * SLOT, 161 + below));
+            addSlot(new Slot(inventory, column, playerLeft + column * SLOT, 161 + below));
         }
         layOut();
     }
@@ -148,9 +160,17 @@ public class CellaMenu extends AbstractContainerMenu {
         return pageSize;
     }
 
-    /** How tall the chest half of the screen is, in rows of nine. */
+    /** How tall the chest half of the screen is, and how wide, and how far across. */
     public int rows() {
-        return pageSize / CellaConfig.COLUMNS;
+        return pageSize / columns;
+    }
+
+    public int columns() {
+        return columns;
+    }
+
+    public int width() {
+        return width;
     }
 
     public int page() {

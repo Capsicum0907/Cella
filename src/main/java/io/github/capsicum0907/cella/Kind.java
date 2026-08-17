@@ -50,12 +50,12 @@ public enum Kind {
      * <p>Junior is off the ramp because it is off the chain, and Max is red-brown because
      * it is barely the same creature.
      */
-    LARAVEL("laravel", "Laravel Cella", 0xB89A5E, 3, 1, () -> Items.COPPER_INGOT, null, 1),
-    IMPERFECT("imperfect", "Imperfect Cella", 0x5AA33C, 4, 3,
+    LARAVEL("laravel", "Laravel Cella", 0xB89A5E, 3, 9, 1, () -> Items.COPPER_INGOT, null, 1),
+    IMPERFECT("imperfect", "Imperfect Cella", 0x5AA33C, 4, 9, 3,
             () -> Items.GOLD_INGOT, () -> LARAVEL, 1),
-    SEMI_PERFECT("semi_perfect", "Semi-Perfect Cella", 0x6FBA43, 5, 5,
+    SEMI_PERFECT("semi_perfect", "Semi-Perfect Cella", 0x6FBA43, 5, 9, 5,
             () -> Items.EMERALD, () -> IMPERFECT, 1),
-    PERFECT("perfect", "Perfect Cella", 0x8ACF48, 6, 8,
+    PERFECT("perfect", "Perfect Cella", 0x8ACF48, 6, 9, 8,
             () -> Items.DIAMOND, () -> SEMI_PERFECT, 1),
     /**
      * Seven at a time, because that is how many of them there were.
@@ -63,16 +63,17 @@ public enum Kind {
      * <p>Each is smaller than the Perfect it came from and seven of them are half as much
      * again, which is the whole reason to take the branch.
      */
-    JUNIOR("junior", "Cella Jr.", 0x3FB39A, 6, 6, () -> Items.EGG, () -> PERFECT, 7),
-    SUPER_PERFECT("super_perfect", "Super Perfect Cella", 0xA3E052, 6, 16,
+    JUNIOR("junior", "Cella Jr.", 0x3FB39A, 6, 9, 6, () -> Items.EGG, () -> PERFECT, 7),
+    SUPER_PERFECT("super_perfect", "Super Perfect Cella", 0xA3E052, 6, 12, 12,
             () -> Items.NETHERITE_INGOT, () -> PERFECT, 1),
-    MAX("max", "Cella Max", 0x8A3A2E, 6, 32,
+    MAX("max", "Cella Max", 0x8A3A2E, 6, 15, 20,
             () -> Items.NETHER_STAR, () -> SUPER_PERFECT, 1);
 
     private final String id;
     private final String name;
     private final int stain;
     private final int rows;
+    private final int columns;
     private final int pages;
     private final Supplier<ItemLike> core;
     private final Supplier<Kind> from;
@@ -82,7 +83,11 @@ public enum Kind {
      * @param id    the registry path, and the file name of everything belonging to it
      * @param name  what it is called on screen, before anyone translates it
      * @param stain the one colour the whole sheet is derived from; see {@code ChestSheets}
-     * @param rows  rows of nine on one page
+     * @param rows  rows on one page
+     * @param columns how wide a page is. <b>Nine is the vanilla chest and anything else
+     *              is a screen this mod draws itself</b>, which it can, because the panel
+     *              is drawn rather than blitted whole - see {@code CellaScreen}. The
+     *              player's own inventory stays nine and sits in the middle.
      * @param pages pages in one chest — the config may say otherwise, this is the default
      * @param core  what surrounds the one before it, and what makes this kind this kind.
      *              A supplier because a kind is built before the registries are, so a
@@ -93,12 +98,14 @@ public enum Kind {
      *              looking-up off until somebody asks.
      * @param count how many come out at once. One, except where seven did.
      */
-    Kind(String id, String name, int stain, int rows, int pages, Supplier<ItemLike> core,
+    Kind(String id, String name, int stain, int rows, int columns, int pages,
+            Supplier<ItemLike> core,
             Supplier<Kind> from, int count) {
         this.id = id;
         this.name = name;
         this.stain = stain;
         this.rows = rows;
+        this.columns = columns;
         this.pages = pages;
         this.core = core;
         this.from = from;
@@ -122,6 +129,10 @@ public enum Kind {
         return rows;
     }
 
+    public int defaultColumns() {
+        return columns;
+    }
+
     public int defaultPages() {
         return pages;
     }
@@ -139,9 +150,9 @@ public enum Kind {
         return count;
     }
 
-    /** Slots on one page, which is also how tall the screen is drawn. */
+    /** Slots on one page, which is also how big the screen is drawn. */
     public int pageSize() {
-        return CellaConfig.rows(this) * CellaConfig.COLUMNS;
+        return CellaConfig.rows(this) * CellaConfig.columns(this);
     }
 
     /** Slots in a whole chest of this kind, as one is made today. */

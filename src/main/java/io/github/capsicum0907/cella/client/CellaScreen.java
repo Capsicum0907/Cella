@@ -42,9 +42,21 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
 
     /** The strip of background above the slots, and the part below them. */
     private static final int LID = 17;
-    private static final int FOOT = 96;
-    private static final int FOOT_V = 126;
     private static final int SLOT = 18;
+
+    /**
+     * Where a slot's sunken frame sits in the vanilla chest picture.
+     *
+     * <p>The only thing still taken from that file. The panel round it is drawn, because
+     * the picture is nine slots wide and some of these chests are not - and a chest
+     * fifteen wide cannot be cut out of a picture of one that is nine.
+     */
+    private static final int SLOT_U = 7;
+    private static final int SLOT_V = 17;
+
+    private static final int PANEL = 0xFFC6C6C6;
+    private static final int PANEL_LIT = 0xFFFFFFFF;
+    private static final int PANEL_DARK = 0xFF555555;
 
     /** Where vanilla draws a container title, and so where ours starts. */
     private static final int TITLE_X = 8;
@@ -101,6 +113,7 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
         // it how many it has would size the panel to forty-eight rows. imageWidth is
         // left at the 176 the superclass already has.
         this.rows = menu.rows();
+        this.imageWidth = menu.width();
         this.imageHeight = 114 + rows * SLOT;
         this.inventoryLabelY = this.imageHeight - 94;
     }
@@ -226,17 +239,35 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     }
 
     /**
-     * <b>The six-argument blit, which is the one that assumes 256 by 256 — and the file
-     * is 256 by 256.</b> Saying so explicitly with the nine-argument version is what
-     * broke this the first time: the numbers passed were 176 by 222, which is the size of
-     * the <em>picture</em> inside the file and not the size of the file. Every texture
-     * coordinate is divided by what is declared, so the background came out scaled by
-     * 176/256 across and 222/256 down while the slots stayed where they belonged.
+     * The panel, drawn; the slots, borrowed.
+     *
+     * <p>It used to be two blits out of the vanilla chest picture, which is exactly the
+     * right picture for a chest that is nine wide. These are not all nine wide, and a
+     * fifteen-wide panel cannot be cut out of a nine-wide one however it is sliced. So
+     * the panel is a filled rectangle with a raised edge — the same three colours a
+     * button has, for the same reason — and the only thing still taken from the file is
+     * the sunken frame a slot sits in, blitted once per slot wherever the menu put it.
+     *
+     * <p>Reading the slots off the menu rather than counting them out again is what keeps
+     * the picture and the clicking from disagreeing: there is one list of where things
+     * are and both use it.
      */
     @Override
     protected void renderBg(GuiGraphics graphics, float partial, int mouseX, int mouseY) {
-        graphics.blit(BACKGROUND, leftPos, topPos, 0, 0, imageWidth, rows * SLOT + LID);
-        graphics.blit(BACKGROUND, leftPos, topPos + rows * SLOT + LID, 0, FOOT_V, imageWidth, FOOT);
+        int x = leftPos;
+        int y = topPos;
+        graphics.fill(x, y, x + imageWidth, y + imageHeight, PANEL);
+        graphics.fill(x, y, x + imageWidth, y + 1, PANEL_LIT);
+        graphics.fill(x, y, x + 1, y + imageHeight, PANEL_LIT);
+        graphics.fill(x, y + imageHeight - 1, x + imageWidth, y + imageHeight, PANEL_DARK);
+        graphics.fill(x + imageWidth - 1, y, x + imageWidth, y + imageHeight, PANEL_DARK);
+
+        for (net.minecraft.world.inventory.Slot slot : menu.slots) {
+            if (slot.isActive()) {
+                graphics.blit(BACKGROUND, x + slot.x - 1, y + slot.y - 1,
+                        SLOT_U, SLOT_V, SLOT, SLOT);
+            }
+        }
     }
 
     /**

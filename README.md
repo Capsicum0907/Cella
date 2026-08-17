@@ -143,6 +143,15 @@ recipe. Adding a chest is a line there. Registration, the block entity's size, t
 renderer's sheet, the recipe, the language file, the config section and the texture
 itself are all read from it.
 
+**A page is as wide as its kind says**, not always nine. The player's own inventory
+stays nine and sits in the middle of whatever the chest is. That means the vanilla
+chest picture cannot be the background — it is nine wide, and a fifteen-wide panel
+cannot be cut out of it however it is sliced — so the panel is drawn (a filled
+rectangle with a raised edge) and the only thing still taken from that file is the
+sunken frame a slot sits in, blitted once per slot wherever the menu put it. The
+screen reads the slots off the menu rather than counting them out again, which is
+what keeps the picture and the clicking from disagreeing.
+
 **The texture is generated in Java for that reason.** It used to be drawn by a script
 under `tools/`, which would have put each kind's colour in one language and everything
 else about it in another — two lists to keep in step. `ChestSheets` writes the sheets

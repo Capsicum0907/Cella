@@ -132,7 +132,8 @@ public class CellaBlock extends BaseEntityBlock {
             server.openMenu(chest, buffer -> {
                 buffer.writeBlockPos(pos);
                 buffer.writeVarInt(chest.contents().getSlots());
-                buffer.writeVarInt(kind.pageSize());
+                buffer.writeVarInt(CellaConfig.rows(kind));
+                buffer.writeVarInt(CellaConfig.columns(kind));
             });
             chest.opened(player);
         }

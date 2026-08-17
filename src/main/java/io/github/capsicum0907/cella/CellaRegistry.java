@@ -68,7 +68,8 @@ public final class CellaRegistry {
     public static final DeferredHolder<MenuType<?>, MenuType<CellaMenu>> MENU =
             MENUS.register("cella", () -> IMenuTypeExtension.create(
                     (id, inventory, buffer) -> CellaMenu.at(id, inventory,
-                            buffer.readBlockPos(), buffer.readVarInt(), buffer.readVarInt())));
+                            buffer.readBlockPos(), buffer.readVarInt(),
+                            buffer.readVarInt(), buffer.readVarInt())));
 
     private CellaRegistry() {
     }

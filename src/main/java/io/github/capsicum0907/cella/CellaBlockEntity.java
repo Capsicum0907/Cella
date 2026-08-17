@@ -211,6 +211,6 @@ public class CellaBlockEntity extends BlockEntity implements MenuProvider, LidBl
     @Override
     public AbstractContainerMenu createMenu(int id, Inventory inventory, Player player) {
         return CellaMenu.at(id, inventory, getBlockPos(), contents.getSlots(),
-                kind().pageSize());
+                CellaConfig.rows(kind()), CellaConfig.columns(kind()));
     }
 }

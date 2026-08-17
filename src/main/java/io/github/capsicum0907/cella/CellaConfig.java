@@ -21,10 +21,11 @@ import net.neoforged.neoforge.common.ModConfigSpec;
  * into a world and throw away what was in the pages that would no longer fit.
  */
 public final class CellaConfig {
-    /** Nine, because the chest screen is nine wide and so is the player's inventory. */
-    public static final int COLUMNS = 9;
+    /** The player's own inventory, which is nine wide whatever the chest is. */
+    public static final int PLAYER_COLUMNS = 9;
 
     private static final Map<Kind, ModConfigSpec.IntValue> ROWS = new EnumMap<>(Kind.class);
+    private static final Map<Kind, ModConfigSpec.IntValue> COLUMNS = new EnumMap<>(Kind.class);
     private static final Map<Kind, ModConfigSpec.IntValue> PAGES = new EnumMap<>(Kind.class);
 
     public static final ModConfigSpec SPEC = build();
@@ -42,9 +43,13 @@ public final class CellaConfig {
         for (Kind kind : Kind.values()) {
             builder.push(kind.id());
             ROWS.put(kind, builder
-                    .comment("Rows of nine on one page. Six is a large chest; the screen is",
-                            "drawn from the vanilla chest texture, which has room for no more.")
+                    .comment("Rows on one page. Six is a large chest and the screen is drawn",
+                            "to fit, so more would work and would also be very tall.")
                     .defineInRange("rows", kind.defaultRows(), 1, 6));
+            COLUMNS.put(kind, builder
+                    .comment("How wide a page is. Nine is a vanilla chest; wider is drawn by",
+                            "this mod and the player's own inventory stays nine, in the middle.")
+                    .defineInRange("columns", kind.defaultColumns(), 1, 15));
             PAGES.put(kind, builder
                     .comment("Pages in one chest. Every slot is in the menu, not just the page",
                             "on show, so this is not free: opening a chest sends all of them",
@@ -58,6 +63,10 @@ public final class CellaConfig {
 
     public static int rows(Kind kind) {
         return ROWS.get(kind).get();
+    }
+
+    public static int columns(Kind kind) {
+        return COLUMNS.get(kind).get();
     }
 
     public static int pages(Kind kind) {
