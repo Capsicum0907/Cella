@@ -1,7 +1,6 @@
 package io.github.capsicum0907.cella;
 
 import java.util.List;
-import java.util.Locale;
 import java.util.Optional;
 
 import net.minecraft.ChatFormatting;
@@ -96,13 +95,8 @@ public class CellaItem extends BlockItem {
             return;
         }
         tooltip.add(Component.translatable("tooltip.cella.filled",
-                        count(held.used()), count(held.slots()),
+                        Held.count(held.used()), Held.count(held.slots()),
                         Math.round(held.filled() * 100.0F))
                 .withStyle(ChatFormatting.GRAY));
-    }
-
-    /** Grouped, because 221184 is not a number anybody reads at a glance. */
-    private static String count(int slots) {
-        return String.format(Locale.ROOT, "%,d", slots);
     }
 }

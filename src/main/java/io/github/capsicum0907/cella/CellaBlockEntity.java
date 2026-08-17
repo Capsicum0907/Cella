@@ -204,7 +204,11 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
         int used = used();
         int slots = contents.getSlots();
         Kept.of(level).ifPresent(kept -> {
-            java.util.UUID id = kept.put(contents.serializeNBT(level.registryAccess()));
+            // Which form and what time, because once the block is gone this is the last
+            // place either was known - and an orphan nobody can describe is an orphan
+            // nobody can decide about. See Kept.Trace.
+            java.util.UUID id = kept.put(contents.serializeNBT(level.registryAccess()),
+                    kind(), level.getGameTime());
             // The block entity is on its way out, but an emptied one cannot be read by
             // anything that still has hold of it.
             contents.setSize(contents.getSlots());

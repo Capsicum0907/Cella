@@ -201,6 +201,61 @@ public enum Kind {
         return id;
     }
 
+    /**
+     * The form with that id, or nothing.
+     *
+     * <p>Here because this list is the only place a kind is written down, and because
+     * <b>nothing</b> is the right answer to both ways an id can fail to name one: an id
+     * saved by a version of the mod that had a form this one does not, and an id that was
+     * never written at all. Neither is a reason to throw. {@link Kept} reads ids off the
+     * disk and {@code KeptCommand} reads them off a player, and both would rather ask than
+     * catch.
+     */
+    public static java.util.Optional<Kind> named(String id) {
+        for (Kind kind : values()) {
+            if (kind.id().equals(id)) {
+                return java.util.Optional.of(kind);
+            }
+        }
+        return java.util.Optional.empty();
+    }
+
+    /**
+     * The largest form there is.
+     *
+     * <p>Derived rather than named, so that adding a bigger one to the list is still only
+     * a line in the list.
+     */
+    public static Kind biggest() {
+        Kind biggest = values()[0];
+        for (Kind kind : values()) {
+            if (kind.slots() > biggest.slots()) {
+                biggest = kind;
+            }
+        }
+        return biggest;
+    }
+
+    /**
+     * The smallest form a chest of that many slots fits in, or the largest there is if
+     * none of them is big enough.
+     *
+     * <p>Asked when an orphan has to be handed back and nothing recorded which form it
+     * came from. <b>A derivation from the size rather than a guess at the history</b> —
+     * what it answers is "what would hold this", which is true, and not "what was this",
+     * which is not knowable. The size that comes back is the filed one either way; see
+     * {@link CellaBlockEntity#restore}.
+     */
+    public static Kind fitting(int slots) {
+        Kind fits = null;
+        for (Kind kind : values()) {
+            if (kind.slots() >= slots && (fits == null || kind.slots() < fits.slots())) {
+                fits = kind;
+            }
+        }
+        return fits == null ? biggest() : fits;
+    }
+
     public String displayName() {
         return name;
     }

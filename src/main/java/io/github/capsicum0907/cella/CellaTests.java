@@ -3,6 +3,11 @@ package io.github.capsicum0907.cella;
 import io.github.capsicum0907.cella.data.TestStructures;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.UUIDUtil;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.NbtOps;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestAssertException;
@@ -345,7 +350,8 @@ public final class CellaTests {
         ItemStackHandler filed = new ItemStackHandler(KIND.slots());
         filed.setStackInSlot(LATER * KIND.pageSize(), new ItemStack(Items.GOLD_INGOT, 11));
         java.util.UUID name = kept.put(
-                filed.serializeNBT(helper.getLevel().registryAccess()));
+                filed.serializeNBT(helper.getLevel().registryAccess()),
+                KIND, helper.getLevel().getGameTime());
 
         ItemStack stack = new ItemStack(CellaRegistry.item(KIND).get());
         stack.set(CellaRegistry.KEPT.get(), new Held(java.util.List.of(name), 1, KIND.slots()));
@@ -470,7 +476,8 @@ public final class CellaTests {
             ItemStackHandler one = new ItemStackHandler(Kind.IMPERFECT.slots());
             one.setStackInSlot(at, new ItemStack(Items.GOLD_INGOT, 7));
             java.util.UUID name = kept.put(
-                    one.serializeNBT(helper.getLevel().registryAccess()));
+                    one.serializeNBT(helper.getLevel().registryAccess()),
+                    Kind.IMPERFECT, helper.getLevel().getGameTime());
             filed.add(name);
             grid.get(at).set(CellaRegistry.KEPT.get(),
                     new Held(java.util.List.of(name), 1, Kind.IMPERFECT.slots()));
@@ -872,6 +879,174 @@ public final class CellaTests {
             check(left.isEmpty(), "nothing should come back from it");
         }
         helper.succeed();
+    }
+
+    /**
+     * A chest filed before the store recorded anything about it still loads, and still
+     * hands its contents back.
+     *
+     * <p><b>This is the direction that matters.</b> The store grew fields — which form,
+     * and when — and worlds have entries written before either existed. An entry that was
+     * skipped for want of them would be exactly the orphan this is all for, thrown away by
+     * the thing built to rescue it, and nothing would say so.
+     *
+     * <p>It loads knowing nothing about itself and saying so, and knowing everything about
+     * its contents, because how full it is was never a field: it is read off the contents
+     * tag, which every entry has always had.
+     *
+     * <p>The keys are written out here rather than taken from {@link Kept}, on purpose.
+     * They are the shape of what is on disk in somebody's world, so a rename that breaks
+     * those worlds should break this.
+     */
+    @GameTest(template = TestStructures.FLOOR)
+    public static void anEntryFiledBeforeAnyOfThisStillLoads(GameTestHelper helper) {
+        HolderLookup.Provider registries = helper.getLevel().registryAccess();
+        ItemStackHandler was = new ItemStackHandler(Kind.SEMI_PERFECT.slots());
+        was.setStackInSlot(3, new ItemStack(Items.GOLD_INGOT, 5));
+        was.setStackInSlot(900, new ItemStack(Items.DIAMOND, 2));
+        java.util.UUID name = java.util.UUID.randomUUID();
+
+        Kept kept = Kept.load(store(named(name, was.serializeNBT(registries), null)), registries);
+        check(kept.size() == 1, "the old entry should have loaded: " + kept.size());
+
+        Kept.Trace trace = kept.trace(name).orElseThrow(
+                () -> new GameTestAssertException("and still answer to its name"));
+        check(!trace.formed(), "with no form, rather than one guessed from its size");
+        check(trace.kind().isEmpty(), "which is nothing when asked for a Kind");
+        check(!trace.dated(), "and no date");
+        check(trace.used() == 2, "but how full it is is read off the contents: " + trace.used());
+        check(trace.slots() == Kind.SEMI_PERFECT.slots(), "and how big: " + trace.slots());
+
+        check(kept.take(name).isPresent(), "and the contents are there to be handed back");
+        helper.succeed();
+    }
+
+    /**
+     * What is recorded now survives being written and read back.
+     *
+     * <p>The other half of the one above: the two facts that cannot be worked out again
+     * have to make it to the disk, or an entry becomes undescribable the first time the
+     * world is closed.
+     */
+    @GameTest(template = TestStructures.FLOOR)
+    public static void whatWasFiledSurvivesTheDisk(GameTestHelper helper) {
+        HolderLookup.Provider registries = helper.getLevel().registryAccess();
+        ItemStackHandler was = new ItemStackHandler(KIND.slots());
+        was.setStackInSlot(7, new ItemStack(Items.GOLD_INGOT, 5));
+
+        Kept kept = Kept.load(new CompoundTag(), registries);
+        long when = 50_000L;
+        java.util.UUID name = kept.put(was.serializeNBT(registries), KIND, when);
+
+        Kept read = Kept.load(kept.save(new CompoundTag(), registries), registries);
+        Kept.Trace trace = read.trace(name).orElseThrow(
+                () -> new GameTestAssertException("it should come back"));
+        check(trace.kind().orElse(null) == KIND, "as the form it was: " + trace.named());
+        check(trace.dated() && trace.when() == when, "at the time it was: " + trace.when());
+        check(trace.used() == 1 && trace.slots() == KIND.slots(), "and as full as it was");
+        helper.succeed();
+    }
+
+    /**
+     * An entry naming a form this version does not have is written back, not flattened.
+     *
+     * <p>Resolving the id on the way in and saving the resolution would turn "names a form
+     * I do not know" into "names nothing" the first time such a world was opened — and
+     * nothing would ever put it back. So the id is kept as it was written, and the listing
+     * has a third answer for it that is not the same as knowing nothing.
+     */
+    @GameTest(template = TestStructures.FLOOR)
+    public static void aFormThisVersionLacksIsWrittenBackRatherThanLost(GameTestHelper helper) {
+        HolderLookup.Provider registries = helper.getLevel().registryAccess();
+        String foreign = "ultra_perfect";
+        check(Kind.named(foreign).isEmpty(), "there should be no such form here");
+
+        ItemStackHandler was = new ItemStackHandler(64);
+        java.util.UUID name = java.util.UUID.randomUUID();
+        Kept kept = Kept.load(
+                store(named(name, was.serializeNBT(registries), foreign)), registries);
+
+        Kept.Trace trace = kept.trace(name).orElseThrow(
+                () -> new GameTestAssertException("it should load"));
+        check(trace.formed(), "as something that names a form");
+        check(trace.kind().isEmpty(), "which this version cannot resolve");
+        check(trace.named().equals(foreign), "and says which: " + trace.named());
+
+        Kept read = Kept.load(kept.save(new CompoundTag(), registries), registries);
+        check(read.trace(name).orElseThrow().named().equals(foreign),
+                "and it is still there after a round trip to the disk");
+        helper.succeed();
+    }
+
+    /**
+     * Looking does not spend a name; forgetting destroys it.
+     *
+     * <p>Contents leave the store exactly once, by {@link Kept#take}, and everything the
+     * cleanup tool does has to hold that. Handing somebody an item that names a chest is
+     * looking — the chest comes back when something is placed, once, whichever item got
+     * there first — so a listing or a hand-out that quietly took would be two chests out
+     * of one. The failure is silent, so it is a test rather than a careful reading.
+     */
+    @GameTest(template = TestStructures.FLOOR)
+    public static void lookingIsNotTakingAndForgettingIsNeither(GameTestHelper helper) {
+        HolderLookup.Provider registries = helper.getLevel().registryAccess();
+        ItemStackHandler was = new ItemStackHandler(Kind.IMPERFECT.slots());
+        was.setStackInSlot(0, new ItemStack(Items.GOLD_INGOT, 1));
+
+        Kept kept = Kept.load(new CompoundTag(), registries);
+        java.util.UUID name = kept.put(was.serializeNBT(registries), Kind.IMPERFECT, 1L);
+
+        check(kept.trace(name).isPresent(), "it should be there to look at");
+        check(kept.trace(name).isPresent(), "and still there, because looking is not taking");
+        check(kept.list().size() == 1, "and listing it does not spend it either");
+        check(kept.size() == 1, "so the store still holds one");
+
+        check(kept.forget(name), "forgetting should say it found something");
+        check(kept.trace(name).isEmpty(), "and then there is nothing to look at");
+        check(kept.take(name).isEmpty(), "nor anything to take, which is what it is for");
+        check(!kept.forget(name), "and forgetting again should say so rather than pretend");
+        helper.succeed();
+    }
+
+    /**
+     * An orphan whose form was never recorded is handed back in one that would hold it.
+     *
+     * <p>By size, and <b>not by position in the list</b>: Cella Jr. comes off Perfect and
+     * so sits between two forms far bigger than it, which is what an implementation that
+     * walked the list in order would get wrong. What this answers is "what would hold
+     * this", which is derivable, rather than "what was this", which is not.
+     */
+    @GameTest(template = TestStructures.FLOOR)
+    public static void anOrphanWithNoFormGetsOneThatWouldHoldIt(GameTestHelper helper) {
+        check(Kind.fitting(1) == Kind.LARAVEL, "one slot fits in the smallest there is");
+        check(Kind.fitting(Kind.LARAVEL.slots()) == Kind.LARAVEL, "and so does exactly a Laravel");
+        check(Kind.fitting(Kind.LARAVEL.slots() + 1) == Kind.IMPERFECT, "one more does not");
+        check(Kind.fitting(Kind.SEMI_PERFECT.slots() + 1) == Kind.JUNIOR,
+                "and above Semi-Perfect it is Junior, which is not the next one written down");
+        check(Kind.biggest() == Kind.MAX, "the biggest form is Max");
+        check(Kind.fitting(Kind.MAX.slots() + 1) == Kind.MAX,
+                "and something too big for any of them still gets the biggest there is");
+        helper.succeed();
+    }
+
+    /** The store as it is on disk, holding one entry. See the note on the migration test. */
+    private static CompoundTag store(CompoundTag entry) {
+        ListTag chests = new ListTag();
+        chests.add(entry);
+        CompoundTag tag = new CompoundTag();
+        tag.put("Chests", chests);
+        return tag;
+    }
+
+    /** One entry, with a form id or without one. */
+    private static CompoundTag named(java.util.UUID id, CompoundTag contents, String kind) {
+        CompoundTag entry = new CompoundTag();
+        entry.put("Id", UUIDUtil.CODEC.encodeStart(NbtOps.INSTANCE, id).result().orElseThrow());
+        entry.put("Contents", contents);
+        if (kind != null) {
+            entry.putString("Kind", kind);
+        }
+        return entry;
     }
 
     private static CellaBlockEntity place(GameTestHelper helper) {

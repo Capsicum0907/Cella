@@ -45,6 +45,7 @@ public class Cella {
         modEventBus.addListener(Cella::capabilities);
         modEventBus.addListener(Cella::payloads);
         NeoForge.EVENT_BUS.addListener(Cella::left);
+        NeoForge.EVENT_BUS.addListener(KeptCommand::register);
         if (FMLEnvironment.dist == Dist.CLIENT) {
             modEventBus.addListener(Cella::screens);
             modEventBus.addListener(Cella::renderers);

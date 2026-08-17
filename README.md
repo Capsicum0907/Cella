@@ -344,9 +344,39 @@ is the shape of both bugs Acervus had. Copying this stack copies a name. Taking 
 spends it, so two items naming one chest put down one full chest and one empty one — and
 they do not stack anyway, because that is not a thing to hand a player by accident.
 
-⚠ Nothing collects orphans yet: an item that goes into lava leaves its contents in the
-save for good. A few kilobytes, and the alternative — deleting when the item dies — is a
-way to throw away the wrong chest.
+### Orphans, and why nothing sweeps them
+
+An item that goes into lava leaves its contents in the save with nothing left to ask for
+them. After fusions that happens eight at a time, since a crafted chest carries eight
+names before it is placed.
+
+**There is no automatic sweep, and that is the decision rather than the omission.** Knowing
+a name has gone would mean counting every item in the world that could be holding one, and
+a Cella item is anywhere: a hand, a chest, an ender chest, an item on the floor, another
+mod's warehouse, *another Cella*. Any sweep that misses one — an unloaded chunk is enough —
+deletes contents somebody still owns. The failure points the wrong way.
+
+So the cleanup is a tool to look with, at gamemaster level:
+
+```
+/cella kept list              # what is kept: form, how full, how long ago
+/cella kept give <id> [form]  # hand yourself an item naming those contents
+/cella kept forget <id>       # destroy them, by name
+```
+
+**Handing back comes before deleting.** Contents with a lost name are not damaged — a name
+is all that reaches them — so the first thing on offer is a new item that names one. Every
+row of the listing carries the click that writes its own name into the next command, since
+a UUID is not something to read off a screen and type.
+
+`give` does **not** spend the name: the contents come out of the store exactly once, when
+something is placed, whichever item got there first. Running it twice makes a spare item
+and not a spare chest.
+
+⚠ Entries filed before any of this record which form they were or when. Those load saying
+so, rather than guessing — a chest keeps the size it was built at, so its size is no
+evidence of its form. How full one is is read off the contents either way, because that was
+never a field.
 
 ### Size is decided when the chest is made
 

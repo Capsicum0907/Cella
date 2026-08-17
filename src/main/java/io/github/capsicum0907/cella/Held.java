@@ -87,4 +87,15 @@ public record Held(List<UUID> chests, int used, int slots) implements TooltipCom
     public float filled() {
         return counted() ? (float) used / slots : 0.0F;
     }
+
+    /**
+     * A slot count as it is shown to anybody.
+     *
+     * <p>Grouped, because 221,184 is not a number read at a glance. Here rather than in
+     * either of the two places that show one — the item's tooltip and {@code KeptCommand}
+     * — so that a chest reads the same whichever of them is describing it.
+     */
+    public static String count(long slots) {
+        return String.format(java.util.Locale.ROOT, "%,d", slots);
+    }
 }

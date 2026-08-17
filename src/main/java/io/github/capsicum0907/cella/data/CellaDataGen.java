@@ -175,6 +175,30 @@ public final class CellaDataGen {
             add("gui.cella.take.shift", "Shift: as much as will fit");
             add("gui.cella.prev", "Previous page");
             add("gui.cella.next", "Next page");
+
+            // /cella kept — see KeptCommand. Three answers about a form rather than two,
+            // because "names one this version does not have" is not "names none".
+            add("commands.cella.kept.none", "No chest contents are kept.");
+            add("commands.cella.kept.header",
+                    "%s chests kept, %s slots spoken for between them:");
+            add("commands.cella.kept.row", "%s - %s of %s slots, %s");
+            add("commands.cella.kept.unformed", "form unrecorded");
+            add("commands.cella.kept.foreign", "%s, which this version does not have");
+            add("commands.cella.kept.age", "filed %s ago");
+            add("commands.cella.kept.undated", "filed before that was recorded");
+            add("commands.cella.kept.days", "%s days %s hours");
+            add("commands.cella.kept.hours", "%s hours");
+            add("commands.cella.kept.recent", "under an hour");
+            add("commands.cella.kept.more", "...and %s more, not shown.");
+            add("commands.cella.kept.click", "Click to write a give command for %s");
+            add("commands.cella.kept.gave",
+                    "Gave you a %s naming %s of %s slots. The contents stay kept until it "
+                            + "is placed, and come back once.");
+            add("commands.cella.kept.missing", "Nothing is kept under %s.");
+            add("commands.cella.kept.noform", "There is no form called %s.");
+            add("commands.cella.kept.forgot",
+                    "Destroyed the contents kept as %s: %s of %s slots. That cannot be "
+                            + "undone.");
         }
     }
 
