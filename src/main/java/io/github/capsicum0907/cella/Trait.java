@@ -41,21 +41,22 @@ public enum Trait {
      * <p>Every one of those is the same fact: it has what the others have and cannot use
      * any of it yet. See {@link Kind#keeps}.
      */
-    LARVA(true, 2.5F, false, BlockTags.MINEABLE_WITH_AXE, null, 0, false),
+    LARVA(true, 2.5F, false, BlockTags.MINEABLE_WITH_AXE, null, 0, false, false),
 
     /** Fireproof, and it holds on to what is inside it. Cobblestone shrugs off a creeper. */
-    IMPERFECT(false, 6.0F, false, BlockTags.MINEABLE_WITH_AXE, BlockTags.NEEDS_IRON_TOOL, 4, false),
+    IMPERFECT(false, 6.0F, false, BlockTags.MINEABLE_WITH_AXE, BlockTags.NEEDS_IRON_TOOL, 4, false,
+            false),
 
     /** Obsidian-tough, and it reaches further for what it is owed. */
     SEMI_PERFECT(false, 1200.0F, false, BlockTags.MINEABLE_WITH_AXE,
-            BlockTags.NEEDS_DIAMOND_TOOL, 8, false),
+            BlockTags.NEEDS_DIAMOND_TOOL, 8, false, true),
 
     /**
      * Not a box any more: a pickaxe job, and the wither is the only thing left that opens
      * it by force.
      */
     PERFECT(false, 1200.0F, false, BlockTags.MINEABLE_WITH_PICKAXE,
-            BlockTags.NEEDS_DIAMOND_TOOL, 8, false),
+            BlockTags.NEEDS_DIAMOND_TOOL, 8, false, true),
 
     /**
      * As hard as the world's floor, safe from a wither, and <b>done taking anything in</b>.
@@ -65,7 +66,7 @@ public enum Trait {
      * experience would be reaching for something it can no longer use.
      */
     SUPER_PERFECT(false, 3600000.0F, true, BlockTags.MINEABLE_WITH_PICKAXE,
-            Tags.Blocks.NEEDS_NETHERITE_TOOL, 0, true);
+            Tags.Blocks.NEEDS_NETHERITE_TOOL, 0, true, true);
 
     private final boolean burns;
     private final float resistance;
@@ -74,6 +75,7 @@ public enum Trait {
     private final TagKey<Block> level;
     private final int reach;
     private final boolean unbreakableAsAnItem;
+    private final boolean finds;
 
     /**
      * @param burns whether fire takes it — see the note above, this is the only true entry
@@ -89,9 +91,15 @@ public enum Trait {
      * @param unbreakableAsAnItem whether the dropped item survives fire, explosions and
      *              cactus. Vanilla's {@code fireResistant()} is only the first of those;
      *              the rest are {@code CellaItem#canBeHurtBy}
+     * @param finds whether its screen has a search box. ⚠ <b>It arrives where turning
+     *              pages stops working</b>, not where that becomes unbearable: 1,728 slots
+     *              is eighteen pages, and making somebody climb to 144 before offering
+     *              relief is charging them for having got that far. A Laravel is one page
+     *              and an Imperfect four, and a box over those is a control that answers a
+     *              question nobody had
      */
     Trait(boolean burns, float resistance, boolean witherproof, TagKey<Block> tool,
-            TagKey<Block> level, int reach, boolean unbreakableAsAnItem) {
+            TagKey<Block> level, int reach, boolean unbreakableAsAnItem, boolean finds) {
         this.burns = burns;
         this.resistance = resistance;
         this.witherproof = witherproof;
@@ -99,6 +107,7 @@ public enum Trait {
         this.level = level;
         this.reach = reach;
         this.unbreakableAsAnItem = unbreakableAsAnItem;
+        this.finds = finds;
     }
 
     public boolean burns() {
@@ -134,5 +143,10 @@ public enum Trait {
 
     public boolean unbreakableAsAnItem() {
         return unbreakableAsAnItem;
+    }
+
+    /** Whether its screen offers a way to search it. */
+    public boolean finds() {
+        return finds;
     }
 }

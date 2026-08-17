@@ -78,15 +78,21 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     private static final int SETTLES = 4;
 
     private static final int BUTTON = IconButton.SIZE;
-    private static final int BUTTON_Y = 3;
 
     /**
-     * A digit is seven pixels of ink in a box of ten, so the two centres are half a
-     * pixel apart whichever way it is rounded - the price of matching a size that is
-     * even. Rounded down, because a number sitting high is what was noticed before.
+     * Everything in the lid sits on the line vanilla puts a container's title on.
+     *
+     * <p>⚠ <b>That line is the reference, and it was not being used as one.</b> The buttons
+     * were laid out from the top of the lid and the page number from the buttons, so the
+     * whole row drifted a pixel or two above the title it was sitting beside — enough to
+     * read as sloppy without being obvious enough to point at.
+     *
+     * <p>The text is seven pixels of ink starting here, so its middle is at {@code +3}; a
+     * ten-pixel button centred on that starts a pixel and a half above, which rounds to
+     * one. Half a pixel is the price of centring an even height on an odd one.
      */
-    private static final int DIGITS = 7;
-    private static final int TEXT_Y = BUTTON_Y + (BUTTON - DIGITS + 1) / 2;
+    private static final int TEXT_Y = 6;
+    private static final int BUTTON_Y = TEXT_Y - 2;
 
     /** Two apart is the neighbours' spacing; four sets sorting off from paging. */
     private static final int SPACE = 2;
@@ -206,16 +212,28 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
         on = addRenderableWidget(new IconButton(leftPos + next, topPos + BUTTON_Y,
                 icon("next"), Component.translatable("gui.cella.next"), () -> turn(1)));
 
+        // ⚠ Only where searching is one of the things this form can do. It was on every
+        // screen, including a Laravel's one page, which is a control answering a question
+        // nobody had - and it made a property of the ladder into scenery.
+        if (!menu.kind().trait().finds()) {
+            paging();
+            return;
+        }
+
         // The magnifier where the title used to start, and the title moved along. It is the
         // switch for that row rather than for the contents, so it belongs beside the thing
         // it changes - and once the row is a box, a magnifier at its left edge is what a
         // search box looks like everywhere else.
         this.titleLabelX = TITLE_X + BUTTON + SPACE;
         addRenderableWidget(new IconButton(leftPos + TITLE_X, topPos + BUTTON_Y,
-                icon("find"), Component.translatable("gui.cella.find"), this::toggle));
+                icon("find"), Component.translatable("gui.cella.find"), false, this::toggle));
 
-        looking = new EditBox(font, leftPos + titleLabelX, topPos + BUTTON_Y - 1,
-                controls - titleLabelX - BESIDE - font.width("99 / 99"), BUTTON + 2,
+        // ⚠ At the title's own y, not near it. An unbordered EditBox draws its text at
+        // getY() flat - the centring in the middle of its box only happens when it has a
+        // border - so anything else here puts the query on a different line from the name
+        // it replaced. It was four pixels high.
+        looking = new EditBox(font, leftPos + titleLabelX, topPos + TEXT_Y,
+                controls - titleLabelX - BESIDE - font.width("99 / 99"), font.lineHeight,
                 Component.translatable("gui.cella.find"));
         looking.setMaxLength(Look.LONGEST);
         // Unbordered and in the title's own grey, because it is standing where the title

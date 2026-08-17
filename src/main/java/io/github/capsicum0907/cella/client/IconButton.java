@@ -44,9 +44,26 @@ public class IconButton extends AbstractWidget {
     private final ResourceLocation icon;
     private final Runnable pressed;
 
+    /**
+     * Whether it is drawn on a raised square at all.
+     *
+     * <p>⚠ <b>A plate says "this is one of the buttons".</b> That is right in the corner
+     * where four of them sit together, and wrong for the one that stands at the left of the
+     * title, in a line of text: there it reads as a button bolted onto a label. So that one
+     * is the picture and nothing else, brightening under the pointer to say it can be
+     * pressed.
+     */
+    private final boolean plate;
+
     public IconButton(int x, int y, ResourceLocation icon, Component tooltip, Runnable pressed) {
+        this(x, y, icon, tooltip, true, pressed);
+    }
+
+    public IconButton(int x, int y, ResourceLocation icon, Component tooltip, boolean plate,
+            Runnable pressed) {
         super(x, y, SIZE, SIZE, tooltip);
         this.icon = icon;
+        this.plate = plate;
         this.pressed = pressed;
         setTooltip(net.minecraft.client.gui.components.Tooltip.create(tooltip));
     }
@@ -55,13 +72,15 @@ public class IconButton extends AbstractWidget {
     protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partial) {
         int x = getX();
         int y = getY();
-        graphics.fill(x, y, x + SIZE, y + SIZE, isHovered() ? LIT : FACE);
-        // The light two first, then the dark two over them, so the corners belong to the
-        // shadow - which is how a raised edge actually looks.
-        graphics.fill(x, y, x + SIZE, y + 1, LIGHT);
-        graphics.fill(x, y, x + 1, y + SIZE, LIGHT);
-        graphics.fill(x, y + SIZE - 1, x + SIZE, y + SIZE, DARK);
-        graphics.fill(x + SIZE - 1, y, x + SIZE, y + SIZE, DARK);
+        if (plate) {
+            graphics.fill(x, y, x + SIZE, y + SIZE, isHovered() ? LIT : FACE);
+            // The light two first, then the dark two over them, so the corners belong to
+            // the shadow - which is how a raised edge actually looks.
+            graphics.fill(x, y, x + SIZE, y + 1, LIGHT);
+            graphics.fill(x, y, x + 1, y + SIZE, LIGHT);
+            graphics.fill(x, y + SIZE - 1, x + SIZE, y + SIZE, DARK);
+            graphics.fill(x + SIZE - 1, y, x + SIZE, y + SIZE, DARK);
+        }
 
         // Centred by the pixel: seven in eleven leaves two either side, which is why both
         // are odd. The size passed is the file's own, the lesson from the background.

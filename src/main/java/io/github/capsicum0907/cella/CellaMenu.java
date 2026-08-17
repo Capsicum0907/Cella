@@ -91,6 +91,14 @@ public class CellaMenu extends AbstractContainerMenu {
     private final IItemHandlerModifiable contents;
 
     private final Window window;
+
+    /**
+     * Which form this is, so the screen can ask what it can do.
+     *
+     * <p>Read off the block at the position on both sides rather than sent, because both
+     * sides already have that block — the client could not have opened this otherwise.
+     */
+    private final Kind kind;
     private final int pageSize;
     private final int columns;
     private final int width;
@@ -118,22 +126,28 @@ public class CellaMenu extends AbstractContainerMenu {
         Level level = inventory.player.level();
         int pageSize = rows * columns;
         ContainerLevelAccess access = ContainerLevelAccess.create(level, pos);
+        // Read off the block rather than sent. The client is standing at it - it could not
+        // have opened the screen otherwise - so the one thing both sides already agree on
+        // is which block is there, and a packet field would be a second place for the
+        // answer to live.
+        Kind kind = CellaBlockEntity.kindOf(level.getBlockState(pos));
         if (!level.isClientSide && level.getBlockEntity(pos) instanceof CellaBlockEntity chest) {
             return new CellaMenu(id, inventory, chest.contents(),
-                    Window.onto(chest.contents(), pageSize), columns, access);
+                    Window.onto(chest.contents(), pageSize), columns, access, kind);
         }
         // A page, and the number of slots there are said to be. The client is told one
         // page at a time and never holds more; the server reaches this only if the block
         // has gone, in which case a page of nothing is the honest answer.
         ItemStackHandler shown = new ItemStackHandler(pageSize);
         return new CellaMenu(id, inventory, shown, Window.of(shown, pageSize, size),
-                columns, access);
+                columns, access, kind);
     }
 
     private CellaMenu(int id, Inventory inventory, IItemHandlerModifiable contents,
-            Window window, int columns, ContainerLevelAccess access) {
+            Window window, int columns, ContainerLevelAccess access, Kind kind) {
         super(CellaRegistry.MENU.get(), id);
         this.access = access;
+        this.kind = kind;
         this.contents = contents;
         this.columns = columns;
         this.pageSize = window.getSlots();
@@ -253,6 +267,10 @@ public class CellaMenu extends AbstractContainerMenu {
 
     public int width() {
         return width;
+    }
+
+    public Kind kind() {
+        return kind;
     }
 
     public int page() {

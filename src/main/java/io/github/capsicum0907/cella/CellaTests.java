@@ -1590,6 +1590,7 @@ public final class CellaTests {
             check(above.unbreakableAsAnItem() || !below.unbreakableAsAnItem(),
                     step + " stopped surviving as an item");
             check(!below.particular() || above.particular(), step + " stopped needing a tool");
+            check(above.finds() || !below.finds(), step + " lost its search box");
 
             // The one place it takes something away, and the only one.
             if (above.reach() < below.reach()) {
@@ -1597,6 +1598,13 @@ public final class CellaTests {
                         step + " lost reach, and Super Perfect is the only rung allowed to");
             }
         }
+
+        // Searching arrives where turning pages stops working, which is a claim about
+        // sizes and so worth stating as one.
+        check(!Kind.IMPERFECT.trait().finds(), "four pages is not a reason to search");
+        check(Kind.SEMI_PERFECT.trait().finds(), "eighteen is");
+        check(Kind.IMPERFECT.pages() < Kind.SEMI_PERFECT.pages(),
+                "and the second is the bigger of the two, which is why");
 
         // And the forms are wired to rungs in order, so the chain above describes them.
         check(Kind.LARAVEL.trait() == Trait.LARVA, "the larva is the larva");
