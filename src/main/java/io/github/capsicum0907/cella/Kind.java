@@ -87,7 +87,10 @@ public enum Kind {
             .key('G', () -> Blocks.GOLD_BLOCK)
             .done()),
 
-    /** Seven at a time, because that is how many of them there were. */
+    /**
+     * Seven at a time, because that is how many of them there were - and the Perfect that
+     * made them <b>is still standing there</b>, which is also what happened.
+     */
     JUNIOR("junior", "Cella Jr.", 0x3FB39A, 6, 9, 6, () -> Formula
             .shaped("DDD",
                     "DCD",
@@ -95,6 +98,7 @@ public enum Kind {
             .key('D', () -> Blocks.DIAMOND_BLOCK)
             .key('C', PERFECT)
             .count(7)
+            .spawning()
             .done()),
 
     SUPER_PERFECT("super_perfect", "Super Perfect Cella", 0xA3E052, 6, 12, 12, () -> Formula

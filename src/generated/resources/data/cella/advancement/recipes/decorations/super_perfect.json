@@ -1,11 +1,11 @@
 {
   "parent": "minecraft:recipes/root",
   "criteria": {
-    "has_nether_star": {
+    "has_perfect": {
       "conditions": {
         "items": [
           {
-            "items": "minecraft:nether_star"
+            "items": "cella:perfect"
           }
         ]
       },
@@ -21,7 +21,7 @@
   "requirements": [
     [
       "has_the_recipe",
-      "has_nether_star"
+      "has_perfect"
     ]
   ],
   "rewards": {

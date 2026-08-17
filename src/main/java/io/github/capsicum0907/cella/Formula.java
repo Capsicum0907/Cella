@@ -23,12 +23,14 @@ import net.minecraft.world.level.ItemLike;
  * because several of them are other kinds of this same chest — which cannot be looked up
  * until they exist.
  */
-public record Formula(List<String> pattern, Map<Character, Supplier<ItemLike>> of, int count) {
+public record Formula(List<String> pattern, Map<Character, Supplier<ItemLike>> of,
+        int count, boolean spawns) {
     /** A builder, because a map literal of nine entries is not a thing Java says nicely. */
     public static class Builder {
         private final List<String> pattern;
         private final Map<Character, Supplier<ItemLike>> of = new LinkedHashMap<>();
         private int count = 1;
+        private boolean spawns;
 
         private Builder(String top, String middle, String bottom) {
             this.pattern = List.of(top, middle, bottom);
@@ -49,8 +51,20 @@ public record Formula(List<String> pattern, Map<Character, Supplier<ItemLike>> o
             return this;
         }
 
+        /**
+         * The parent is not spent: it is still there afterwards.
+         *
+         * <p>A property of this recipe rather than of the block. The block coming back
+         * every time it was crafted with - the way a bucket does - would make the form
+         * above it free, since that one eats four.
+         */
+        public Builder spawning() {
+            this.spawns = true;
+            return this;
+        }
+
         public Formula done() {
-            return new Formula(pattern, Map.copyOf(of), count);
+            return new Formula(pattern, Map.copyOf(of), count, spawns);
         }
     }
 

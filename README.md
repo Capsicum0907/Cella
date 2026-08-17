@@ -136,6 +136,11 @@ Seven of them: Laravel, Imperfect, Semi-Perfect, Perfect, Super Perfect, Cella M
 and Cella Jr. off the side of Perfect. Capacity climbs with the form, from twenty-seven
 slots to eighteen hundred, and a page gets wider as well as taller towards the top.
 
+**The Perfect that makes Cella Jr. is not spent.** Seven come out and the parent is
+still standing there, which is what happened. That is a property of the one recipe and
+not of the block: a Perfect that came back every time it was crafted with — the bucket
+rule — would make Super Perfect free, since that one eats four.
+
 **Imperfect is not crafted.** A Laravel that has been fed enough becomes one, so a kind
 is allowed to have no recipe at all. The rest carry theirs as data — the pattern and
 what the letters mean — because no two of the shapes are alike: nine animals for the

@@ -1,11 +1,11 @@
 {
   "parent": "minecraft:recipes/root",
   "criteria": {
-    "has_pufferfish": {
+    "has_porkchop": {
       "conditions": {
         "items": [
           {
-            "items": "minecraft:pufferfish"
+            "items": "minecraft:porkchop"
           }
         ]
       },
@@ -21,7 +21,7 @@
   "requirements": [
     [
       "has_the_recipe",
-      "has_pufferfish"
+      "has_porkchop"
     ]
   ],
   "rewards": {

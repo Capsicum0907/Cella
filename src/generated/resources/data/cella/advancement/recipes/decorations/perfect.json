@@ -1,11 +1,11 @@
 {
   "parent": "minecraft:recipes/root",
   "criteria": {
-    "has_semi_perfect": {
+    "has_gold_block": {
       "conditions": {
         "items": [
           {
-            "items": "cella:semi_perfect"
+            "items": "minecraft:gold_block"
           }
         ]
       },
@@ -21,7 +21,7 @@
   "requirements": [
     [
       "has_the_recipe",
-      "has_semi_perfect"
+      "has_gold_block"
     ]
   ],
   "rewards": {

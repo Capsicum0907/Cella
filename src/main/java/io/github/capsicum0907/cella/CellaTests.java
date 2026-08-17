@@ -3,6 +3,7 @@ package io.github.capsicum0907.cella;
 import io.github.capsicum0907.cella.data.TestStructures;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestAssertException;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -10,6 +11,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.crafting.CraftingInput;
 import net.minecraft.world.level.GameType;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.gametest.GameTestHolder;
@@ -455,6 +457,48 @@ public final class CellaTests {
         check(chest.openers() == 1, "and one leaving should leave it open for the other");
         chest.closed(second);
         check(chest.openers() == 0, "until the last one goes");
+        helper.succeed();
+    }
+
+    /**
+     * The Perfect that makes Junior stays; the ones that make Super Perfect do not.
+     *
+     * <p>Both halves matter. A parent that always came back would be the bucket rule -
+     * a property of the block - and would make Super Perfect free, since that one eats
+     * four of them. This is a property of the one recipe, and the second assertion is
+     * what says so.
+     */
+    @GameTest(template = TestStructures.FLOOR)
+    public static void theParentIsSpentExceptWhenItSpawns(GameTestHelper helper) {
+        var recipes = helper.getLevel().getServer().getRecipeManager();
+
+        ItemStack perfect = new ItemStack(CellaRegistry.block(Kind.PERFECT).get());
+        ItemStack diamond = new ItemStack(Items.DIAMOND_BLOCK);
+        var junior = recipes.byKey(ResourceLocation.fromNamespaceAndPath(Cella.MODID, "junior"))
+                .orElseThrow(() -> new GameTestAssertException("no junior recipe"));
+        check(junior.value() instanceof Spawning, "junior should be a spawning recipe");
+        CraftingInput around = CraftingInput.of(3, 3, java.util.List.of(
+                diamond, diamond, diamond,
+                diamond, perfect, diamond,
+                diamond, diamond, diamond));
+        check(((Spawning) junior.value()).getRemainingItems(around).get(4)
+                        .is(CellaRegistry.item(Kind.PERFECT).get()),
+                "the Perfect in the middle should still be there afterwards");
+
+        ItemStack star = new ItemStack(Items.NETHER_STAR);
+        var superPerfect = recipes
+                .byKey(ResourceLocation.fromNamespaceAndPath(Cella.MODID, "super_perfect"))
+                .orElseThrow(() -> new GameTestAssertException("no super_perfect recipe"));
+        check(!(superPerfect.value() instanceof Spawning),
+                "super perfect should not give its Perfects back");
+        CraftingInput eaten = CraftingInput.of(3, 3, java.util.List.of(
+                perfect, star, perfect,
+                star, new ItemStack(Items.DRAGON_EGG), star,
+                perfect, star, perfect));
+        for (ItemStack left : ((net.minecraft.world.item.crafting.CraftingRecipe)
+                superPerfect.value()).getRemainingItems(eaten)) {
+            check(left.isEmpty(), "nothing should come back from it");
+        }
         helper.succeed();
     }
 

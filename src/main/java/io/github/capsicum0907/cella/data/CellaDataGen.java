@@ -4,7 +4,9 @@ import java.util.concurrent.CompletableFuture;
 
 import io.github.capsicum0907.cella.Cella;
 import io.github.capsicum0907.cella.CellaRegistry;
+import io.github.capsicum0907.cella.Formula;
 import io.github.capsicum0907.cella.Kind;
+import io.github.capsicum0907.cella.Spawning;
 
 import net.minecraft.core.HolderLookup;
 import net.minecraft.data.DataGenerator;
@@ -16,8 +18,14 @@ import net.minecraft.data.recipes.ShapedRecipeBuilder;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.PackType;
 import net.minecraft.tags.BlockTags;
+import net.minecraft.advancements.Advancement;
+import net.minecraft.advancements.AdvancementHolder;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.Recipe;
+import net.minecraft.world.item.crafting.ShapedRecipe;
 import net.minecraft.world.level.ItemLike;
+import net.neoforged.neoforge.common.conditions.ICondition;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -185,6 +193,35 @@ public final class CellaDataGen {
          * gold block, four of the last and four nether stars round a dragon egg - so this
          * walks the pattern rather than knowing any of them.
          */
+        /**
+         * Swaps the shaped recipe for one that gives the parent back.
+         *
+         * <p>{@code ShapedRecipeBuilder} only ever makes a plain {@code ShapedRecipe}, so
+         * this catches it on the way out and rebuilds it as a {@link Spawning}. The
+         * result is put together here rather than read off the recipe, because a shaped
+         * recipe will not tell anyone outside its package what it makes without being
+         * handed the registries.
+         */
+        private RecipeOutput spawning(RecipeOutput output, Kind kind, Formula formula) {
+            return new RecipeOutput() {
+                @Override
+                public Advancement.Builder advancement() {
+                    return output.advancement();
+                }
+
+                @Override
+                public void accept(ResourceLocation id, Recipe<?> recipe,
+                        AdvancementHolder advancement, ICondition... conditions) {
+                    Recipe<?> given = recipe instanceof ShapedRecipe shaped
+                            ? new Spawning(shaped.getGroup(), shaped.category(), shaped.pattern,
+                                    new ItemStack(CellaRegistry.block(kind).get(),
+                                            formula.count()))
+                            : recipe;
+                    output.accept(id, given, advancement, conditions);
+                }
+            };
+        }
+
         @Override
         protected void buildRecipes(RecipeOutput output) {
             for (Kind kind : Kind.values()) {
@@ -200,7 +237,7 @@ public final class CellaDataGen {
                     ItemLike first = formula.of().values().iterator().next().get();
                     shaped.unlockedBy("has_" + BuiltInRegistries.ITEM.getKey(first.asItem())
                             .getPath(), has(first));
-                    shaped.save(output);
+                    shaped.save(formula.spawns() ? spawning(output, kind, formula) : output);
                 });
             }
         }

@@ -7,6 +7,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -33,6 +34,12 @@ public final class CellaRegistry {
             DeferredRegister.create(Registries.BLOCK_ENTITY_TYPE, Cella.MODID);
     public static final DeferredRegister<MenuType<?>> MENUS =
             DeferredRegister.create(Registries.MENU, Cella.MODID);
+    public static final DeferredRegister<RecipeSerializer<?>> RECIPES =
+            DeferredRegister.create(Registries.RECIPE_SERIALIZER, Cella.MODID);
+
+    /** The recipe that gives its parent back; see {@link Spawning}. */
+    public static final DeferredHolder<RecipeSerializer<?>, Spawning.Serializer> SPAWNING =
+            RECIPES.register("spawning", Spawning.Serializer::new);
 
     private static final Map<Kind, DeferredBlock<CellaBlock>> BLOCK = new EnumMap<>(Kind.class);
     private static final Map<Kind, DeferredItem<BlockItem>> ITEM = new EnumMap<>(Kind.class);

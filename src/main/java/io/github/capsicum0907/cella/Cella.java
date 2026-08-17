@@ -35,6 +35,7 @@ public class Cella {
         CellaRegistry.ITEMS.register(modEventBus);
         CellaRegistry.BLOCK_ENTITIES.register(modEventBus);
         CellaRegistry.MENUS.register(modEventBus);
+        CellaRegistry.RECIPES.register(modEventBus);
 
         modEventBus.addListener(Cella::capabilities);
         modEventBus.addListener(Cella::creativeTab);
