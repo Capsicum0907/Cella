@@ -112,8 +112,19 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
 
     private static final int FIND_SIZE = 12;
 
-    /** One higher than the ten-pixel buttons, which puts both their middles on the same line. */
-    private static final int FIND_Y = BUTTON_Y - 1;
+    /**
+     * ⚠ <b>The same top as the ten-pixel buttons, not the same middle.</b>
+     *
+     * <p>The lid is eighteen pixels and the panel's highlight takes the first three, so
+     * what is left to stand in is thirteen — and a twelve-pixel icon centred on the line
+     * vanilla writes a title on would start at three, in the highlight. It cannot be
+     * centred there; that is arithmetic and not taste.
+     *
+     * <p>So the tops line up instead, which is its own kind of alignment and the one that
+     * survives two sizes in a row. Everything ends up within half a pixel of the title's
+     * middle, the icon a shade below and the buttons a shade above.
+     */
+    private static final int FIND_Y = BUTTON_Y;
 
     /** Two apart is the neighbours' spacing; four sets sorting off from paging. */
     private static final int SPACE = 2;
