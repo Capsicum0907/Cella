@@ -35,13 +35,27 @@ public enum Kind {
      * <p>Capacity climbs with the form. The last stops at thirty-two pages because that
      * is where the config stops, and the config stops there because every slot is in the
      * menu — see the README.
+     *
+     * <p><b>So does the colour, and that is taken from the forms rather than chosen to be
+     * legible.</b> The larva is sand, not green - it was drawn khaki and looks it. From
+     * there the green starts dull and olive and gets lighter and yellower every step, up
+     * to the two Perfects. That ordering is the source material's and it happens to solve
+     * the problem of five green chests being one green chest: they are five steps of one
+     * ramp rather than five samples of one shade.
+     *
+     * <p>The greens are saturated, not olive. A first pass muted them towards grey on the
+     * reasoning that a texture wants to be quiet; the drawings are not quiet, and beside
+     * them the muted ones read as dusty rather than as another form.
+     *
+     * <p>Junior is off the ramp because it is off the chain, and Max is red-brown because
+     * it is barely the same creature.
      */
-    LARAVEL("laravel", "Laravel Cella", 0x8C9B5A, 3, 1, () -> Items.COPPER_INGOT, null, 1),
-    IMPERFECT("imperfect", "Imperfect Cella", 0x4C7A38, 4, 3,
+    LARAVEL("laravel", "Laravel Cella", 0xB89A5E, 3, 1, () -> Items.COPPER_INGOT, null, 1),
+    IMPERFECT("imperfect", "Imperfect Cella", 0x5AA33C, 4, 3,
             () -> Items.GOLD_INGOT, () -> LARAVEL, 1),
-    SEMI_PERFECT("semi_perfect", "Semi-Perfect Cella", 0x74A84C, 5, 5,
+    SEMI_PERFECT("semi_perfect", "Semi-Perfect Cella", 0x6FBA43, 5, 5,
             () -> Items.EMERALD, () -> IMPERFECT, 1),
-    PERFECT("perfect", "Perfect Cella", 0x2F8F52, 6, 8,
+    PERFECT("perfect", "Perfect Cella", 0x8ACF48, 6, 8,
             () -> Items.DIAMOND, () -> SEMI_PERFECT, 1),
     /**
      * Seven at a time, because that is how many of them there were.
@@ -50,7 +64,7 @@ public enum Kind {
      * again, which is the whole reason to take the branch.
      */
     JUNIOR("junior", "Cella Jr.", 0x3FB39A, 6, 6, () -> Items.EGG, () -> PERFECT, 7),
-    SUPER_PERFECT("super_perfect", "Super Perfect Cella", 0x2FB36A, 6, 16,
+    SUPER_PERFECT("super_perfect", "Super Perfect Cella", 0xA3E052, 6, 16,
             () -> Items.NETHERITE_INGOT, () -> PERFECT, 1),
     MAX("max", "Cella Max", 0x8A3A2E, 6, 32,
             () -> Items.NETHER_STAR, () -> SUPER_PERFECT, 1);

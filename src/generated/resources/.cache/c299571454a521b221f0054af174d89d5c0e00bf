@@ -1,15 +1,15 @@
-// 1.21.1	2026-08-17T09:22:57.6561316	Kind Textures: cella
-fd8ba3050dc0c357b27521c895383eb30705b3db assets/cella/textures/block/imperfect.png
+// 1.21.1	2026-08-17T09:27:12.7024204	Kind Textures: cella
+af4d1ad7876ba2ba62392b3880c7778d2172cc99 assets/cella/textures/block/imperfect.png
 6085fbbc147d74f1492ee3342e68683056edfc17 assets/cella/textures/block/junior.png
-46386b04e91356ea4e7db720a1dfa5b870b44bb1 assets/cella/textures/block/laravel.png
+0b1a4a52e80f1f9532febf963c343650f4d7c701 assets/cella/textures/block/laravel.png
 4ad39e062ad6f4518594b7bd5a55d88142310bd6 assets/cella/textures/block/max.png
-10ae77df470a5e8e897e3fb2f4500717f02cd059 assets/cella/textures/block/perfect.png
-6cf3599e1a59cf77786c8454ec83cc56113a3c46 assets/cella/textures/block/semi_perfect.png
-d8a9d2bd0e5f99f94494657266de633523563e04 assets/cella/textures/block/super_perfect.png
-58fca42c3488ee192d825905206431be4a44bc3e assets/cella/textures/entity/chest/imperfect.png
+2fe9b33089570ff5caed95f8c33459bf104e78e6 assets/cella/textures/block/perfect.png
+9313e18a5cec7c134fc28edabac000e4817c4bd1 assets/cella/textures/block/semi_perfect.png
+5988bbee7f3a7640e7a55b5bdbb19ddb4fbf8e5b assets/cella/textures/block/super_perfect.png
+b59c0658a86ebdc1fd14a766c6bdd91e49d37b7f assets/cella/textures/entity/chest/imperfect.png
 f2f955f2138e544cc2556c016ec9532ce350f4b8 assets/cella/textures/entity/chest/junior.png
-75d663df8f6e0afa34cf7df29654aac3f8c1b1bf assets/cella/textures/entity/chest/laravel.png
+faa5b419e6d32b4da3da0fa95cfccd9dde320cf4 assets/cella/textures/entity/chest/laravel.png
 1ab65bb53349d3e3306b1b1d82f8a7bc3c654884 assets/cella/textures/entity/chest/max.png
-4a59fad894d5257820549ca5f5cf3e2a9d19f18b assets/cella/textures/entity/chest/perfect.png
-ebe4f5150287dc131eb61e7d7104f94b3b339981 assets/cella/textures/entity/chest/semi_perfect.png
-03c369876da82786c396aba6b53800306842f00b assets/cella/textures/entity/chest/super_perfect.png
+589924c762463dd333108116f5b2f45342a0ef84 assets/cella/textures/entity/chest/perfect.png
+d05c89809c95e7591cb40969478a17bca464263c assets/cella/textures/entity/chest/semi_perfect.png
+844e4459f124d3613cab81ecb7a297f092e5b947 assets/cella/textures/entity/chest/super_perfect.png
