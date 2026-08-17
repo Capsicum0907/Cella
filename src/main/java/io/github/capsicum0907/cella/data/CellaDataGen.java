@@ -2,6 +2,7 @@ package io.github.capsicum0907.cella.data;
 
 import java.util.concurrent.CompletableFuture;
 
+import io.github.capsicum0907.cella.Annihilation;
 import io.github.capsicum0907.cella.Cella;
 import io.github.capsicum0907.cella.CellaRegistry;
 import io.github.capsicum0907.cella.Formula;
@@ -21,7 +22,10 @@ import net.minecraft.server.packs.PackType;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.advancements.Advancement;
 import net.minecraft.advancements.AdvancementHolder;
+import net.minecraft.core.RegistrySetBuilder;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.neoforged.neoforge.common.data.DatapackBuiltinEntriesProvider;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.ShapedRecipe;
@@ -76,6 +80,42 @@ public final class CellaDataGen {
         generator.addProvider(event.includeClient(), new ChestAtlas(output));
         generator.addProvider(event.includeServer(),
                 new Tags(output, event.getLookupProvider(), event.getExistingFileHelper()));
+
+        // The damage type is datapack contents, and its tags name it - so the tag provider
+        // has to look it up in a world that already has it. getRegistryProvider() is that
+        // world; handing it event.getLookupProvider() instead would be asking about a type
+        // that has not been written yet.
+        DatapackBuiltinEntriesProvider damage = new DatapackBuiltinEntriesProvider(output,
+                event.getLookupProvider(),
+                new RegistrySetBuilder().add(Registries.DAMAGE_TYPE,
+                        context -> context.register(Annihilation.KEY, Annihilation.TYPE)),
+                java.util.Set.of(Cella.MODID));
+        generator.addProvider(event.includeServer(), damage);
+        generator.addProvider(event.includeServer(),
+                new Bypasses(output, damage.getRegistryProvider(), event.getExistingFileHelper()));
+    }
+
+    /**
+     * Everything that would otherwise let something live through the wave, turned off.
+     *
+     * <p>The list is {@link Annihilation#BYPASSES} and is not repeated here: the type and
+     * the tags saying what it ignores are one decision, and two copies of a decision are
+     * two things to keep in step.
+     */
+    private static class Bypasses extends net.minecraft.data.tags.TagsProvider<
+            net.minecraft.world.damagesource.DamageType> {
+        Bypasses(PackOutput output, CompletableFuture<HolderLookup.Provider> registries,
+                ExistingFileHelper existingFileHelper) {
+            super(output, Registries.DAMAGE_TYPE, registries, Cella.MODID, existingFileHelper);
+        }
+
+        @Override
+        protected void addTags(HolderLookup.Provider registries) {
+            for (net.minecraft.tags.TagKey<net.minecraft.world.damagesource.DamageType> bypass
+                    : Annihilation.BYPASSES) {
+                tag(bypass).add(Annihilation.KEY);
+            }
+        }
     }
 
     /** An axe, because it is a wooden box. */
@@ -192,6 +232,7 @@ public final class CellaDataGen {
             // string cannot choose. Any message that inserts a name has this in it, so the
             // rule is to write around the article rather than guess at one.
             add("message.cella.ripened", "It has eaten enough. It is now %s.");
+            add("death.attack." + Annihilation.MESSAGE, "%1$s was annihilated by a Cella");
             add("message.cella.lighting", "It begins to shake.");
             add("message.cella.lit", "It has already begun.");
             add("message.cella.notyet", "It has not taken in enough to survive that.");

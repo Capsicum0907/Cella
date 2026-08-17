@@ -8,6 +8,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.level.block.Block;
@@ -171,11 +172,17 @@ public final class Blast {
      * the inside costs the same query and has no hole in it: whatever is already dead is
      * filtered out before anything is done to it.
      *
-     * <p><b>Killed the way the void kills.</b> Not an explosion's damage, which armour,
-     * resistance, a totem and the invulnerability window can all stop — this is the source
-     * the game uses for falling out of the world, and it bypasses every one of them.
-     * ⚠ <b>Creative-mode players die too</b>, which is the price of "everything" meaning
+     * <p><b>Players are killed; everything else is discarded.</b> A player has to die the
+     * way players die, by {@link Annihilation} — which bypasses armour, resistance, a
+     * shield, a totem, invulnerability and the damage cooldown, because each of those is a
+     * way of not dying and the instruction was that everything caught in it does.
+     * ⚠ <b>Creative-mode players included</b>, which is the price of everything meaning
      * everything.
+     *
+     * <p>Nothing else is killed at all, it is removed — so no drops, no orbs, nothing left
+     * hanging in the crater. Same reason the blocks are set to air rather than broken: what
+     * a wave leaves behind is a hole, and a cloud of loot nobody can reach is neither the
+     * picture nor a kindness to the server.
      *
      * <p>⚠ <b>Once each.</b> See {@link #BITE}: an earlier version hit every tick with the
      * largest float there is, and turned "killed by the wave" into "immune to everything,
@@ -187,16 +194,22 @@ public final class Blast {
     private void sweep() {
         Vec3 middle = Vec3.atCenterOf(centre);
         AABB box = AABB.ofSize(middle, at * 2.0, at * 2.0, at * 2.0);
-        // ⚠ The void's own, and not an explosion's. It carries bypasses_invulnerability
-        // and bypasses_cooldown, which is why falling out of the world kills a player in
-        // creative and why nothing can sit out a wave behind an invulnerability window.
-        // An explosion source is stoppable by armour, resistance, a totem and the cooldown;
-        // this one is not, and "everything caught in it dies" is the whole instruction.
-        DamageSource source = level.damageSources().fellOutOfWorld();
+        DamageSource source = Annihilation.by(level);
         double within = (double) at * at;
         for (Entity caught : level.getEntities((Entity) null, box, Entity::isAlive)) {
-            if (caught.distanceToSqr(middle) <= within && bitten.add(caught.getId())) {
+            if (caught.distanceToSqr(middle) > within || !bitten.add(caught.getId())) {
+                continue;
+            }
+            // Players are killed and everything else is simply gone. A player has to die
+            // properly - a death screen, a respawn, and whatever the world's rules say
+            // about their belongings - and discarding one would be removing them from the
+            // game instead. Nothing else leaves anything behind, for the reason the blocks
+            // do not: this is annihilation, and a crater full of the drops of what used to
+            // be standing in it is neither the picture nor a thing anybody can reach.
+            if (caught instanceof Player) {
                 caught.hurt(source, BITE);
+            } else {
+                caught.discard();
             }
         }
     }

@@ -1464,8 +1464,16 @@ public final class CellaTests {
 
         helper.succeedWhen(() -> {
             check(Blast.running() == 0, "the wave should have finished");
-            check(!inside.isAlive(), "the one inside should be dead");
+            check(inside.isRemoved(), "the one inside should be gone");
             check(outside.isAlive(), "and the one well outside should not be");
+
+            // Gone rather than killed: a pig killed leaves porkchop, and a crater full of
+            // what used to be standing in it is neither the picture nor reachable.
+            check(helper.getLevel()
+                            .getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class,
+                                    new net.minecraft.world.phys.AABB(centre).inflate(reach + 4))
+                            .isEmpty(),
+                    "and it should not have dropped anything");
         });
     }
 

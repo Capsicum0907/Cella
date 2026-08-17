@@ -27,6 +27,7 @@
   "commands.cella.kept.undated": "filed before that was recorded",
   "commands.cella.kept.unformed": "form unrecorded",
   "container.cella.grown": "%s (%s%%)",
+  "death.attack.cella.annihilated": "%1$s was annihilated by a Cella",
   "gui.cella.next": "Next page",
   "gui.cella.prev": "Previous page",
   "gui.cella.sort": "Sort every page",
