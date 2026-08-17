@@ -210,8 +210,12 @@ public final class CellaDataGen {
             add("commands.cella.kept.foreign", "%s, which this version does not have");
             add("commands.cella.kept.age", "filed %s ago");
             add("commands.cella.kept.undated", "filed before that was recorded");
-            add("commands.cella.kept.days", "%s days %s hours");
-            add("commands.cella.kept.hours", "%s hours");
+            // ⚠ Abbreviated, and not for brevity: "1 hours" is wrong and "%s hour(s)" is
+            // worse, and the days line carries two numbers either of which can be one, so
+            // singular keys would come to four strings for one duration. A unit that does
+            // not inflect has none of that. Same rule as the article in message.cella.ripened.
+            add("commands.cella.kept.days", "%sd %sh");
+            add("commands.cella.kept.hours", "%sh");
             add("commands.cella.kept.recent", "under an hour");
             add("commands.cella.kept.more", "...and %s more, not shown.");
             add("commands.cella.kept.click", "Click to write a give command for %s");
