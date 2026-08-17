@@ -4,7 +4,11 @@ A chest with more than one page.
 
 *Cella* is Latin for a storeroom, and also a compartment inside one.
 
-> **Status: the chest works.** Twenty-one game tests, watched in a client.
+> **Status: the ladder works, end to end.** Forty-eight game tests, watched in a client.
+>
+> A Cella is fed the experience you fought for, grows into the next form, and the last
+> step is not a recipe at all: a Perfect that has taken in all it can use, ended in the
+> End, comes back Super Perfect standing in a crater a hundred blocks across.
 
 ## Target
 
@@ -189,20 +193,22 @@ both wider and taller once past Semi-Perfect.
 **Capacity is what went into the chest.** A large chest is fifty-four slots, Imperfect is
 four of them, and each step multiplies by what its recipe eats.
 
-| | large chests | slots | page | pages |
-|---|---|---|---|---|
-| Laravel | 1 | 54 | 6×9 | 1 |
-| Imperfect | 4 | 216 | 6×9 | 4 |
-| Semi-Perfect | 32 | 1,728 | 6×9 | 32 |
-| Perfect | 256 | 13,824 | 12×16 | 72 |
-| Cella Jr. | 64 | 3,456 | 12×16 | 18 |
-| Super Perfect | 1,024 | 55,296 | 12×16 | 288 |
-| Cella Max | 4,096 | 221,184 | 12×16 | 1,152 |
+| | large chests | slots | page | pages | experience |
+|---|---|---|---|---|---|
+| Laravel | 1 | 54 | 6×9 | 1 | 30 levels |
+| Imperfect | 4 | 216 | 6×9 | 4 | 30 levels |
+| Semi-Perfect | 32 | 1,728 | 6×16 | 18 | 50 levels |
+| Perfect | 256 | 13,824 | 12×16 | 72 | 100 levels |
+| Cella Jr. | 64 | 3,456 | 12×16 | 18 | — |
+| Super Perfect | 1,024 | 55,296 | 12×16 | 288 | 200 levels |
+| Cella Max | 4,096 | 221,184 | 12×16 | 1,152 | — |
 
-**The page grows at Perfect**, from fifty-four slots to a hundred and ninety-two. A
-hundred and ninety-two is not chosen for looking right: every capacity from Perfect up
-has to divide the page, and those four are 27 × 2⁷, 2⁹, 2¹¹ and 2¹³, so it has to divide
-3,456. Twelve by sixteen does.
+**The page widens at Semi-Perfect and grows taller at Perfect.** Below Semi-Perfect a
+Cella is a chest and is drawn like one; from there up it is not, and the screen stops
+pretending — which is also the rung where searching arrives, for the same reason in both
+cases. A hundred and ninety-two is not chosen for looking right: every capacity from
+Perfect up has to divide the page, and those four are 27 × 2⁷, 2⁹, 2¹¹ and 2¹³, so it has
+to divide 3,456. Twelve by sixteen does, and 1,728 divides by ninety-six exactly.
 
 **The column in `Kind` is the capacity and the pages follow from it**, which is the way
 round it was not written first. How big a chest is is a fact about the chest; how it is
@@ -211,13 +217,172 @@ decide the first, and the two need not divide. An earlier shape put Cella Max's 
 at fifty-four of its ninety squares; a short last page is fine and is drawn short.
 Bending the capacity so the pages come out round would not be.
 
-**Multiplying by what a recipe eats is addition, not fusion**, and that is the part left
-open. Four put together giving four times the room is arithmetic; whatever a form is
-worth beyond that is not room. Nothing here buys anything but room yet.
+**Multiplying by what a recipe eats is addition, not fusion.** Four put together giving
+four times the room is arithmetic, and whatever a form is worth beyond that is not room.
+What it is worth is below: experience, and a ladder of properties that ends one rung
+before the top on purpose.
 
-Two consequences of the top of the ladder, neither solved. **1,024 pages cannot be
-reached with two arrows**, and the sort and the two movers read the whole chest once per
-press, which at 221,184 slots is a real amount of work for one keystroke.
+**1,024 pages cannot be reached with two arrows**, which is what the search is for. The
+sort and the two movers still read the whole chest once per press, which at 221,184 slots
+is a real amount of work for one keystroke.
+
+### It eats what you fought for
+
+Sneak with empty hands and right-click, and a Cella takes everything it can still use out
+of your experience. **In one go, not a level at a time** - this is not something being fed,
+it is something absorbing, and a creature that takes what it needs in mouthfuls is a
+different creature. The gesture is already deliberate, so a small amount bought a safety
+the gesture had bought already.
+
+**Points and not levels.** A level is worth seven at the bottom and over three hundred at
+the top, so a chest that counted levels would be worth a hundred times more to somebody who
+had already earned some - the opposite of what a threshold is for. Every figure in the
+table above is a whole level in vanilla's own arithmetic, so a bar reaches its end exactly
+when a level lands.
+
+**One way.** Nothing gives it back. What a Cella has been given is what it fought for, and
+a chest that returned it would be a bank - a different mod, and one that would quietly
+become the reason to build this one. The larva is the exception, because it keeps nothing:
+break one and what it ate comes back as orbs. A chest you must destroy to open is not a
+bank.
+
+Breaking one used to lose it. `handOver` asked `isEmpty()`, meaning "is any slot spoken
+for", so a chest holding nothing but fifty levels dropped as a plain item with the
+experience still in the block. One way means there is no getting that back except by
+fighting for it again, so the question is `worthKeeping()` now, which is a different
+question.
+
+### Two of them are not made, they are grown into
+
+**A Laravel that has eaten enough becomes an Imperfect**, there and then. **A Perfect that
+has eaten enough and is then ended comes back a Super Perfect.** Neither has a recipe, and
+the test asks whether every form can be *reached* rather than whether every form has one.
+
+Those are two events and not one mechanism with a flag, because the source material has
+them as two: growing up needs nothing else to happen, and going from Perfect to Super
+Perfect is nearly dying and coming back, which has to be done to it. One column says which
+way a form goes; both read the same threshold to know when it is ready.
+
+**A recipe will not take a Cella that has not finished growing.** A form is what it ate,
+and half of what it ate is not half a form - it is a form that is not done. Nothing
+explains the refusal: a recipe that does not hold is not a recipe and the bench shows
+nothing, and the percentage on every item says which one is short.
+
+**A Cella that changes form starts again at nothing.** True of growing up, of ending
+itself, and of fusing - the last of which used to add its ingredients' experience up, on
+the reasoning that what several were fed adds up like what several held. Wrong reasoning,
+and it did not survive its own arithmetic: eight full Imperfects are 11,160 points against
+a Semi-Perfect's 5,345, so a fusion arrived already finished. A rung that could never be
+climbed because it was never at the bottom of it.
+
+### What a form is, besides big
+
+| gains | |
+|---|---|
+| **Imperfect** | keeps its contents / stops burning / reaches four blocks for orbs / iron axe |
+| **Semi-Perfect** | cobblestone-tough / reaches eight / diamond axe / **can be searched** |
+| **Perfect** | obsidian-tough / a pickaxe job / diamond pickaxe |
+| **Super Perfect** | bedrock-tough / safe from a wither / netherite pickaxe / the dropped item does not go away / **stops reaching for orbs** |
+
+**Cella Jr. is a Perfect** in everything but size. **Cella Max is a Super Perfect, on
+purpose**: it is not waiting for something of its own. Nothing may have a property Super
+Perfect lacks - a Perfect Cell is stronger than a Cell Max, and a ladder whose last rung
+outdid it would be saying otherwise. Max buys room, which is what it is: bigger, and less.
+
+The table is written as what a rung *arrives at* rather than what a step *gains*, even
+though it reads the other way round. Listing gains means no single line ever says what a
+form actually is; the cumulative reading is a property of the numbers instead, and every
+column climbs. There is a test on that, and on the one place it does not: **absorption
+stops at Super Perfect**, because a thing that has become complete has no reason to take in
+whatever happens to be lying about.
+
+Two of these are not the mechanism their name suggests, and both had to be looked up.
+**Fire resistance is the absence of an entry** - only blocks handed to `setFlammable` burn,
+and no Cella ever was, so every form was already fireproof and what makes "Imperfect gains
+it" true is *registering Laravel*. And **the wither does not read blast resistance**;
+`canDestroy` asks only whether the block is in `WITHER_IMMUNE`, so obsidian-tough with no
+tag is exactly what obsidian is, and being safe from one is the tag and nothing else.
+
+`fireResistant()` also only covers fire and lava. An item entity dies to explosions and to
+cactus as ordinary damage, and to five minutes of waiting - which is the commonest way one
+is lost. All three are closed for the top of the ladder, as one promise rather than three,
+because a form that survives being blown up and then quietly times out is the same loss
+arriving later.
+
+### Ending itself
+
+A nether star, on a Perfect that has taken in everything it can use, **in the End**. It
+shakes for five seconds and then it goes.
+
+Neither a command nor a button. A command would put the one rung that is not arithmetic
+behind an operator; a button would sit an inch from the sort button, and this is the only
+thing in the mod that cannot be undone. A nether star has no path to being pressed by
+accident - flint and steel is the game's own verb for setting something off and was the
+obvious pick until the obvious problem, that it is cheap and lives in a pocket.
+
+The dimension is not flavour either. What follows removes a hundred blocks in every
+direction, and there is one place in this game where that is the player's problem instead
+of everybody's. **The fuse is not flavour either**: the wave takes the ground away rather
+than damaging anyone, so in the End what it does to whoever is standing there is drop them
+into nothing.
+
+**The contents move block to block and never become an item.** An item at the centre of
+that would be thrown by the explosion, in a dimension largely made of somewhere to fall, so
+the one thing that has to survive would be the one thing put where it could not.
+
+#### A vanilla explosion cannot do this at any radius
+
+An explosion casts rays and takes each block's blast resistance off the ray as it passes,
+so in solid ground the reach is a fraction of the radius asked for. Measured in end stone:
+
+| radius asked | blocks removed | hole opened |
+|---|---|---|
+| 8 | 8 | 1 across |
+| 16 | 48 | 2 |
+| 32 | 283 | 4 |
+
+Asking for a hundred would give a dozen. What makes dynamite look impressive above ground
+is that air costs the ray almost nothing. **The limit is the algorithm, not the machine** -
+so the blocks are removed by `Blast`, and `explode()` is left to do the noise, the light
+and the throwing.
+
+A sphere of radius a hundred is four million blocks, written at roughly two hundred a
+millisecond, so it is spread over ticks: **two shells each, forty blocks a second, the full
+reach in two and a half seconds**. Constant speed rather than a work budget, because a wave
+that slowed down would read as the game struggling. Shells are walked as the surface of a
+cube, or each step would cost the volume it encloses instead of its surface.
+
+It will not touch anything the game says cannot be broken - **the End's way home is
+bedrock** - nor other Cellas, which is the story's answer and the practical one both.
+Blocks are set to air rather than broken, so nothing drops. Everything alive inside dies:
+players by a damage type this mod declares, so the screen says what happened and the
+reasons it goes through armour and invulnerability are written in its tags rather than
+borrowed from the void's. Everything else is simply removed, because a crater full of the
+drops of what used to be standing in it is neither the picture nor anything anybody can
+reach.
+
+### It can be searched, from Semi-Perfect up
+
+A magnifier at the left of the title; pressing it turns that row into a box. **The row is
+the right one to take because everything on it is about paging** - the name, the page
+number, the arrows - and the moment you are searching, the name is the least useful thing
+on the screen. Nothing is displaced when it is shut.
+
+**Where it arrives is where turning pages stops working**, not where that becomes
+unbearable. Semi-Perfect is eighteen pages against Imperfect's four, and making somebody
+climb to Perfect's hundred and forty-four before offering relief is charging them for
+having got that far.
+
+The window stops handing out a run of the chest and starts handing out a list; everything
+above it is untouched, and the only thing that changed is which slot of the chest each
+square lands on. Empty slots are never a result, which is the point: eighteen pages of
+mostly nothing comes back as the handful that answered.
+
+**A container data slot is a `short`.** A Cella Max is 221,184 slots, so the number of
+slots being looked at cannot travel - what does is how many pages there are and how many
+squares of this one are real, both of which fit and neither of which is the count they come
+from. And the query is walked against every non-empty slot on the server, so the box waits
+four ticks after the last key rather than asking once per keystroke.
 
 ### A bigger screen shows more of the chest
 
@@ -373,6 +538,14 @@ a UUID is not something to read off a screen and type.
 something is placed, whichever item got there first. Running it twice makes a spare item
 and not a spare chest.
 
+It does mint a second claim, though, and the item cannot say so. The figures on a picked-up
+chest are a snapshot, and that used to be safe because the only way to hold a name was to
+have picked the chest up - one chest, one item. `give` broke that, so whichever of two
+items is placed second goes down empty while its tooltip still describes what it is not
+carrying, and `forget` does the same thing harder. Nothing on the item can tell it: it is
+on a client, and the client is never told what the store holds. So the store counts
+hand-outs and the two commands that make the state say so at the moment they make it.
+
 ⚠ Entries filed before any of this record which form they were or when. Those load saying
 so, rather than guessing — a chest keeps the size it was built at, so its size is no
 evidence of its form. How full one is is read off the contents either way, because that was
@@ -402,6 +575,13 @@ gradlew runData           # regenerate models, recipes and language
 - [x] **1** — the feature above, in a form that can be watched
 - [x] **2** — checked by game tests rather than by eye
 - [x] **3** — watched in a client
+- [x] **4** — orphans can be found and handed back
+- [x] **5** — the ladder is climbable: experience, growing up, ending itself
+- [x] **6** — the forms are worth something besides room
+- [x] **7** — a chest of 221,184 slots can be searched
+- [ ] **8** — the numbers played with rather than reasoned about; every threshold is
+      a first pass
+- [ ] **9** — the one sweep that is safe: an orphan whose item is *seen* to burn
 
 ## Related
 
