@@ -8,6 +8,9 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.network.chat.Component;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Containers;
 import net.minecraft.world.InteractionResult;
@@ -131,6 +134,9 @@ public class CellaBlock extends BaseEntityBlock {
         if (level.isClientSide) {
             return InteractionResult.SUCCESS;
         }
+        if (level.getBlockEntity(pos) instanceof CellaBlockEntity chest && player.isShiftKeyDown()) {
+            return fed(chest, player, level, pos);
+        }
         if (level.getBlockEntity(pos) instanceof CellaBlockEntity chest
                 && player instanceof ServerPlayer server) {
             // The kind's own shape, cut down to what this player's screen can show.
@@ -158,6 +164,39 @@ public class CellaBlock extends BaseEntityBlock {
                         buffer.writeVarInt(columns);
                     });
             chest.opened(player);
+        }
+        return InteractionResult.CONSUME;
+    }
+
+    /**
+     * Fed: a level of the player's experience goes into the chest.
+     *
+     * <p><b>Sneaking with empty hands, which is the one gesture this block had spare.</b>
+     * A plain right-click opens it and a right-click holding something is the game's own
+     * way of saying "use what I am holding", so the remaining case is a deliberate,
+     * empty-handed press — and it wants to be deliberate, because none of it comes back.
+     *
+     * <p><b>It always says what happened.</b> Nothing visible moves when a chest absorbs
+     * experience: no slot changes and the screen is not open. A press that did nothing and
+     * a press that took a level would look identical, so both of them are answered — one
+     * of the few places a message is the honest interface rather than a lazy one.
+     */
+    private InteractionResult fed(CellaBlockEntity chest, Player player, Level level,
+            BlockPos pos) {
+        if (!kind.grows()) {
+            return InteractionResult.PASS;
+        }
+        int taken = chest.absorb(player);
+        if (taken > 0) {
+            level.playSound(null, pos, SoundEvents.EXPERIENCE_ORB_PICKUP, SoundSource.BLOCKS,
+                    0.6F, 0.8F + level.getRandom().nextFloat() * 0.2F);
+            player.displayClientMessage(Component.translatable("message.cella.fed",
+                    Math.round(chest.grown() * 100.0F)), true);
+        } else {
+            // Which of the two it was, because the fixes are opposite: go and fight, or
+            // stop feeding a chest that has finished growing.
+            player.displayClientMessage(Component.translatable(
+                    chest.grown() >= 1.0F ? "message.cella.grown" : "message.cella.nothing"), true);
         }
         return InteractionResult.CONSUME;
     }
@@ -222,7 +261,7 @@ public class CellaBlock extends BaseEntityBlock {
             return;
         }
         Kept.of(level).ifPresent(kept -> {
-            List<net.minecraft.nbt.CompoundTag> filed = held.chests().stream()
+            List<Kept.Chest> filed = held.chests().stream()
                     .map(kept::take)
                     .flatMap(java.util.Optional::stream)
                     .toList();

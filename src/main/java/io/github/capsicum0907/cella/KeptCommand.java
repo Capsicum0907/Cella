@@ -158,7 +158,11 @@ public final class KeptCommand {
         // Kind.fitting.
         Kind kind = asked.or(trace::kind).orElseGet(() -> Kind.fitting(trace.slots()));
         ItemStack stack = new ItemStack(CellaRegistry.item(kind).get());
-        stack.set(CellaRegistry.KEPT.get(), new Held(List.of(id), trace.used(), trace.slots()));
+        // Against the form it is being handed back as, not the one it came from: the bar
+        // has to mean something to whoever is now holding it. Held.grown clamps the case
+        // where it was fed more than this form can use.
+        stack.set(CellaRegistry.KEPT.get(), new Held(List.of(id), trace.used(), trace.slots(),
+                trace.experience(), kind.growth()));
         player.getInventory().placeItemBackInInventory(stack);
 
         source.sendSuccess(() -> Component.translatable("commands.cella.kept.gave",

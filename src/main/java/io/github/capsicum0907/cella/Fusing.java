@@ -89,11 +89,30 @@ public class Fusing extends ShapedRecipe {
             }
         }
         if (!chests.isEmpty()) {
-            // How full it will be is how full they were, in the room the new one has.
-            result.set(CellaRegistry.KEPT.get(),
-                    new Held(List.copyOf(chests), used(input), room(result)));
+            // How full it will be is how full they were, in the room the new one has -
+            // and the same for what they had been fed, against what the new form can use.
+            // Both are snapshots for the tooltip; the pouring happens at placement.
+            result.set(CellaRegistry.KEPT.get(), new Held(List.copyOf(chests), used(input),
+                    room(result), Math.min(fed(input), growth(result)), growth(result)));
         }
         return result;
+    }
+
+    /** What the ingredients had been fed, added up off their own snapshots. */
+    private static int fed(CraftingInput input) {
+        int fed = 0;
+        for (int at = 0; at < input.size(); at++) {
+            Held held = input.getItem(at).get(CellaRegistry.KEPT.get());
+            if (held != null) {
+                fed += held.experience();
+            }
+        }
+        return fed;
+    }
+
+    /** What the thing being made can use. Nought if it is not one of ours, or does not grow. */
+    private static int growth(ItemStack stack) {
+        return kindOf(stack).map(Kind::growth).orElse(0);
     }
 
     /** How many slots the ingredients have something in, off their own snapshots. */
@@ -110,10 +129,15 @@ public class Fusing extends ShapedRecipe {
 
     /** How many slots the thing being made will have. Nought if it is not one of ours. */
     private static int room(ItemStack stack) {
+        return kindOf(stack).map(Kind::slots).orElse(0);
+    }
+
+    /** Which form a result is, if it is one of ours at all. */
+    private static java.util.Optional<Kind> kindOf(ItemStack stack) {
         return stack.getItem() instanceof BlockItem block
                 && block.getBlock() instanceof CellaBlock chest
-                ? chest.kind().slots()
-                : 0;
+                ? java.util.Optional.of(chest.kind())
+                : java.util.Optional.empty();
     }
 
     @Override

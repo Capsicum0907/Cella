@@ -35,17 +35,25 @@ import net.minecraft.world.inventory.tooltip.TooltipComponent;
  * <p>It is also the {@link TooltipComponent} the item hands the screen — the same fact,
  * so the same record, rather than a second one copied from it.
  */
-public record Held(List<UUID> chests, int used, int slots) implements TooltipComponent {
+public record Held(List<UUID> chests, int used, int slots, int experience, int growth)
+        implements TooltipComponent {
     /**
      * <b>Several names, because a fusion carries what it ate.</b> Eight Imperfects go into
      * a Semi-Perfect and their eight chests go with them — poured in when the new one is
      * put down, not when it is crafted, so that laying the ingredients on a bench to look
      * at the result does not file anything anywhere. See {@link Fusing}.
+     *
+     * <p><b>The two experience figures are optional rather than a fourth alternative.</b>
+     * Items written before a Cella could be fed have neither, and a missing field reading
+     * as nought is exactly right for them: nothing had been fed, and nothing was growing.
+     * An alternative codec would have said the same thing at four times the width.
      */
     private static final Codec<Held> FULL = RecordCodecBuilder.create(instance -> instance.group(
             UUIDUtil.CODEC.listOf().fieldOf("chests").forGetter(Held::chests),
             Codec.INT.fieldOf("used").forGetter(Held::used),
-            Codec.INT.fieldOf("slots").forGetter(Held::slots))
+            Codec.INT.fieldOf("slots").forGetter(Held::slots),
+            Codec.INT.optionalFieldOf("experience", 0).forGetter(Held::experience),
+            Codec.INT.optionalFieldOf("growth", 0).forGetter(Held::growth))
             .apply(instance, Held::new));
 
     /** The one-name form this had before fusions existed. */
@@ -53,7 +61,7 @@ public record Held(List<UUID> chests, int used, int slots) implements TooltipCom
             UUIDUtil.CODEC.fieldOf("chest").forGetter(held -> held.chests().getFirst()),
             Codec.INT.fieldOf("used").forGetter(Held::used),
             Codec.INT.fieldOf("slots").forGetter(Held::slots))
-            .apply(instance, (chest, used, slots) -> new Held(List.of(chest), used, slots)));
+            .apply(instance, (chest, used, slots) -> new Held(List.of(chest), used, slots, 0, 0)));
 
     /**
      * <b>Older forms are still read.</b> This was a bare {@code UUID} first and a single
@@ -64,13 +72,20 @@ public record Held(List<UUID> chests, int used, int slots) implements TooltipCom
      */
     public static final Codec<Held> CODEC = Codec.withAlternative(
             Codec.withAlternative(FULL, ONE),
-            UUIDUtil.CODEC.xmap(chest -> new Held(List.of(chest), 0, 0),
+            UUIDUtil.CODEC.xmap(chest -> new Held(List.of(chest), 0, 0, 0, 0),
                     held -> held.chests().getFirst()));
 
+    /**
+     * <b>No older forms here.</b> A stream codec speaks to a client of this same version,
+     * so there is nothing to be compatible with — unlike {@link #CODEC}, which speaks to
+     * a save file written by whatever came before.
+     */
     public static final StreamCodec<ByteBuf, Held> STREAM_CODEC = StreamCodec.composite(
             UUIDUtil.STREAM_CODEC.apply(ByteBufCodecs.list()), Held::chests,
             ByteBufCodecs.VAR_INT, Held::used,
             ByteBufCodecs.VAR_INT, Held::slots,
+            ByteBufCodecs.VAR_INT, Held::experience,
+            ByteBufCodecs.VAR_INT, Held::growth,
             Held::new);
 
     /** One chest is put back as it was; several are poured together. See {@code CellaBlock}. */
@@ -81,6 +96,23 @@ public record Held(List<UUID> chests, int used, int slots) implements TooltipCom
     /** Whether it knows how full it is at all; see the note on {@link #CODEC}. */
     public boolean counted() {
         return slots > 0;
+    }
+
+    /**
+     * Whether there is a growth bar to draw.
+     *
+     * <p><b>The threshold travels with the item and is not looked up.</b> It is the same
+     * decision as {@link #slots}: the client is never told what the block knows, and a
+     * chest keeps what it was made with — so a save whose numbers have since been tuned
+     * shows the bar it was actually filling rather than one against today's figure.
+     */
+    public boolean grows() {
+        return growth > 0;
+    }
+
+    /** Nought to one, against what the form it came from could use. */
+    public float grown() {
+        return grows() ? Math.min(1.0F, (float) experience / growth) : 0.0F;
     }
 
     /** Nought to one. Asked by the bar under the item and by the one in the tooltip. */

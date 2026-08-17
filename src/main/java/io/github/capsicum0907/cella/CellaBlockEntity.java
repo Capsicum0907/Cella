@@ -28,8 +28,18 @@ import net.neoforged.neoforge.items.ItemStackHandler;
  */
 public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
     private static final String CONTENTS = "Contents";
+    private static final String EXPERIENCE = "Experience";
 
     private final ItemStackHandler contents;
+
+    /**
+     * What it has been fed, in points.
+     *
+     * <p>Only ever goes up while the chest stands, and only by a player deciding to hand
+     * some over; see {@link #absorb}. How much means anything is {@link Kind#growth}, and
+     * a form that does not grow never has any.
+     */
+    private int experience;
 
     /** How far the lid has swung, on the client. */
     private final ChestLidController lidController = new ChestLidController();
@@ -132,10 +142,55 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
         return kindOf(getBlockState());
     }
 
+    /**
+     * How much it has been fed, and how much that is out of what it can use.
+     *
+     * <p>Nought to one, and nought for a form that does not grow — asked by the screen's
+     * title and by the bar on the item, which are two views of the same figure rather than
+     * two figures.
+     */
+    public int experience() {
+        return experience;
+    }
+
+    public float grown() {
+        Kind kind = kind();
+        return kind.grows() ? Math.min(1.0F, (float) experience / kind.growth()) : 0.0F;
+    }
+
+    /**
+     * Takes a level's worth off a player and keeps it.
+     *
+     * <p><b>A level at a time, not the lot.</b> The transfer cannot be undone, so the
+     * gesture that performs it should not be able to empty a player in one misclick. A
+     * level is also the unit the player is watching go up, which makes what happened
+     * legible without a message.
+     *
+     * <p>Never more than the form can use: a chest that has finished growing takes
+     * nothing, rather than swallowing experience that will never mean anything.
+     *
+     * @return how many points moved, which is nought when the chest is full or the player
+     *         is empty — the caller decides what to say about each
+     */
+    public int absorb(Player player) {
+        Kind kind = kind();
+        int room = kind.growth() - experience;
+        if (!kind.grows() || room <= 0) {
+            return 0;
+        }
+        int taken = Experience.take(player, Math.min(room, Experience.oneLevel(player)));
+        if (taken > 0) {
+            experience += taken;
+            setChanged();
+        }
+        return taken;
+    }
+
     @Override
     protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.saveAdditional(tag, registries);
         tag.put(CONTENTS, contents.serializeNBT(registries));
+        tag.putInt(EXPERIENCE, experience);
     }
 
     /**
@@ -151,6 +206,9 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
     protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.loadAdditional(tag, registries);
         contents.deserializeNBT(registries, tag.getCompound(CONTENTS));
+        // Absent in every chest written before experience existed, which reads as nought
+        // and is the truth: none of them had been fed anything.
+        experience = tag.getInt(EXPERIENCE);
     }
 
     /** Set once {@link #handOver} has dropped the item itself. See {@code CellaBlock}. */
@@ -179,9 +237,22 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
         return used;
     }
 
-    /** Nothing in any slot. Asked before deciding there is anything worth keeping. */
+    /** Nothing in any slot. Says what its name says, and nothing about experience. */
     public boolean isEmpty() {
         return used() == 0;
+    }
+
+    /**
+     * Whether breaking this would lose something.
+     *
+     * <p><b>Not the same question as {@link #isEmpty}</b>, and the difference is the whole
+     * point of having two. A chest with no items and fifty levels in it is empty and is
+     * very much worth keeping — and since experience is one way, dropping it would not be
+     * an inconvenience but the loss of everything that was fought for, with no way back
+     * but to fight for it again.
+     */
+    public boolean worthKeeping() {
+        return !isEmpty() || experience > 0;
     }
 
     /**
@@ -194,27 +265,30 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
      * harvesting, and a chest that keeps its contents except when it does not would be
      * worse than one that never did.
      *
-     * <p>An empty one is not filed. Nothing to keep, no name to give, and it drops the
-     * ordinary way.
+     * <p>One with nothing to keep is not filed at all — no items and no experience means
+     * no name to give, and it drops the ordinary way. {@link #worthKeeping} is the test,
+     * not {@link #isEmpty}: experience does not sit in a slot.
      */
     public void handOver(Level level, BlockPos pos) {
-        if (level.isClientSide || isEmpty()) {
+        if (level.isClientSide || !worthKeeping()) {
             return;
         }
         int used = used();
         int slots = contents.getSlots();
+        int grown = experience;
         Kept.of(level).ifPresent(kept -> {
             // Which form and what time, because once the block is gone this is the last
             // place either was known - and an orphan nobody can describe is an orphan
             // nobody can decide about. See Kept.Trace.
             java.util.UUID id = kept.put(contents.serializeNBT(level.registryAccess()),
-                    kind(), level.getGameTime());
+                    kind(), level.getGameTime(), grown);
             // The block entity is on its way out, but an emptied one cannot be read by
             // anything that still has hold of it.
             contents.setSize(contents.getSlots());
+            experience = 0;
             ItemStack stack = new ItemStack(getBlockState().getBlock());
             stack.set(CellaRegistry.KEPT.get(),
-                    new Held(java.util.List.of(id), used, slots));
+                    new Held(java.util.List.of(id), used, slots, grown, kind().growth()));
             Containers.dropItemStack(level, pos.getX(), pos.getY(), pos.getZ(), stack);
             given = true;
         });
@@ -228,9 +302,21 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
      * which is why this replaces rather than pours: the size comes back too, so a chest
      * built when the numbers were different stays the size it was.
      */
-    public void restore(HolderLookup.Provider registries, CompoundTag kept) {
-        contents.deserializeNBT(registries, kept);
+    public void restore(HolderLookup.Provider registries, Kept.Chest kept) {
+        contents.deserializeNBT(registries, kept.contents());
+        experience = capped(kept.experience());
         setChanged();
+    }
+
+    /**
+     * Experience coming back in, never past what this form can use.
+     *
+     * <p>A chest put down as a form that grows less than the one it was filed from would
+     * otherwise sit over its own threshold, and a bar reading more than full is a bar
+     * saying something that is not true.
+     */
+    private int capped(int coming) {
+        return Math.min(coming, kind().growth());
     }
 
     /**
@@ -245,12 +331,16 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
      *         anyway - the caller decides what to do about a world that has one
      */
     public java.util.List<ItemStack> pour(HolderLookup.Provider registries,
-            java.util.List<CompoundTag> filed) {
+            java.util.List<Kept.Chest> filed) {
         java.util.List<ItemStack> over = new java.util.ArrayList<>();
         int cursor = 0;
-        for (CompoundTag one : filed) {
+        int grown = experience;
+        for (Kept.Chest one : filed) {
+            // What several were fed adds up, the way what several held does. Capped at the
+            // end rather than per chest, so the order they were eaten in cannot change it.
+            grown += one.experience();
             ItemStackHandler from = new ItemStackHandler();
-            from.deserializeNBT(registries, one);
+            from.deserializeNBT(registries, one.contents());
             for (int slot = 0; slot < from.getSlots(); slot++) {
                 ItemStack stack = from.getStackInSlot(slot);
                 if (stack.isEmpty()) {
@@ -267,6 +357,7 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
                 }
             }
         }
+        experience = capped(grown);
         setChanged();
         return over;
     }
@@ -352,7 +443,15 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
      * two answers to one question. The block makes both now; see {@code CellaBlock}.
      */
     public Component getDisplayName() {
-        return Component.translatable(getBlockState().getBlock().getDescriptionId());
+        Component name = Component.translatable(getBlockState().getBlock().getDescriptionId());
+        if (!kind().grows()) {
+            return name;
+        }
+        // Worked out as the screen is opened, which is when it is true: the only thing
+        // that moves this figure is a player feeding the block, and that cannot be done
+        // while its screen is in the way.
+        return Component.translatable("container.cella.grown", name,
+                Math.round(grown() * 100.0F));
     }
 
 }

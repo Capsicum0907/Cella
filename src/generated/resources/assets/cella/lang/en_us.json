@@ -23,6 +23,7 @@
   "commands.cella.kept.row": "%s - %s of %s slots, %s",
   "commands.cella.kept.undated": "filed before that was recorded",
   "commands.cella.kept.unformed": "form unrecorded",
+  "container.cella.grown": "%s (%s%%)",
   "gui.cella.next": "Next page",
   "gui.cella.prev": "Previous page",
   "gui.cella.sort": "Sort every page",
@@ -31,5 +32,9 @@
   "gui.cella.take": "Take more of what you are carrying",
   "gui.cella.take.shift": "Shift: as much as will fit",
   "itemGroup.cella": "Cella",
-  "tooltip.cella.filled": "%s of %s slots used (%s%%)"
+  "message.cella.fed": "Absorbed. %s%% grown.",
+  "message.cella.grown": "It has taken in all it can use.",
+  "message.cella.nothing": "You have no experience to give it.",
+  "tooltip.cella.filled": "%s of %s slots used (%s%%)",
+  "tooltip.cella.grown": "%s%% grown"
 }

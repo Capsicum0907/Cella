@@ -83,7 +83,7 @@ public enum Kind {
      * <p>Junior is off the ramp because it is off the chain, and Max is red-brown because
      * it is barely the same creature.
      */
-    LARAVEL("laravel", "Laravel Cella", 0xB89A5E, 6, 9, 54, false, () -> Formula
+    LARAVEL("laravel", "Laravel Cella", 0xB89A5E, 6, 9, 54, false, 0, () -> Formula
             .shaped("BPM",
                     "HCR",
                     "OSF")
@@ -99,9 +99,9 @@ public enum Kind {
             .done()),
 
     /** Fed, not made. See {@link #formula()}. */
-    IMPERFECT("imperfect", "Imperfect Cella", 0x5AA33C, 6, 9, 216, true, null),
+    IMPERFECT("imperfect", "Imperfect Cella", 0x5AA33C, 6, 9, 216, true, 0, null),
 
-    SEMI_PERFECT("semi_perfect", "Semi-Perfect Cella", 0x6FBA43, 6, 9, 1728, true, () -> Formula
+    SEMI_PERFECT("semi_perfect", "Semi-Perfect Cella", 0x6FBA43, 6, 9, 1728, true, 0, () -> Formula
             .shaped("CCC",
                     "COC",
                     "CCC")
@@ -109,7 +109,7 @@ public enum Kind {
             .key('O', () -> Blocks.OBSIDIAN)
             .done()),
 
-    PERFECT("perfect", "Perfect Cella", 0x8ACF48, 12, 16, 13824, true, () -> Formula
+    PERFECT("perfect", "Perfect Cella", 0x8ACF48, 12, 16, 13824, true, 5345, () -> Formula
             .shaped("CCC",
                     "CGC",
                     "CCC")
@@ -127,7 +127,7 @@ public enum Kind {
      * make the recipe a machine for making storage out of nothing rather than a strong
      * reward for reaching Perfect.
      */
-    JUNIOR("junior", "Cella Jr.", 0x3FB39A, 12, 16, 3456, true, () -> Formula
+    JUNIOR("junior", "Cella Jr.", 0x3FB39A, 12, 16, 3456, true, 0, () -> Formula
             .shaped("DDD",
                     "DCD",
                     "DDD")
@@ -137,7 +137,7 @@ public enum Kind {
             .spawning()
             .done()),
 
-    SUPER_PERFECT("super_perfect", "Super Perfect Cella", 0xA3E052, 12, 16, 55296, true, () -> Formula
+    SUPER_PERFECT("super_perfect", "Super Perfect Cella", 0xA3E052, 12, 16, 55296, true, 0, () -> Formula
             .shaped("CSC",
                     "SES",
                     "CSC")
@@ -146,7 +146,7 @@ public enum Kind {
             .key('E', () -> Blocks.DRAGON_EGG)
             .done()),
 
-    MAX("max", "Cella Max", 0x8A3A2E, 12, 16, 221184, true, () -> Formula
+    MAX("max", "Cella Max", 0x8A3A2E, 12, 16, 221184, true, 0, () -> Formula
             .shaped("CTC",
                     "TET",
                     "CTC")
@@ -162,6 +162,7 @@ public enum Kind {
     private final int columns;
     private final int slots;
     private final boolean keeps;
+    private final int growth;
     private final Supplier<Formula> formula;
 
     /**
@@ -180,13 +181,15 @@ public enum Kind {
      *              size, and need not come out whole - see the note on the list above.
      * @param keeps whether it survives being broken with its contents inside. See
      *              {@link #keeps()}.
+     * @param growth how much experience this form takes before it is done growing, in
+     *              points, or nought for a form that takes none. See {@link #growth()}.
      * @param formula how it is made, or null for the one that is not made at all. A
      *              supplier for two reasons: a kind is built before the registries are,
      *              and several of these name other kinds - which an enum constant cannot
      *              do in its own argument list, but a lambda can put off until asked.
      */
     Kind(String id, String name, int stain, int rows, int columns, int slots,
-            boolean keeps, Supplier<Formula> formula) {
+            boolean keeps, int growth, Supplier<Formula> formula) {
         this.id = id;
         this.name = name;
         this.stain = stain;
@@ -194,6 +197,7 @@ public enum Kind {
         this.columns = columns;
         this.slots = slots;
         this.keeps = keeps;
+        this.growth = growth;
         this.formula = formula;
     }
 
@@ -288,6 +292,33 @@ public enum Kind {
      */
     public boolean keeps() {
         return keeps;
+    }
+
+    /**
+     * How much experience this form takes before it has finished growing, in points.
+     *
+     * <p><b>Experience is what it fought for.</b> Not a currency and not a battery: the
+     * player earns it by fighting and hands it over, and it never comes back out. So this
+     * is a threshold rather than a capacity — the number at which the form has taken in
+     * everything it can use, and something else becomes possible.
+     *
+     * <p><b>Nought means this form takes none</b>, which is most of them today. A form
+     * with no use for experience must not show a bar that never moves, so nought is read
+     * as "does not grow" everywhere rather than as "needs nothing".
+     *
+     * <p>⚠ <b>Perfect's figure is a first pass and wants playing with.</b> 5,345 points is
+     * level fifty in vanilla's own arithmetic - an evening of fighting rather than an
+     * afternoon - chosen because what it buys is the step to Super Perfect. The rest of
+     * the ladder is open: what a Laravel eats to become an Imperfect is a separate
+     * question, and it may not be this at all.
+     */
+    public int growth() {
+        return growth;
+    }
+
+    /** Whether experience means anything to this form. See {@link #growth()}. */
+    public boolean grows() {
+        return growth > 0;
     }
 
     /**

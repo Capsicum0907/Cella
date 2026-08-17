@@ -75,6 +75,7 @@ public class Kept extends SavedData {
     private static final String CONTENTS = "Contents";
     private static final String KIND = "Kind";
     private static final String WHEN = "When";
+    private static final String EXPERIENCE = "Experience";
 
     /**
      * {@code ItemStackHandler}'s own two keys, read here and never written.
@@ -106,8 +107,21 @@ public class Kept extends SavedData {
      *
      * @param kind the form's id, or empty for an entry filed before this was recorded
      * @param when game time, or {@link #UNDATED}
+     * @param experience points it had been fed, which is nought for most entries and for
+     *              every entry written before a Cella could be fed at all
      */
-    private record Filed(CompoundTag contents, String kind, long when) {
+    private record Filed(CompoundTag contents, String kind, long when, int experience) {
+    }
+
+    /**
+     * A chest coming back out: what was in it, and what it had been fed.
+     *
+     * <p>Two things rather than one because they are stored in two places for a reason -
+     * the contents are the handler's own tag and the experience is a number beside it -
+     * and putting the number inside that tag would mean writing a foreign key into a
+     * format vanilla owns. A pair at the door is cheaper than a lie about the format.
+     */
+    public record Chest(CompoundTag contents, int experience) {
     }
 
     /**
@@ -133,7 +147,7 @@ public class Kept extends SavedData {
      *             recorded — ask {@link #dated()} rather than comparing
      */
     public record Trace(UUID id, String named, Optional<Kind> kind, long when,
-            int used, int slots) {
+            int used, int slots, int experience) {
         /** Whether it knows when it was filed at all. */
         public boolean dated() {
             return when >= 0;
@@ -142,6 +156,11 @@ public class Kept extends SavedData {
         /** Whether it names a form at all, whether or not this version has that form. */
         public boolean formed() {
             return !named.isEmpty();
+        }
+
+        /** Whether it had been fed anything. One way, so this only ever went up. */
+        public boolean grown() {
+            return experience > 0;
         }
     }
 
@@ -179,10 +198,12 @@ public class Kept extends SavedData {
      *
      * @param kind which form it was, which nothing else records once the block is gone
      * @param when game time now; see {@link Trace}
+     * @param experience what it had been fed, which is lost with the block if it is not
+     *              filed here - and being one way, lost for good
      */
-    public UUID put(CompoundTag contents, Kind kind, long when) {
+    public UUID put(CompoundTag contents, Kind kind, long when, int experience) {
         UUID id = UUID.randomUUID();
-        chests.put(id, new Filed(contents, kind.id(), when));
+        chests.put(id, new Filed(contents, kind.id(), when, experience));
         setDirty();
         return id;
     }
@@ -195,12 +216,13 @@ public class Kept extends SavedData {
      * with nothing. An item duplicated by some other mod's doing then puts down one full
      * chest and one empty one, rather than two full ones.
      */
-    public Optional<CompoundTag> take(UUID id) {
+    public Optional<Chest> take(UUID id) {
         Filed filed = chests.remove(id);
         if (filed != null) {
             setDirty();
         }
-        return Optional.ofNullable(filed).map(Filed::contents);
+        return Optional.ofNullable(filed)
+                .map(one -> new Chest(one.contents(), one.experience()));
     }
 
     /**
@@ -251,7 +273,7 @@ public class Kept extends SavedData {
 
     private static Trace trace(UUID id, Filed filed) {
         return new Trace(id, filed.kind(), Kind.named(filed.kind()), filed.when(),
-                usedIn(filed.contents()), slotsIn(filed.contents()));
+                usedIn(filed.contents()), slotsIn(filed.contents()), filed.experience());
     }
 
     /** How many slots have something in them; see the note on {@link #ITEMS}. */
@@ -285,7 +307,8 @@ public class Kept extends SavedData {
                             entry.getString(KIND),
                             entry.contains(WHEN, Tag.TAG_LONG)
                                     ? entry.getLong(WHEN)
-                                    : UNDATED)));
+                                    : UNDATED,
+                            entry.getInt(EXPERIENCE))));
         }
         return new Kept(chests);
     }
@@ -303,6 +326,9 @@ public class Kept extends SavedData {
             }
             if (filed.when() >= 0) {
                 entry.putLong(WHEN, filed.when());
+            }
+            if (filed.experience() > 0) {
+                entry.putInt(EXPERIENCE, filed.experience());
             }
             list.add(entry);
         });

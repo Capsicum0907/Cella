@@ -76,7 +76,7 @@ public class CellaItem extends BlockItem {
     @Override
     public Optional<TooltipComponent> getTooltipImage(ItemStack stack) {
         return Optional.ofNullable(stack.get(CellaRegistry.KEPT.get()))
-                .filter(Held::counted)
+                .filter(held -> held.counted() || held.grows())
                 .map(held -> held);
     }
 
@@ -91,12 +91,22 @@ public class CellaItem extends BlockItem {
     public void appendHoverText(ItemStack stack, TooltipContext context,
             List<Component> tooltip, TooltipFlag flag) {
         Held held = stack.get(CellaRegistry.KEPT.get());
-        if (held == null || !held.counted()) {
+        if (held == null) {
             return;
         }
-        tooltip.add(Component.translatable("tooltip.cella.filled",
-                        Held.count(held.used()), Held.count(held.slots()),
-                        Math.round(held.filled() * 100.0F))
-                .withStyle(ChatFormatting.GRAY));
+        if (held.counted()) {
+            tooltip.add(Component.translatable("tooltip.cella.filled",
+                            Held.count(held.used()), Held.count(held.slots()),
+                            Math.round(held.filled() * 100.0F))
+                    .withStyle(ChatFormatting.GRAY));
+        }
+        // A percent on its own, because the points behind it are not a figure anybody has
+        // a feel for - a player knows how many levels they handed over and not how many
+        // points those were worth.
+        if (held.grows()) {
+            tooltip.add(Component.translatable("tooltip.cella.grown",
+                            Math.round(held.grown() * 100.0F))
+                    .withStyle(ChatFormatting.GRAY));
+        }
     }
 }

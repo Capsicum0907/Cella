@@ -351,10 +351,11 @@ public final class CellaTests {
         filed.setStackInSlot(LATER * KIND.pageSize(), new ItemStack(Items.GOLD_INGOT, 11));
         java.util.UUID name = kept.put(
                 filed.serializeNBT(helper.getLevel().registryAccess()),
-                KIND, helper.getLevel().getGameTime());
+                KIND, helper.getLevel().getGameTime(), 0);
 
         ItemStack stack = new ItemStack(CellaRegistry.item(KIND).get());
-        stack.set(CellaRegistry.KEPT.get(), new Held(java.util.List.of(name), 1, KIND.slots()));
+        stack.set(CellaRegistry.KEPT.get(),
+                new Held(java.util.List.of(name), 1, KIND.slots(), 0, KIND.growth()));
         check(stack.getMaxStackSize() == 1, "a named chest should not stack");
 
         CellaBlockEntity chest = place(helper, KIND);
@@ -477,10 +478,10 @@ public final class CellaTests {
             one.setStackInSlot(at, new ItemStack(Items.GOLD_INGOT, 7));
             java.util.UUID name = kept.put(
                     one.serializeNBT(helper.getLevel().registryAccess()),
-                    Kind.IMPERFECT, helper.getLevel().getGameTime());
+                    Kind.IMPERFECT, helper.getLevel().getGameTime(), 0);
             filed.add(name);
             grid.get(at).set(CellaRegistry.KEPT.get(),
-                    new Held(java.util.List.of(name), 1, Kind.IMPERFECT.slots()));
+                    new Held(java.util.List.of(name), 1, Kind.IMPERFECT.slots(), 0, 0));
         }
 
         CraftingInput bench = CraftingInput.of(3, 3, grid);
@@ -529,7 +530,7 @@ public final class CellaTests {
         // One of them is fuller than the whole Semi-Perfect it would go into.
         grid.get(0).set(CellaRegistry.KEPT.get(), new Held(
                 java.util.List.of(java.util.UUID.randomUUID()),
-                Kind.SEMI_PERFECT.slots() + 1, Kind.SEMI_PERFECT.slots() + 1));
+                Kind.SEMI_PERFECT.slots() + 1, Kind.SEMI_PERFECT.slots() + 1, 0, 0));
         check(!fusion.matches(CraftingInput.of(3, 3, grid), helper.getLevel()),
                 "and one that would not fit is not");
         helper.succeed();
@@ -546,12 +547,12 @@ public final class CellaTests {
         CellaBlockEntity chest = place(helper, KIND);
         var registries = helper.getLevel().registryAccess();
 
-        java.util.List<net.minecraft.nbt.CompoundTag> filed = new java.util.ArrayList<>();
+        java.util.List<Kept.Chest> filed = new java.util.ArrayList<>();
         for (int which = 0; which < 2; which++) {
             ItemStackHandler one = new ItemStackHandler(Kind.SEMI_PERFECT.slots());
             one.setStackInSlot(100, new ItemStack(Items.GOLD_INGOT, which + 1));
             one.setStackInSlot(900, new ItemStack(Items.DIAMOND, which + 1));
-            filed.add(one.serializeNBT(registries));
+            filed.add(new Kept.Chest(one.serializeNBT(registries), 0));
         }
 
         check(chest.pour(registries, filed).isEmpty(), "all of it should fit");
@@ -581,7 +582,7 @@ public final class CellaTests {
         Spawning spawning = (Spawning) junior.value();
 
         Held named = new Held(java.util.List.of(java.util.UUID.randomUUID()), 5,
-                Kind.PERFECT.slots());
+                Kind.PERFECT.slots(), 0, Kind.PERFECT.growth());
         ItemStack perfect = new ItemStack(CellaRegistry.item(Kind.PERFECT).get());
         perfect.set(CellaRegistry.KEPT.get(), named);
 
@@ -936,7 +937,8 @@ public final class CellaTests {
 
         Kept kept = Kept.load(new CompoundTag(), registries);
         long when = 50_000L;
-        java.util.UUID name = kept.put(was.serializeNBT(registries), KIND, when);
+        int fed = 1234;
+        java.util.UUID name = kept.put(was.serializeNBT(registries), KIND, when, fed);
 
         Kept read = Kept.load(kept.save(new CompoundTag(), registries), registries);
         Kept.Trace trace = read.trace(name).orElseThrow(
@@ -944,6 +946,7 @@ public final class CellaTests {
         check(trace.kind().orElse(null) == KIND, "as the form it was: " + trace.named());
         check(trace.dated() && trace.when() == when, "at the time it was: " + trace.when());
         check(trace.used() == 1 && trace.slots() == KIND.slots(), "and as full as it was");
+        check(trace.experience() == fed, "and as fed as it was: " + trace.experience());
         helper.succeed();
     }
 
@@ -994,7 +997,7 @@ public final class CellaTests {
         was.setStackInSlot(0, new ItemStack(Items.GOLD_INGOT, 1));
 
         Kept kept = Kept.load(new CompoundTag(), registries);
-        java.util.UUID name = kept.put(was.serializeNBT(registries), Kind.IMPERFECT, 1L);
+        java.util.UUID name = kept.put(was.serializeNBT(registries), Kind.IMPERFECT, 1L, 0);
 
         check(kept.trace(name).isPresent(), "it should be there to look at");
         check(kept.trace(name).isPresent(), "and still there, because looking is not taking");
@@ -1026,6 +1029,176 @@ public final class CellaTests {
         check(Kind.biggest() == Kind.MAX, "the biggest form is Max");
         check(Kind.fitting(Kind.MAX.slots() + 1) == Kind.MAX,
                 "and something too big for any of them still gets the biggest there is");
+        helper.succeed();
+    }
+
+    /**
+     * The points-per-level curve agrees with the game's own, at every level and both joins.
+     *
+     * <p>{@link Experience#total} restates vanilla's piecewise arithmetic because there is
+     * no accessor for it, and a curve copied wrong is a curve that is only wrong somewhere
+     * in the middle — around level 17 or 32, where the pieces meet, and nowhere a casual
+     * try would look. So it is walked against the one accessor the game does expose: the
+     * cost of the next level, which is the difference between two of these.
+     */
+    @GameTest(template = TestStructures.FLOOR)
+    public static void theExperienceCurveIsTheGamesOwn(GameTestHelper helper) {
+        Player player = helper.makeMockPlayer(GameType.SURVIVAL);
+        check(Experience.total(0) == 0, "nothing is nothing");
+
+        for (int level = 0; level < 60; level++) {
+            player.experienceLevel = level;
+            int step = Experience.total(level + 1) - Experience.total(level);
+            check(step == player.getXpNeededForNextLevel(),
+                    "level " + level + " should cost " + player.getXpNeededForNextLevel()
+                            + " to leave, not " + step);
+        }
+
+        // And the figure Perfect is written with is the level it is meant to be.
+        check(Experience.total(50) == Kind.PERFECT.growth(),
+                "Perfect should want level fifty: " + Experience.total(50));
+        helper.succeed();
+    }
+
+    /**
+     * Feeding takes a level off the player and puts the points in the chest.
+     *
+     * <p>Points and not levels, because a level is worth seven at the bottom and hundreds
+     * at the top. And never more than the form can use: a chest that has finished growing
+     * takes nothing rather than swallowing experience that would never mean anything.
+     */
+    @GameTest(template = TestStructures.FLOOR)
+    public static void feedingMovesPointsOneLevelAtATime(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper, KIND);
+        Player player = helper.makeMockPlayer(GameType.SURVIVAL);
+        player.giveExperienceLevels(30);
+        int had = Experience.points(player);
+
+        int taken = chest.absorb(player);
+        check(taken > 0, "a level should have moved");
+        check(chest.experience() == taken, "and landed in the chest: " + chest.experience());
+        check(Experience.points(player) == had - taken,
+                "and left the player: " + Experience.points(player));
+        check(player.experienceLevel == 29, "one level down: " + player.experienceLevel);
+        check(player.experienceProgress == 0.0F,
+                "and standing where it was, not most of the way up a lower one: "
+                        + player.experienceProgress);
+
+        // An empty player gives nothing, rather than the chest filling itself from one.
+        player.giveExperienceLevels(-player.experienceLevel);
+        player.experienceProgress = 0.0F;
+        int before = chest.experience();
+        check(chest.absorb(player) == 0, "an empty player should give nothing");
+        check(chest.experience() == before, "and the chest should not have grown");
+        helper.succeed();
+    }
+
+    /**
+     * Feeding stops exactly at the threshold rather than going past it.
+     *
+     * <p>Anything over it would be experience that can never mean anything, taken from
+     * somebody who cannot get it back.
+     */
+    @GameTest(template = TestStructures.FLOOR)
+    public static void feedingStopsAtTheTop(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper, KIND);
+        Player rich = helper.makeMockPlayer(GameType.SURVIVAL);
+        rich.giveExperienceLevels(200);
+
+        while (chest.absorb(rich) > 0) {
+            // Until it stops taking, which it must.
+        }
+        check(chest.experience() == KIND.growth(),
+                "it should stop exactly full: " + chest.experience());
+        check(chest.grown() == 1.0F, "which is all the way grown");
+        check(Experience.points(rich) > 0, "and the player should have change left over");
+        helper.succeed();
+    }
+
+    /**
+     * A form that does not grow takes nothing, and shows nothing.
+     *
+     * <p>Nought in the column means "has no use for experience", not "needs none". A bar
+     * that could never move is worse than no bar: it says there is something to fill.
+     */
+    @GameTest(template = TestStructures.FLOOR)
+    public static void aFormThatDoesNotGrowTakesNothing(GameTestHelper helper) {
+        check(!Kind.LARAVEL.grows(), "Laravel does not grow on experience yet");
+        CellaBlockEntity chest = place(helper, Kind.LARAVEL);
+        Player player = helper.makeMockPlayer(GameType.SURVIVAL);
+        player.giveExperienceLevels(30);
+        int had = Experience.points(player);
+
+        check(chest.absorb(player) == 0, "so it should take nothing");
+        check(Experience.points(player) == had, "and the player should keep it all");
+        check(chest.grown() == 0.0F, "and there is nothing to draw");
+        helper.succeed();
+    }
+
+    /**
+     * A chest with experience and no items is still worth keeping.
+     *
+     * <p><b>This is the hole that made experience dangerous.</b> Breaking a chest files it
+     * away only if there is something to keep, and that test used to be "are any slots
+     * spoken for" — so a chest holding nothing but levels would have dropped as a plain
+     * item and the experience would have gone with the block. One way means there is no
+     * getting it back except by fighting for it again.
+     */
+    @GameTest(template = TestStructures.FLOOR)
+    public static void experienceAloneIsWorthKeeping(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper, KIND);
+        Player player = helper.makeMockPlayer(GameType.SURVIVAL);
+        player.giveExperienceLevels(30);
+        int fed = chest.absorb(player);
+        check(fed > 0, "it should have been fed something to lose");
+
+        check(chest.isEmpty(), "no slot has anything in it");
+        check(chest.worthKeeping(), "and it is still very much worth keeping");
+
+        helper.destroyBlock(WHERE);
+
+        helper.succeedWhen(() -> {
+            Held held = dropped(helper).stream()
+                    .filter(stack -> stack.is(CellaRegistry.item(KIND).get()))
+                    .map(stack -> stack.get(CellaRegistry.KEPT.get()))
+                    .filter(java.util.Objects::nonNull)
+                    .findFirst()
+                    .orElseThrow(() -> new GameTestAssertException(
+                            "an empty chest with experience should still name what it kept"));
+            check(held.experience() == fed,
+                    "and carry what it was fed: " + held.experience());
+            check(held.grows() && held.growth() == KIND.growth(),
+                    "against the form's own threshold, so the bar means something");
+        });
+    }
+
+    /**
+     * Experience comes back with the chest, and never over the top of the bar.
+     *
+     * <p>Put back into the form it came from it is the same figure. Put back into a form
+     * that can use less of it, it is that form's threshold — because a bar reading more
+     * than full is a bar saying something untrue, and refusing the chest instead would
+     * lose the contents as well.
+     */
+    @GameTest(template = TestStructures.FLOOR)
+    public static void experienceComesBackAndIsNeverOverFull(GameTestHelper helper) {
+        HolderLookup.Provider registries = helper.getLevel().registryAccess();
+        CompoundTag was = new ItemStackHandler(KIND.slots()).serializeNBT(registries);
+
+        CellaBlockEntity chest = place(helper, KIND);
+        chest.restore(registries, new Kept.Chest(was, KIND.growth() / 2));
+        check(chest.experience() == KIND.growth() / 2,
+                "half fed comes back half fed: " + chest.experience());
+
+        chest.restore(registries, new Kept.Chest(was, KIND.growth() * 3));
+        check(chest.experience() == KIND.growth(),
+                "and more than it can use stops at the top: " + chest.experience());
+
+        // A form with no use for experience takes none of it back either.
+        CellaBlockEntity larva = place(helper, Kind.LARAVEL);
+        larva.restore(registries, new Kept.Chest(
+                new ItemStackHandler(Kind.LARAVEL.slots()).serializeNBT(registries), 9999));
+        check(larva.experience() == 0, "a form that does not grow keeps none of it");
         helper.succeed();
     }
 

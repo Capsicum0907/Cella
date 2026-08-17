@@ -176,6 +176,14 @@ public final class CellaDataGen {
             add("gui.cella.prev", "Previous page");
             add("gui.cella.next", "Next page");
 
+            // Experience. A percent everywhere rather than points: a player knows how many
+            // levels they handed over and has no feel at all for what those were worth.
+            add("container.cella.grown", "%s (%s%%)");
+            add("tooltip.cella.grown", "%s%% grown");
+            add("message.cella.fed", "Absorbed. %s%% grown.");
+            add("message.cella.grown", "It has taken in all it can use.");
+            add("message.cella.nothing", "You have no experience to give it.");
+
             // /cella kept — see KeptCommand. Three answers about a form rather than two,
             // because "names one this version does not have" is not "names none".
             add("commands.cella.kept.none", "No chest contents are kept.");

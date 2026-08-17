@@ -35,6 +35,16 @@ public record FillBar(Held held) implements ClientTooltipComponent {
     private static final int TRACK = 0xFFFFFFFF;
     private static final int FILL = 0xFF3B48D8;
 
+    /**
+     * The experience bar, in the green the game already uses for experience.
+     *
+     * <p>A second colour and not a second shade of the first: the two bars are not two
+     * measurements of one thing. One is how much room is left and the other is how far
+     * from changing form it is, and a reader who has to work out which is which from
+     * length alone will read them as one.
+     */
+    private static final int GROWTH = 0xFF7FBF3F;
+
     /** The grey vanilla writes the quiet half of a tooltip in. */
     private static final int LABEL = 0xFFAAAAAA;
 
@@ -43,7 +53,7 @@ public record FillBar(Held held) implements ClientTooltipComponent {
 
     @Override
     public int getHeight() {
-        return HEIGHT + GAP + TEXT;
+        return HEIGHT + (held.grows() ? GAP + HEIGHT : 0) + GAP + TEXT;
     }
 
     @Override
@@ -53,18 +63,39 @@ public record FillBar(Held held) implements ClientTooltipComponent {
 
     @Override
     public void renderImage(Font font, int x, int y, GuiGraphics graphics) {
+        bar(graphics, x, y, held.filled(), held.used() > 0, FILL);
+
+        int under = y + HEIGHT;
+        if (held.grows()) {
+            // Under the fill rather than beside it: they share the nought and the hundred
+            // written below, so stacking them makes one scale read twice.
+            under += GAP;
+            bar(graphics, x, under, held.grown(), held.experience() > 0, GROWTH);
+            under += HEIGHT;
+        }
+
+        under += GAP;
+        graphics.drawString(font, EMPTY, x, under, LABEL, false);
+        graphics.drawString(font, FULL, x + WIDTH - font.width(FULL), under, LABEL, false);
+    }
+
+    /**
+     * One bar: an outline, a track, and however much of it is spoken for.
+     *
+     * @param any whether there is anything at all, which is not the same as whether it
+     *            rounds to a pixel — a hundredth of a percent still has to show, or a
+     *            chest with something in it is drawn as a chest with nothing in it
+     */
+    private static void bar(GuiGraphics graphics, int x, int y, float part, boolean any,
+            int colour) {
         graphics.fill(x, y, x + WIDTH, y + HEIGHT, OUTLINE);
         graphics.fill(x + 1, y + 1, x + WIDTH - 1, y + HEIGHT - 1, TRACK);
 
         int inside = WIDTH - 2;
-        int filled = Math.round(held.filled() * inside);
-        if (held.used() > 0) {
+        int filled = Math.round(part * inside);
+        if (any) {
             filled = Math.clamp(filled, 1, inside);
         }
-        graphics.fill(x + 1, y + 1, x + 1 + filled, y + HEIGHT - 1, FILL);
-
-        int under = y + HEIGHT + GAP;
-        graphics.drawString(font, EMPTY, x, under, LABEL, false);
-        graphics.drawString(font, FULL, x + WIDTH - font.width(FULL), under, LABEL, false);
+        graphics.fill(x + 1, y + 1, x + 1 + filled, y + HEIGHT - 1, colour);
     }
 }
