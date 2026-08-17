@@ -179,8 +179,11 @@ public final class CellaDataGen {
             // /cella kept — see KeptCommand. Three answers about a form rather than two,
             // because "names one this version does not have" is not "names none".
             add("commands.cella.kept.none", "No chest contents are kept.");
+            // Two keys rather than an "s" added in Java: which words change with a count
+            // is a fact about the language, so it belongs on this side of the file.
             add("commands.cella.kept.header",
                     "%s chests kept, %s slots spoken for between them:");
+            add("commands.cella.kept.header.one", "One chest kept, %s slots spoken for:");
             add("commands.cella.kept.row", "%s - %s of %s slots, %s");
             add("commands.cella.kept.unformed", "form unrecorded");
             add("commands.cella.kept.foreign", "%s, which this version does not have");

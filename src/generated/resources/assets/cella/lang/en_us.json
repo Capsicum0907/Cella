@@ -13,6 +13,7 @@
   "commands.cella.kept.forgot": "Destroyed the contents kept as %s: %s of %s slots. That cannot be undone.",
   "commands.cella.kept.gave": "Gave you a %s naming %s of %s slots. The contents stay kept until it is placed, and come back once.",
   "commands.cella.kept.header": "%s chests kept, %s slots spoken for between them:",
+  "commands.cella.kept.header.one": "One chest kept, %s slots spoken for:",
   "commands.cella.kept.hours": "%s hours",
   "commands.cella.kept.missing": "Nothing is kept under %s.",
   "commands.cella.kept.more": "...and %s more, not shown.",

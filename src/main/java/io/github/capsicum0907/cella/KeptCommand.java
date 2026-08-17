@@ -112,8 +112,10 @@ public final class KeptCommand {
         // A long, because ten thousand orphaned Cella Maxes is more than an int holds and
         // the number that overflows would be the reassuring one.
         long slots = traces.stream().mapToLong(Kept.Trace::used).sum();
-        source.sendSuccess(() -> Component.translatable("commands.cella.kept.header",
-                traces.size(), Held.count(slots)), false);
+        source.sendSuccess(() -> traces.size() == 1
+                ? Component.translatable("commands.cella.kept.header.one", Held.count(slots))
+                : Component.translatable("commands.cella.kept.header",
+                        traces.size(), Held.count(slots)), false);
 
         long now = source.getLevel().getGameTime();
         for (Kept.Trace trace : traces.subList(0, Math.min(SHOWN, traces.size()))) {
