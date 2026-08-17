@@ -32,9 +32,11 @@ public enum Kind {
      * than sitting between two of the others: it is stronger than the second form by a
      * long way, which is why it is not where its size would otherwise put it.
      *
-     * <p><b>Imperfect is not crafted.</b> Nothing makes one; a Laravel that has been fed
-     * enough becomes one. That is why a formula is allowed to be absent rather than every
-     * kind having to have one.
+     * <p><b>Two of them are not crafted.</b> A Laravel that has been fed enough becomes an
+     * Imperfect, and a Perfect that has been fed enough and is then ended comes back a
+     * Super Perfect. That is why a formula is allowed to be absent rather than every kind
+     * having to have one — and why the test asks whether every form can be <em>reached</em>
+     * rather than whether every form has a recipe.
      *
      * <p><b>Capacity is what went into it.</b> A large chest is fifty-four slots. Laravel
      * is one, Imperfect is four, and each step after multiplies by what its recipe eats —
@@ -137,14 +139,18 @@ public enum Kind {
             .spawning()
             .done()),
 
-    SUPER_PERFECT("super_perfect", "Super Perfect Cella", 0xA3E052, 12, 16, 55296, true, 0, "", false, () -> Formula
-            .shaped("CSC",
-                    "SES",
-                    "CSC")
-            .key('C', PERFECT)
-            .key('S', () -> Items.NETHER_STAR)
-            .key('E', () -> Blocks.DRAGON_EGG)
-            .done()),
+    /**
+     * <b>Not made either.</b> A Perfect that has taken in everything it can use and is then
+     * ended in the End comes back as this; see {@link #becomes} and {@code Blast}.
+     *
+     * <p>It used to be four Perfects around a nether star and a dragon egg, and that recipe
+     * was wrong twice over. <b>It said this form is an aggregation</b> — four of something
+     * put together — when it is one that nearly died and came back, which is a thing that
+     * happens to an individual and not to a pile. And ⚠ <b>it put a dragon egg in the
+     * middle</b>, of which a world has exactly one, so Cella Max — four of these — needed
+     * four eggs and could not be built at all.
+     */
+    SUPER_PERFECT("super_perfect", "Super Perfect Cella", 0xA3E052, 12, 16, 55296, true, 0, "", false, null),
 
     MAX("max", "Cella Max", 0x8A3A2E, 12, 16, 221184, true, 0, "", false, () -> Formula
             .shaped("CTC",
