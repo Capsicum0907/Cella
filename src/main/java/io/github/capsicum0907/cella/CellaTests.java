@@ -865,18 +865,21 @@ public final class CellaTests {
                         .is(CellaRegistry.item(Kind.PERFECT).get()),
                 "the Perfect in the middle should still be there afterwards");
 
-        ItemStack star = new ItemStack(Items.NETHER_STAR);
-        var superPerfect = recipes
-                .byKey(ResourceLocation.fromNamespaceAndPath(Cella.MODID, "super_perfect"))
-                .orElseThrow(() -> new GameTestAssertException("no super_perfect recipe"));
-        check(!(superPerfect.value() instanceof Spawning),
-                "super perfect should not give its Perfects back");
+        // The other half, on a fusion: what it eats does not come back. This used to ask
+        // super_perfect, which is no longer a recipe at all - a Perfect that ends itself
+        // comes back as one. Semi-Perfect is the same shape and still crafted.
+        ItemStack imperfect = new ItemStack(CellaRegistry.block(Kind.IMPERFECT).get());
+        var semiPerfect = recipes
+                .byKey(ResourceLocation.fromNamespaceAndPath(Cella.MODID, "semi_perfect"))
+                .orElseThrow(() -> new GameTestAssertException("no semi_perfect recipe"));
+        check(!(semiPerfect.value() instanceof Spawning),
+                "a fusion should not give its ingredients back");
         CraftingInput eaten = CraftingInput.of(3, 3, java.util.List.of(
-                perfect, star, perfect,
-                star, new ItemStack(Items.DRAGON_EGG), star,
-                perfect, star, perfect));
+                imperfect, imperfect, imperfect,
+                imperfect, new ItemStack(Items.OBSIDIAN), imperfect,
+                imperfect, imperfect, imperfect));
         for (ItemStack left : ((net.minecraft.world.item.crafting.CraftingRecipe)
-                superPerfect.value()).getRemainingItems(eaten)) {
+                semiPerfect.value()).getRemainingItems(eaten)) {
             check(left.isEmpty(), "nothing should come back from it");
         }
         helper.succeed();
