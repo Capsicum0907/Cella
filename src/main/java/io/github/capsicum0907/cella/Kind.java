@@ -49,18 +49,22 @@ public enum Kind {
      * holding fifty-four of its ninety squares. A short last page is fine and is drawn
      * short; bending the capacity so the pages come out round would not be.
      *
-     * <p><b>The page widens at Perfect</b>, from nine columns to sixteen — fifty-four
-     * slots to ninety-six. Not taller, because it cannot be: see {@code CellaConfig} for
-     * the arithmetic, but six rows is what a screen has room for and eight is one row too
-     * many at the window size this game opens in.
+     * <p><b>The page grows at Perfect</b>, from fifty-four slots to a hundred and
+     * ninety-two — twelve rows of sixteen. That is where the chest stops being something
+     * you could have built out of chests.
      *
-     * <p><b>Ninety-six is not chosen for looking right.</b> Every capacity from Perfect up
-     * has to divide by it, and those four are 27 × 2⁷, 2⁹, 2¹¹ and 2¹³ — so the page has
-     * to divide 3,456, the smallest of them. Six rows of sixteen does; six of nine does
-     * too but is no bigger than the forms below; seven of anything cannot, because seven
-     * does not go into 3,456 at all. That is the whole search space, and it has one answer.
+     * <p><b>A hundred and ninety-two is not chosen for looking right.</b> Every capacity
+     * from Perfect up has to divide by it, and those four are 27 × 2⁷, 2⁹, 2¹¹ and 2¹³ —
+     * so the page has to divide 3,456, the smallest of them. Twelve by sixteen does.
      *
-     * <p>Cella Max therefore has 2,304 pages. <b>That number is a symptom and not a
+     * <p>⚠ <b>Twelve rows is 330 pixels and does not fit every window.</b> That is not a
+     * fact about the chest and it should not be written down here at all: how a chest is
+     * cut into pages is a fact about looking at it, and the page shape being server config
+     * is the mod contradicting its own principle. It is meant to move to the client, where
+     * it can follow the screen. Until it does, this is a default that suits a large window
+     * and the small ones turn it down. See {@code CellaConfig}.
+     *
+     * <p>Cella Max therefore has 1,152 pages. <b>That number is a symptom and not a
      * problem to solve with the shape of a page</b> — no page a screen can hold makes
      * 221,184 slots navigable by turning them. What that wants is searching, which is
      * open.
@@ -105,7 +109,7 @@ public enum Kind {
             .key('O', () -> Blocks.OBSIDIAN)
             .done()),
 
-    PERFECT("perfect", "Perfect Cella", 0x8ACF48, 6, 16, 13824, true, () -> Formula
+    PERFECT("perfect", "Perfect Cella", 0x8ACF48, 12, 16, 13824, true, () -> Formula
             .shaped("CCC",
                     "CGC",
                     "CCC")
@@ -123,7 +127,7 @@ public enum Kind {
      * make the recipe a machine for making storage out of nothing rather than a strong
      * reward for reaching Perfect.
      */
-    JUNIOR("junior", "Cella Jr.", 0x3FB39A, 6, 16, 3456, true, () -> Formula
+    JUNIOR("junior", "Cella Jr.", 0x3FB39A, 12, 16, 3456, true, () -> Formula
             .shaped("DDD",
                     "DCD",
                     "DDD")
@@ -133,7 +137,7 @@ public enum Kind {
             .spawning()
             .done()),
 
-    SUPER_PERFECT("super_perfect", "Super Perfect Cella", 0xA3E052, 6, 16, 55296, true, () -> Formula
+    SUPER_PERFECT("super_perfect", "Super Perfect Cella", 0xA3E052, 12, 16, 55296, true, () -> Formula
             .shaped("CSC",
                     "SES",
                     "CSC")
@@ -142,7 +146,7 @@ public enum Kind {
             .key('E', () -> Blocks.DRAGON_EGG)
             .done()),
 
-    MAX("max", "Cella Max", 0x8A3A2E, 6, 16, 221184, true, () -> Formula
+    MAX("max", "Cella Max", 0x8A3A2E, 12, 16, 221184, true, () -> Formula
             .shaped("CTC",
                     "TET",
                     "CTC")

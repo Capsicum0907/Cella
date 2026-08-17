@@ -181,19 +181,15 @@ four of them, and each step multiplies by what its recipe eats.
 | Laravel | 1 | 54 | 6×9 | 1 |
 | Imperfect | 4 | 216 | 6×9 | 4 |
 | Semi-Perfect | 32 | 1,728 | 6×9 | 32 |
-| Perfect | 256 | 13,824 | 6×16 | 144 |
-| Cella Jr. | 64 | 3,456 | 6×16 | 36 |
-| Super Perfect | 1,024 | 55,296 | 6×16 | 576 |
-| Cella Max | 4,096 | 221,184 | 6×16 | 2,304 |
+| Perfect | 256 | 13,824 | 12×16 | 72 |
+| Cella Jr. | 64 | 3,456 | 12×16 | 18 |
+| Super Perfect | 1,024 | 55,296 | 12×16 | 288 |
+| Cella Max | 4,096 | 221,184 | 12×16 | 1,152 |
 
-**The page widens at Perfect**, from nine columns to sixteen — fifty-four slots to
-ninety-six. Not taller, because it cannot be.
-
-Ninety-six is not chosen for looking right; it is the only answer there is. Every capacity
-from Perfect up has to divide by the page, and those four are 27 × 2⁷, 2⁹, 2¹¹ and 2¹³, so
-the page has to divide 3,456. Six rows of sixteen does. Six of nine does too and is no
-bigger than the forms below it. Seven of anything cannot, because seven does not go into
-3,456 at all — and eight does not fit on a screen. That is the whole search space.
+**The page grows at Perfect**, from fifty-four slots to a hundred and ninety-two. A
+hundred and ninety-two is not chosen for looking right: every capacity from Perfect up
+has to divide the page, and those four are 27 × 2⁷, 2⁹, 2¹¹ and 2¹³, so it has to divide
+3,456. Twelve by sixteen does.
 
 **The column in `Kind` is the capacity and the pages follow from it**, which is the way
 round it was not written first. How big a chest is is a fact about the chest; how it is
@@ -210,14 +206,20 @@ Two consequences of the top of the ladder, neither solved. **1,024 pages cannot 
 reached with two arrows**, and the sort and the two movers read the whole chest once per
 press, which at 221,184 slots is a real amount of work for one keystroke.
 
-And **six rows is the ceiling of what fits on a screen**, which is why the page grew
-sideways and not down. The panel is 114 pixels plus 18 a row and 14 plus 18 a column, so
-222 by 302 — against the 320×240 that Minecraft's automatic GUI scale leaves at its
-narrowest, which is what this game's own default window of 854×480 leaves at scale 2. The
-height is what binds: the budget is 240, seven rows is 240 exactly and eight is 258. Both
-twelve and eight were tried in a client before six was; twelve does not fit 1920×1080 at
-the scale that machine picks for itself, and eight is one row off the top of the default
-window.
+### The page shape is in the wrong place, and it is why the screen cannot fit
+
+`rows` and `columns` are server config, so the server decides them and sends them when a
+screen opens. That contradicts the sentence this design is built on: **how a chest is cut
+into pages is a fact about looking at it.** The chest is a flat run of slots and the page
+is a way of seeing them, so the shape belongs to whoever is looking — and could then
+follow their window, which is the only way "a bigger screen shows more" can work.
+
+Until it moves, one number has to suit everyone on a server. The panel is 114 pixels plus
+18 a row and 14 plus 18 a column, so twelve by sixteen is **330 × 302** and wants about
+640×360 of GUI — a 1080p screen at scale 3. Minecraft's *automatic* scale leaves as little
+as 320×240, and 240 is the height this game's own default window of 854×480 gets, so the
+default here does not fit that: turn `rows` down to 6. Six, eight and twelve have all been
+watched in a client, which is how those numbers are known rather than guessed.
 
 **The Perfect that makes Cella Jr. is not spent.** Seven come out and the parent is
 still standing there, which is what happened. That is a property of the one recipe and
