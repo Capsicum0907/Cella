@@ -15,6 +15,7 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.saveddata.SavedData;
 
@@ -54,17 +55,31 @@ import net.minecraft.world.level.saveddata.SavedData;
  * them. That is the cost of the name, and it is paid in kilobytes rather than in anything
  * a player can see — but it is untidy, and after fusions it happens eight at a time.
  *
- * <p><b>Nothing sweeps them automatically, and that is the decision rather than the
- * omission.</b> Knowing a name has gone would mean counting every item in the world that
- * could be holding one, and a Cella item is anywhere: a hand, a chest, an ender chest, an
- * item on the floor, some other mod's warehouse, <em>another Cella</em>. Any sweep that
- * misses one — an unloaded chunk is enough — deletes contents that were still spoken for.
- * The failure points the wrong way, so it is not done.
+ * <p><b>Nothing goes looking for them, and that is the decision rather than the
+ * omission.</b> Knowing a name has gone by searching would mean counting every item in
+ * the world that could be holding one, and a Cella item is anywhere: a hand, a chest, an
+ * ender chest, an item on the floor, some other mod's warehouse, <em>another Cella</em>.
+ * Any sweep that misses one — an unloaded chunk is enough — deletes contents that were
+ * still spoken for. The failure points the wrong way, so it is not done.
  *
- * <p>What is done instead is {@link Trace}: enough about each filed chest that a person
- * can look at the list and decide. See {@code KeptCommand}. And because deciding is the
- * expensive part, the tool's first job is <b>handing contents back</b> rather than
- * deleting them — a name is all it takes to put an orphan on a new item.
+ * <p><b>What is done is the other direction, which needs no search at all: whatever
+ * destroys an item says so.</b> An item that burns, is blown up, is caught by a wave or
+ * simply runs out of time is gone from the one place it was, and the thing that removed
+ * it knows without anybody being counted. See {@link #lost} and {@link #destroyed}.
+ *
+ * <p>⚠ <b>Which is why this counts names rather than hand-outs.</b> A filed chest begins
+ * with exactly one name — the item {@link CellaBlockEntity#handOver} dropped — {@code
+ * /cella kept give} mints another, and every one seen destroyed takes one off. The
+ * contents go when the last of them does. ⚠ <b>The count can only ever be too high</b>: a
+ * name lost in a way nothing reports — the void, a creative-mode click, some other mod
+ * eating it — leaves a chest filed with nobody left to ask for it. That is the direction
+ * to be wrong in, and it is the direction this is wrong in.
+ *
+ * <p>So {@link Trace} stays, for everything the reports do not reach: enough about each
+ * filed chest that a person can look at the list and decide. See {@code KeptCommand}. And
+ * because deciding is the expensive part, the tool's first job is <b>handing contents
+ * back</b> rather than deleting them — a name is all it takes to put an orphan on a new
+ * item.
  */
 public class Kept extends SavedData {
     /** The file this ends up in, under the overworld's data folder. */
@@ -76,6 +91,16 @@ public class Kept extends SavedData {
     private static final String KIND = "Kind";
     private static final String WHEN = "When";
     private static final String EXPERIENCE = "Experience";
+    private static final String NAMES = "Names";
+
+    /**
+     * What {@link #NAMES} was written as before the store counted names.
+     *
+     * <p>Read and never written. It held the number of hand-outs, which is the same
+     * count without the item the chest was filed with, so an entry from then loads as
+     * one more than it says. ⚠ One key or the other decides an entry, never both
+     * added together.
+     */
     private static final String HANDED = "Handed";
 
     /**
@@ -110,11 +135,13 @@ public class Kept extends SavedData {
      * @param when game time, or {@link #UNDATED}
      * @param experience points it had been fed, which is nought for most entries and for
      *              every entry written before a Cella could be fed at all
-     * @param handed how many times a name for it has been handed out by {@code /cella kept
-     *              give} without being spent. See {@link #hand}.
+     * @param names how many items naming it are believed to be out in the world: one when
+     *              it is filed, one more for every {@code /cella kept give}, one fewer for
+     *              every one seen destroyed. There is no entry at nought. See {@link #hand}
+     *              and {@link #lost}.
      */
     private record Filed(CompoundTag contents, String kind, long when, int experience,
-            int handed) {
+            int names) {
     }
 
     /**
@@ -151,7 +178,7 @@ public class Kept extends SavedData {
      *             recorded — ask {@link #dated()} rather than comparing
      */
     public record Trace(UUID id, String named, Optional<Kind> kind, long when,
-            int used, int slots, int experience, int handed) {
+            int used, int slots, int experience, int names) {
         /** Whether it knows when it was filed at all. */
         public boolean dated() {
             return when >= 0;
@@ -167,9 +194,17 @@ public class Kept extends SavedData {
             return experience > 0;
         }
 
-        /** Whether somebody is already walking around with a name for this. */
+        /**
+         * Whether more than one name for this is believed to be out there.
+         *
+         * <p>⚠ <b>Not "whether anybody has one".</b> Every filed chest has a name by
+         * definition — that is what filing it produced — and whether that item still
+         * exists is the one thing nothing here can know. What this marks is the state the
+         * store made itself: two names, one set of contents, and whichever is placed
+         * second going down empty.
+         */
         public boolean claimed() {
-            return handed > 0;
+            return names > 1;
         }
     }
 
@@ -212,7 +247,8 @@ public class Kept extends SavedData {
      */
     public UUID put(CompoundTag contents, Kind kind, long when, int experience) {
         UUID id = UUID.randomUUID();
-        chests.put(id, new Filed(contents, kind.id(), when, experience, 0));
+        // One name, because filing one is what drops the item that carries it.
+        chests.put(id, new Filed(contents, kind.id(), when, experience, 1));
         setDirty();
         return id;
     }
@@ -235,8 +271,7 @@ public class Kept extends SavedData {
     }
 
     /**
-     * Records that a name for it has been handed out, and says how many times it had been
-     * before.
+     * Records that another name for it is going out, and says how many there already were.
      *
      * <p><b>Not a lock.</b> An operator who loses the item they were just given still has
      * to be able to ask for another, so this refuses nothing — but two items naming one
@@ -244,7 +279,13 @@ public class Kept extends SavedData {
      * mints that state on request now rather than only meeting it. What can be done about
      * a state that cannot be prevented is to stop making it quietly.
      *
-     * @return how many times it had been handed out before this one
+     * <p>⚠ <b>It answers one, not nought, for a chest nobody has asked about before</b> —
+     * the item that was dropped when it was filed. Whether that item still exists is
+     * exactly what nothing here knows, and its being gone is the usual reason for running
+     * the command at all, so a first hand-out is not the state worth warning about. The
+     * second is: by then the store has certainly made two.
+     *
+     * @return how many names for it there were before this one
      */
     public int hand(UUID id) {
         Filed filed = chests.get(id);
@@ -252,9 +293,59 @@ public class Kept extends SavedData {
             return 0;
         }
         chests.put(id, new Filed(filed.contents(), filed.kind(), filed.when(),
-                filed.experience(), filed.handed() + 1));
+                filed.experience(), filed.names() + 1));
         setDirty();
-        return filed.handed();
+        return filed.names();
+    }
+
+    /**
+     * One of the names for a chest has been destroyed, and the contents go with the last
+     * of them.
+     *
+     * <p><b>This is the one thing about a name that can be known rather than searched
+     * for.</b> Whatever destroyed the item knew it was destroying it — see
+     * {@link #destroyed} for the three that call this — so nothing has to be counted and
+     * nothing can be miscounted. The direction that cannot be done safely, and the reason,
+     * are at the top of this class.
+     *
+     * <p>⚠ <b>Which of several names was destroyed is not asked and does not matter.</b>
+     * The store holds contents rather than items, and the only question it has is whether
+     * anything is left that could come and ask for them.
+     *
+     * @return whether that was the last name, so the contents have now gone
+     */
+    public boolean lost(UUID id) {
+        Filed filed = chests.get(id);
+        if (filed == null) {
+            return false;
+        }
+        if (filed.names() > 1) {
+            chests.put(id, new Filed(filed.contents(), filed.kind(), filed.when(),
+                    filed.experience(), filed.names() - 1));
+            setDirty();
+            return false;
+        }
+        chests.remove(id);
+        setDirty();
+        return true;
+    }
+
+    /**
+     * Every name on a destroyed item, told to the store.
+     *
+     * <p><b>Several, because a fusion carries what it ate</b>: a crafted Semi-Perfect names
+     * eight chests until it is placed, and one that burns destroys eight names at once. See
+     * {@link Held}.
+     *
+     * <p>Does nothing on a client, which has no store to tell — see {@link #of}. And
+     * nothing at all for an item that names no chest, which is every empty one.
+     */
+    public static void destroyed(Level level, ItemStack stack) {
+        Held held = stack.get(CellaRegistry.KEPT.get());
+        if (held == null) {
+            return;
+        }
+        of(level).ifPresent(kept -> held.chests().forEach(kept::lost));
     }
 
     /**
@@ -306,7 +397,7 @@ public class Kept extends SavedData {
     private static Trace trace(UUID id, Filed filed) {
         return new Trace(id, filed.kind(), Kind.named(filed.kind()), filed.when(),
                 usedIn(filed.contents()), slotsIn(filed.contents()), filed.experience(),
-                filed.handed());
+                filed.names());
     }
 
     /** How many slots have something in them; see the note on {@link #ITEMS}. */
@@ -342,7 +433,9 @@ public class Kept extends SavedData {
                                     ? entry.getLong(WHEN)
                                     : UNDATED,
                             entry.getInt(EXPERIENCE),
-                            entry.getInt(HANDED))));
+                            entry.contains(NAMES, Tag.TAG_INT)
+                                    ? entry.getInt(NAMES)
+                                    : 1 + entry.getInt(HANDED))));
         }
         return new Kept(chests);
     }
@@ -364,8 +457,9 @@ public class Kept extends SavedData {
             if (filed.experience() > 0) {
                 entry.putInt(EXPERIENCE, filed.experience());
             }
-            if (filed.handed() > 0) {
-                entry.putInt(HANDED, filed.handed());
+            // The common entry has the one name it was filed with, and says nothing.
+            if (filed.names() != 1) {
+                entry.putInt(NAMES, filed.names());
             }
             list.add(entry);
         });

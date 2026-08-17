@@ -209,6 +209,13 @@ public final class Blast {
             if (caught instanceof Player) {
                 caught.hurt(source, BITE);
             } else {
+                // ⚠ Removed rather than destroyed, which means CellaItem#onDestroyed never
+                // runs - so a Cella lying in the reach would have its contents left filed
+                // with nothing able to ask for them. The wave is the one place this mod
+                // destroys items itself, which makes it the one place with no excuse.
+                if (caught instanceof net.minecraft.world.entity.item.ItemEntity item) {
+                    Kept.destroyed(level, item.getItem());
+                }
                 caught.discard();
             }
         }

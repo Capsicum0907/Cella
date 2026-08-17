@@ -1028,16 +1028,154 @@ public final class CellaTests {
 
         // Handing a name out does not spend it either, and that it went out is remembered
         // - which is the only thing anybody can do about a claim that cannot be recalled.
-        check(kept.hand(name) == 0, "the first hand-out should say it was the first");
-        check(kept.trace(name).orElseThrow().claimed(), "and the entry should know");
-        check(kept.hand(name) == 1, "the second should say there was one before it");
-        check(kept.trace(name).orElseThrow().handed() == 2, "and count both");
+        check(kept.hand(name) == 1, "a filed chest already has the name it was filed with");
+        check(kept.trace(name).orElseThrow().claimed(), "and the hand-out makes that two");
+        check(kept.hand(name) == 2, "the next one should say there were two before it");
+        check(kept.trace(name).orElseThrow().names() == 3, "and count all three");
         check(kept.trace(name).isPresent(), "and handing out still does not spend it");
 
         check(kept.forget(name), "forgetting should say it found something");
         check(kept.trace(name).isEmpty(), "and then there is nothing to look at");
         check(kept.take(name).isEmpty(), "nor anything to take, which is what it is for");
         check(!kept.forget(name), "and forgetting again should say so rather than pretend");
+        helper.succeed();
+    }
+
+    /**
+     * A chest goes when the last name for it goes, and not one destruction before.
+     *
+     * <p><b>This is the one exception to "nothing sweeps them", so it is the one to test
+     * hardest.</b> Filing drops an item; {@code give} mints another; either can be the one
+     * that burns. ⚠ Forgetting on the first destruction would delete contents the other
+     * item still names — which is precisely the failure the no-sweep rule exists to avoid,
+     * arrived at by a different road.
+     *
+     * <p>Which of them was destroyed is deliberately never asked. The store holds contents
+     * and not items, and the only question it has is whether anything is left to come and
+     * ask for them.
+     */
+    @GameTest(template = TestStructures.FLOOR)
+    public static void theLastNameIsTheOneThatTakesTheContents(GameTestHelper helper) {
+        HolderLookup.Provider registries = helper.getLevel().registryAccess();
+        Kept kept = Kept.load(new CompoundTag(), registries);
+        java.util.UUID name = file(kept, registries);
+
+        check(kept.trace(name).orElseThrow().names() == 1, "filing a chest makes one name");
+        check(!kept.trace(name).orElseThrow().claimed(), "which is not a claim against itself");
+        kept.hand(name);
+        check(kept.trace(name).orElseThrow().names() == 2, "and handing one out makes two");
+
+        check(!kept.lost(name), "one of two is not the last of them");
+        check(kept.trace(name).orElseThrow().names() == 1, "and leaves the other standing");
+        check(!kept.trace(name).orElseThrow().claimed(), "with nothing left to warn about");
+        check(kept.trace(name).orElseThrow().used() == 1, "and the contents untouched");
+
+        check(kept.lost(name), "the other one is the last of them");
+        check(kept.trace(name).isEmpty(), "and the contents go with it");
+        check(!kept.lost(name), "and losing a name twice over finds nothing to say it about");
+        helper.succeed();
+    }
+
+    /**
+     * An entry written before the store counted names loads with the one it was filed with.
+     *
+     * <p>What the old key held was hand-outs, which is the same count without the item the
+     * chest was filed with — so an entry that had been given out once names two things and
+     * not one. ⚠ <b>Reading both keys would double the count on every load</b>, and the
+     * shape of that bug is a chest that quietly becomes harder to forget every time the
+     * world is opened.
+     *
+     * <p>The keys are written out here rather than taken from {@link Kept}, for the reason
+     * given on the entry-with-nothing-recorded test: they are what is on somebody's disk.
+     */
+    @GameTest(template = TestStructures.FLOOR)
+    public static void anEntryFromBeforeNamesWereCountedKeepsItsOwn(GameTestHelper helper) {
+        HolderLookup.Provider registries = helper.getLevel().registryAccess();
+        ItemStackHandler was = new ItemStackHandler(64);
+        java.util.UUID plain = java.util.UUID.randomUUID();
+        java.util.UUID given = java.util.UUID.randomUUID();
+
+        CompoundTag never = named(plain, was.serializeNBT(registries), null);
+        CompoundTag once = named(given, was.serializeNBT(registries), null);
+        once.putInt("Handed", 1);
+
+        Kept kept = Kept.load(store(never, once), registries);
+        check(kept.trace(plain).orElseThrow().names() == 1,
+                "one never handed out has the name it was filed with");
+        check(kept.trace(given).orElseThrow().names() == 2,
+                "and one handed out once has that and the hand-out: "
+                        + kept.trace(given).orElseThrow().names());
+
+        Kept read = Kept.load(kept.save(new CompoundTag(), registries), registries);
+        check(read.trace(given).orElseThrow().names() == 2,
+                "and it is still two after a round trip, not four: "
+                        + read.trace(given).orElseThrow().names());
+        check(read.trace(plain).orElseThrow().names() == 1, "nor is the plain one three");
+        helper.succeed();
+    }
+
+    /**
+     * An item destroyed where it lay takes its chest with it; one picked up does not.
+     *
+     * <p>⚠ <b>Both halves, because the removal is shared.</b> Vanilla takes an item entity
+     * out of the world the same way whether a player took it or a fire did — {@code discard}
+     * either way — so a cleanup keyed on that would delete the contents of every chest
+     * anybody ever picked up off the floor. What this leans on is the one call only the
+     * destroying road makes, and the picking-up half is what says the road is not shared.
+     */
+    @GameTest(template = TestStructures.FLOOR)
+    public static void aDestroyedItemTakesItsChestAndAPickedUpOneDoesNot(GameTestHelper helper) {
+        HolderLookup.Provider registries = helper.getLevel().registryAccess();
+        Kept kept = Kept.of(helper.getLevel()).orElseThrow(
+                () -> new GameTestAssertException("a game test has a server, so it has a store"));
+        java.util.UUID burnt = file(kept, registries);
+        java.util.UUID lifted = file(kept, registries);
+
+        net.minecraft.world.entity.item.ItemEntity dying =
+                carrying(helper, Kind.IMPERFECT, java.util.List.of(burnt));
+        check(dying.hurt(helper.getLevel().damageSources().onFire(), 20.0F),
+                "fire takes an Imperfect, which is not the top of the ladder");
+        check(dying.isRemoved(), "and destroys the item");
+        check(kept.trace(burnt).isEmpty(), "so the chest it named goes with it");
+
+        net.minecraft.world.entity.item.ItemEntity taken =
+                carrying(helper, Kind.IMPERFECT, java.util.List.of(lifted));
+        taken.playerTouch(helper.makeMockPlayer(GameType.SURVIVAL));
+        check(taken.isRemoved(), "picking one up takes the entity out just the same");
+        check(kept.trace(lifted).isPresent(),
+                "but that is somebody holding the name, not the name being destroyed");
+
+        kept.forget(lifted);
+        helper.succeed();
+    }
+
+    /**
+     * One fire takes every chest a fusion ate.
+     *
+     * <p>A crafted Semi-Perfect names eight chests until it is placed, so the item that
+     * burns is one item and eight names. ⚠ A loop written to stop at the first would leave
+     * seven orphans behind the one it tidied, and the listing would look right.
+     */
+    @GameTest(template = TestStructures.FLOOR)
+    public static void oneFireTakesEveryChestAFusionAte(GameTestHelper helper) {
+        HolderLookup.Provider registries = helper.getLevel().registryAccess();
+        Kept kept = Kept.of(helper.getLevel()).orElseThrow(
+                () -> new GameTestAssertException("a game test has a server, so it has a store"));
+
+        // How many go into one, off the sizes rather than written down again: a fusion is
+        // exactly as big as what it ate, which is the rule Fusing is built on.
+        int eats = Kind.SEMI_PERFECT.slots() / Kind.IMPERFECT.slots();
+        java.util.List<java.util.UUID> eaten = new java.util.ArrayList<>();
+        for (int each = 0; each < eats; each++) {
+            eaten.add(file(kept, registries));
+        }
+
+        net.minecraft.world.entity.item.ItemEntity fused =
+                carrying(helper, Kind.SEMI_PERFECT, java.util.List.copyOf(eaten));
+        check(fused.hurt(helper.getLevel().damageSources().onFire(), 20.0F), "fire takes it");
+        for (java.util.UUID one : eaten) {
+            check(kept.trace(one).isEmpty(), "and every chest it was carrying goes with it");
+        }
         helper.succeed();
     }
 
@@ -1705,13 +1843,43 @@ public final class CellaTests {
         return stack;
     }
 
-    /** The store as it is on disk, holding one entry. See the note on the migration test. */
-    private static CompoundTag store(CompoundTag entry) {
+    /** The store as it is on disk. See the note on the migration test. */
+    private static CompoundTag store(CompoundTag... entries) {
         ListTag chests = new ListTag();
-        chests.add(entry);
+        for (CompoundTag entry : entries) {
+            chests.add(entry);
+        }
         CompoundTag tag = new CompoundTag();
         tag.put("Chests", chests);
         return tag;
+    }
+
+    /** One chest in a store, with something in it so that it was worth filing. */
+    private static java.util.UUID file(Kept kept, HolderLookup.Provider registries) {
+        ItemStackHandler was = new ItemStackHandler(Kind.IMPERFECT.slots());
+        was.setStackInSlot(0, new ItemStack(Items.GOLD_INGOT, 1));
+        return kept.put(was.serializeNBT(registries), Kind.IMPERFECT, 1L, 0);
+    }
+
+    /**
+     * A Cella lying on the floor naming those chests, with its ordinary lifespan.
+     *
+     * <p>Not {@link #dropped}, which cuts the life short so that a few ticks settle it.
+     * These are about being destroyed rather than about running out.
+     */
+    private static net.minecraft.world.entity.item.ItemEntity carrying(GameTestHelper helper,
+            Kind kind, java.util.List<java.util.UUID> names) {
+        ItemStack stack = new ItemStack(CellaRegistry.item(kind).get());
+        stack.set(CellaRegistry.KEPT.get(),
+                new Held(names, names.size(), kind.slots(), 0, 0));
+        net.minecraft.world.entity.item.ItemEntity entity =
+                new net.minecraft.world.entity.item.ItemEntity(helper.getLevel(), 0, 0, 0, stack);
+        entity.moveTo(helper.absolutePos(WHERE).getX() + 0.5,
+                helper.absolutePos(WHERE).getY() + 1.0,
+                helper.absolutePos(WHERE).getZ() + 0.5);
+        entity.setPickUpDelay(0);
+        helper.getLevel().addFreshEntity(entity);
+        return entity;
     }
 
     /** One entry, with a form id or without one. */

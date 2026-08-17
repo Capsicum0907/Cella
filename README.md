@@ -509,19 +509,29 @@ is the shape of both bugs Acervus had. Copying this stack copies a name. Taking 
 spends it, so two items naming one chest put down one full chest and one empty one — and
 they do not stack anyway, because that is not a thing to hand a player by accident.
 
-### Orphans, and why nothing sweeps them
+### Orphans: nothing goes looking, but whatever destroys a name says so
 
 An item that goes into lava leaves its contents in the save with nothing left to ask for
 them. After fusions that happens eight at a time, since a crafted chest carries eight
 names before it is placed.
 
-**There is no automatic sweep, and that is the decision rather than the omission.** Knowing
-a name has gone would mean counting every item in the world that could be holding one, and
-a Cella item is anywhere: a hand, a chest, an ender chest, an item on the floor, another
-mod's warehouse, *another Cella*. Any sweep that misses one — an unloaded chunk is enough —
-deletes contents somebody still owns. The failure points the wrong way.
+**Nothing searches for them, and that is the decision rather than the omission.** Finding
+out by looking that a name has gone would mean counting every item in the world that could
+be holding one, and a Cella item is anywhere: a hand, a chest, an ender chest, an item on
+the floor, another mod's warehouse, *another Cella*. Any sweep that misses one — an
+unloaded chunk is enough — deletes contents somebody still owns. The failure points the
+wrong way.
 
-So the cleanup is a tool to look with, at gamemaster level:
+**The other direction needs no search at all.** An item burnt, blown up, stung by a cactus
+or caught by a wave is gone from the one place it was, and the thing that removed it knew
+without anybody being counted. So it says so, and the store keeps a count of **names**
+rather than of hand-outs: a filed chest begins with the one item it was filed with, `give`
+mints another, and every one seen destroyed takes one off. The contents go when the last
+name does, and not one destruction earlier.
+
+⚠ That count can only ever be too high. A name lost in a way nothing reports — the void,
+a creative-mode click, some other mod eating it — leaves a chest filed with nobody left to
+ask for it. Which is the direction to be wrong in, and the reason the tool below stays:
 
 ```
 /cella kept list              # what is kept: form, how full, how long ago
@@ -543,8 +553,8 @@ chest are a snapshot, and that used to be safe because the only way to hold a na
 have picked the chest up - one chest, one item. `give` broke that, so whichever of two
 items is placed second goes down empty while its tooltip still describes what it is not
 carrying, and `forget` does the same thing harder. Nothing on the item can tell it: it is
-on a client, and the client is never told what the store holds. So the store counts
-hand-outs and the two commands that make the state say so at the moment they make it.
+on a client, and the client is never told what the store holds. So the store counts the
+names, and the two commands that make a second one say so at the moment they make it.
 
 ⚠ Entries filed before any of this record which form they were or when. Those load saying
 so, rather than guessing — a chest keeps the size it was built at, so its size is no
@@ -581,7 +591,7 @@ gradlew runData           # regenerate models, recipes and language
 - [x] **7** — a chest of 221,184 slots can be searched
 - [ ] **8** — the numbers played with rather than reasoned about; every threshold is
       a first pass
-- [ ] **9** — the one sweep that is safe: an orphan whose item is *seen* to burn
+- [x] **9** — the one sweep that is safe: an orphan whose item is *seen* to burn
 
 ## Related
 

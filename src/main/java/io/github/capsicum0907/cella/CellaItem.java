@@ -99,6 +99,26 @@ public class CellaItem extends BlockItem {
         return false;
     }
 
+    /**
+     * Destroyed where it lay: the chest it names goes with it.
+     *
+     * <p>⚠ <b>The one moment at which a lost name is a fact rather than a guess.</b>
+     * Whatever burnt, blew up or stung this item to death came through here on its way, so
+     * the store can be told without anything going looking for names — which is the search
+     * that cannot be done safely at all. See {@link Kept}.
+     *
+     * <p>The top of the ladder never arrives here: {@link #canBeHurtBy} refuses every
+     * source for a form that is unbreakable as an item, so nothing destroys one to report.
+     *
+     * <p>Only the item's own names, and all of them: a fused one carries what it ate, and
+     * eight chests are orphaned by the one fire.
+     */
+    @Override
+    public void onDestroyed(net.minecraft.world.entity.item.ItemEntity entity,
+            net.minecraft.world.damagesource.DamageSource source) {
+        Kept.destroyed(entity.level(), entity.getItem());
+    }
+
     /** Which form this is. Everything that differs between them is asked of it. */
     private Kind kind() {
         return getBlock() instanceof CellaBlock chest ? chest.kind() : Kind.values()[0];

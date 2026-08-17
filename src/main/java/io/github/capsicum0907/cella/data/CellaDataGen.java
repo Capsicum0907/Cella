@@ -268,10 +268,13 @@ public final class CellaDataGen {
             add("commands.cella.kept.header.one", "One chest kept, %s slots spoken for:");
             add("commands.cella.kept.row", "%s - %s of %s slots, %s");
             add("commands.cella.kept.row.claimed", "%s - %s of %s slots, %s, already given out");
+            // ⚠ Names and not hand-outs, because that is what the store counts and what
+            // the reader needs: a chest filed has one already, so the number here is never
+            // one and this line is never printed for a first rescue. See Kept#hand.
             add("commands.cella.kept.again",
-                    "It had been given out %s times already. Only the first one placed gets "
-                            + "the contents; the others go down empty, and their tooltips "
-                            + "will not say so.");
+                    "There are already %s names for it out in the world. Only the first one "
+                            + "placed gets the contents; the others go down empty, and "
+                            + "their tooltips will not say so.");
             add("commands.cella.kept.unformed", "form unrecorded");
             add("commands.cella.kept.foreign", "%s, which this version does not have");
             add("commands.cella.kept.age", "filed %s ago");
@@ -291,8 +294,8 @@ public final class CellaDataGen {
             add("commands.cella.kept.missing", "Nothing is kept under %s.");
             add("commands.cella.kept.noform", "There is no form called %s.");
             add("commands.cella.kept.forgot.claimed",
-                    "A name for it had been given out %s times. Those chests go down empty "
-                            + "now, and their tooltips will not say so.");
+                    "%s names for it were out in the world. Those chests go down empty now, "
+                            + "and their tooltips will not say so.");
             add("commands.cella.kept.forgot",
                     "Destroyed the contents kept as %s: %s of %s slots. That cannot be "
                             + "undone.");

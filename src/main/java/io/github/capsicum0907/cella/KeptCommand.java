@@ -32,6 +32,12 @@ import net.neoforged.neoforge.event.RegisterCommandsEvent;
  * sweep that is wrong deletes contents somebody still owns, so the wrongness has to be a
  * person's, deliberately, one entry at a time.
  *
+ * <p>⚠ <b>Which is not the same as nothing being tidied.</b> A name that is <em>seen</em>
+ * to be destroyed is reported by whatever destroyed it, and a chest whose last name goes
+ * that way goes with it — see {@link Kept#lost}. What is left for this tool is everything
+ * nothing reports: an item deleted in creative, dropped into the void, or eaten by some
+ * other mod.
+ *
  * <p><b>Handing back comes before deleting.</b> Contents with a lost name are not damaged
  * — a name is all that reaches them — so the first thing this offers is a new item that
  * names one. Deleting is there too, and it is the one that has to be typed at.
@@ -139,6 +145,13 @@ public final class KeptCommand {
      * already a shape this mod tolerates — the first of them to be placed is the one
      * looking at anything — so running this twice makes a spare item and not a spare
      * chest.
+     *
+     * <p>⚠ <b>It is a name going out, and the store counts it as one.</b> Every filed chest
+     * already has one — the item it was filed with — so the first of these makes two, and
+     * the chest will not be forgotten until both have been seen destroyed. That is the
+     * price of the rescue and it is the right way round: an operator asking for a name is
+     * usually saying the first one is gone, and the store believing them would be the store
+     * guessing.
      */
     private static int give(CommandContext<CommandSourceStack> context, Optional<Kind> asked)
             throws CommandSyntaxException {
@@ -175,7 +188,7 @@ public final class KeptCommand {
         // whichever is placed second goes down empty while still describing what it is not
         // carrying. Nothing on the item can say so - it is on a client, and the client is
         // never told what the store holds - so the only place left to say it is here.
-        if (before > 0) {
+        if (before > 1) {
             source.sendSuccess(() -> Component.translatable("commands.cella.kept.again",
                     before).withStyle(net.minecraft.ChatFormatting.YELLOW), false);
         }
@@ -223,7 +236,7 @@ public final class KeptCommand {
         // doing the destroying is the only one who can be.
         if (trace.claimed()) {
             source.sendSuccess(() -> Component.translatable("commands.cella.kept.forgot.claimed",
-                    trace.handed()).withStyle(net.minecraft.ChatFormatting.YELLOW), false);
+                    trace.names()).withStyle(net.minecraft.ChatFormatting.YELLOW), false);
         }
         return 1;
     }
