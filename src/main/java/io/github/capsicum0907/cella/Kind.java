@@ -51,9 +51,17 @@ public enum Kind {
      * holding fifty-four of its ninety squares. A short last page is fine and is drawn
      * short; bending the capacity so the pages come out round would not be.
      *
-     * <p><b>The page grows at Perfect</b>, from fifty-four slots to a hundred and
-     * ninety-two — twelve rows of sixteen. That is where the chest stops being something
-     * you could have built out of chests.
+     * <p><b>The page grows at Semi-Perfect</b>, from nine columns to sixteen. Below that a
+     * Cella is a chest and is drawn like one; from there up it is not, and the screen stops
+     * pretending. 1,728 slots over a nine-wide page is thirty-two of them to turn, which is
+     * where turning pages stops being a way of finding anything — and that is also the rung
+     * where searching arrives, for the same reason.
+     *
+     * <p>⚠ <b>It is not the whole answer and was never meant to be.</b> Sixteen columns
+     * takes Semi-Perfect from thirty-two pages to eighteen, and Perfect to a hundred and
+     * forty-four. A bigger page helps with <em>looking through</em> a chest and does nothing
+     * at all for <em>finding</em> something in one: eighteen pages still has to be read
+     * eighteen times to answer "is there any lapis in here".
      *
      * <p><b>A hundred and ninety-two is not chosen for looking right.</b> Every capacity
      * from Perfect up has to divide by it, and those four are 27 × 2⁷, 2⁹, 2¹¹ and 2¹³ —
@@ -103,7 +111,7 @@ public enum Kind {
     /** Fed, not made. See {@link #formula()}. */
     IMPERFECT("imperfect", "Imperfect Cella", 0x5AA33C, 6, 9, 216, true, 315, "", false, Trait.IMPERFECT, null),
 
-    SEMI_PERFECT("semi_perfect", "Semi-Perfect Cella", 0x6FBA43, 6, 9, 1728, true, 550, "", false, Trait.SEMI_PERFECT, () -> Formula
+    SEMI_PERFECT("semi_perfect", "Semi-Perfect Cella", 0x6FBA43, 6, 16, 1728, true, 550, "", false, Trait.SEMI_PERFECT, () -> Formula
             .shaped("CCC",
                     "COC",
                     "CCC")
