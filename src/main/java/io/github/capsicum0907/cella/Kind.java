@@ -39,10 +39,11 @@ public enum Kind {
      * <p><b>Capacity is meant to be what went into it.</b> Imperfect is four large chests
      * and each step after multiplies by what its recipe eats: eight, eight, four, four.
      * That reaches four thousand large chests at the top, and the numbers above are
-     * <em>not</em> that yet — everything past Imperfect is still small, because the
-     * screen sends every slot it has when it opens and thirteen thousand of them does not
-     * fit in a packet. Raising them waits on the menu holding a page again rather than
-     * the whole chest.
+     * <em>not</em> that yet. Imperfect and Semi-Perfect are; everything past them is
+     * still small, because the screen sends every slot it has when it opens and walks
+     * every slot it has each tick, and thirteen thousand of them does not hold up.
+     * Raising them waits on the menu holding a page again rather than the whole chest.
+     * Junior is held under Perfect in the meantime, for the reason on it.
      *
      * <p><b>The colour is taken from the forms rather than chosen to be legible.</b> The
      * larva is sand, not green - it was drawn khaki and looks it. From there the green
@@ -71,7 +72,7 @@ public enum Kind {
     /** Fed, not made. See {@link #formula()}. */
     IMPERFECT("imperfect", "Imperfect Cella", 0x5AA33C, 6, 9, 4, null),
 
-    SEMI_PERFECT("semi_perfect", "Semi-Perfect Cella", 0x6FBA43, 5, 9, 5, () -> Formula
+    SEMI_PERFECT("semi_perfect", "Semi-Perfect Cella", 0x6FBA43, 6, 9, 32, () -> Formula
             .shaped("CCC",
                     "COC",
                     "CCC")
@@ -90,6 +91,13 @@ public enum Kind {
     /**
      * Seven at a time, because that is how many of them there were - and the Perfect that
      * made them <b>is still standing there</b>, which is also what happened.
+     *
+     * <p><b>Held back until Perfect can move.</b> This is meant to be a quarter of the
+     * Perfect it came from, which is sixty-four large chests. It cannot be that yet:
+     * Perfect is still small, and a recipe that eats a Perfect and gives back seven of
+     * something eight times larger - while leaving the Perfect standing - is not a
+     * lopsided table, it is a way of making storage out of nothing. So it stays under
+     * Perfect until both can go up together.
      */
     JUNIOR("junior", "Cella Jr.", 0x3FB39A, 6, 9, 6, () -> Formula
             .shaped("DDD",
