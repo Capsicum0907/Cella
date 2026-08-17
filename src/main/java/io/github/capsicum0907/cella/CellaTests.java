@@ -1150,6 +1150,33 @@ public final class CellaTests {
     }
 
     /**
+     * A name that simply runs out is lost as surely as one that burns.
+     *
+     * <p>⚠ <b>And it is the commonest way of the two by a long way</b>, so a cleanup that
+     * only watched for fire would be watching the small half. Everything below the top of
+     * the ladder has five minutes on the floor; the top winds its own clock back and never
+     * reaches this at all.
+     */
+    @GameTest(template = TestStructures.FLOOR)
+    public static void aNameThatRunsOutIsLostToo(GameTestHelper helper) {
+        HolderLookup.Provider registries = helper.getLevel().registryAccess();
+        Kept kept = Kept.of(helper.getLevel()).orElseThrow(
+                () -> new GameTestAssertException("a game test has a server, so it has a store"));
+        java.util.UUID waited = file(kept, registries);
+
+        net.minecraft.world.entity.item.ItemEntity fading =
+                carrying(helper, Kind.IMPERFECT, java.util.List.of(waited));
+        fading.lifespan = 3;
+        for (int tick = 0; tick < 12; tick++) {
+            fading.tick();
+        }
+
+        check(fading.isRemoved(), "the item should have run out");
+        check(kept.trace(waited).isEmpty(), "and the chest it named should have gone with it");
+        helper.succeed();
+    }
+
+    /**
      * One fire takes every chest a fusion ate.
      *
      * <p>A crafted Semi-Perfect names eight chests until it is placed, so the item that

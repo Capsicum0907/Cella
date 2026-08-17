@@ -522,12 +522,16 @@ the floor, another mod's warehouse, *another Cella*. Any sweep that misses one �
 unloaded chunk is enough — deletes contents somebody still owns. The failure points the
 wrong way.
 
-**The other direction needs no search at all.** An item burnt, blown up, stung by a cactus
-or caught by a wave is gone from the one place it was, and the thing that removed it knew
-without anybody being counted. So it says so, and the store keeps a count of **names**
-rather than of hand-outs: a filed chest begins with the one item it was filed with, `give`
-mints another, and every one seen destroyed takes one off. The contents go when the last
-name does, and not one destruction earlier.
+**The other direction needs no search at all.** An item burnt, blown up, stung by a cactus,
+caught by a wave or simply left lying past its five minutes is gone from the one place it
+was, and the thing that removed it knew without anybody being counted. So it says so, and
+the store keeps a count of **names** rather than of hand-outs: a filed chest begins with the
+one item it was filed with, `give` mints another, and every one seen destroyed takes one
+off. The contents go when the last name does, and not one destruction earlier.
+
+⚠ Running out is the commonest of those by a long way — the usual way a Cella is lost is
+waiting, not fire — so it is the half worth having. Everything below Super Perfect has its
+five minutes; Super Perfect winds its own clock back and never gets there.
 
 ⚠ That count can only ever be too high. A name lost in a way nothing reports — the void,
 a creative-mode click, some other mod eating it — leaves a chest filed with nobody left to
