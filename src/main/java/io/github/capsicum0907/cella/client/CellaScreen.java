@@ -68,6 +68,11 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     /** Space between the page number and the arrow it belongs to. */
     private static final int BESIDE = 3;
 
+    /** The grey vanilla writes a container's labels in. */
+    private static final int LABEL = 0x404040;
+
+    private static final String ELLIPSIS = "...";
+
     /**
      * Two movers, not four: in and out.
      *
@@ -234,18 +239,48 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
         graphics.blit(BACKGROUND, leftPos, topPos + rows * SLOT + LID, 0, FOOT_V, imageWidth, FOOT);
     }
 
+    /**
+     * The title, cut to fit, then the page number.
+     *
+     * <p><b>Not {@code super}.</b> Vanilla draws a container's title at a fixed place and
+     * lets it run as far as it likes, which is fine on a screen with nothing else in the
+     * lid. "Super Perfect Cella" ran straight through the page number.
+     *
+     * <p>So the title gets the room that is left over and is trimmed to it, with an
+     * ellipsis to say it was. The controls do not move: a name is a thing you can guess
+     * the rest of, and a button is not.
+     */
     @Override
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
-        super.renderLabels(graphics, mouseX, mouseY);
-        if (menu.pages() <= 1) {
-            return;
-        }
-        // One-based, because the first page is the first page and not the noughth.
-        // Right-aligned against the arrows, so it grows leftwards into empty lid rather
-        // than moving them when it goes from "9 / 32" to "10 / 32".
         Component page = Component.literal((menu.page() + 1) + " / " + menu.pages());
-        graphics.drawString(font, page, controls - BESIDE - font.width(page), TEXT_Y,
-                0x404040, false);
+        graphics.drawString(font, fitted(title, room(page)), titleLabelX, titleLabelY,
+                LABEL, false);
+        graphics.drawString(font, playerInventoryTitle, inventoryLabelX, inventoryLabelY,
+                LABEL, false);
+
+        if (menu.pages() > 1) {
+            // One-based, because the first page is the first page and not the noughth.
+            // Right-aligned against the arrows, so it grows leftwards into empty lid
+            // rather than moving them when it goes from "9 / 32" to "10 / 32".
+            graphics.drawString(font, page, controls - BESIDE - font.width(page), TEXT_Y,
+                    LABEL, false);
+        }
+    }
+
+    /** How much of the lid the title may have: everything up to what is already there. */
+    private int room(Component page) {
+        int leftmost = menu.pages() > 1
+                ? controls - BESIDE - font.width(page)
+                : imageWidth - TITLE_X - BUTTON;
+        return leftmost - titleLabelX - BESIDE;
+    }
+
+    private Component fitted(Component text, int room) {
+        if (font.width(text) <= room) {
+            return text;
+        }
+        String cut = font.plainSubstrByWidth(text.getString(), room - font.width(ELLIPSIS));
+        return Component.literal(cut + ELLIPSIS);
     }
 
     /**

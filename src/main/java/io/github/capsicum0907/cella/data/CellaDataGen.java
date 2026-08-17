@@ -22,6 +22,7 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.model.generators.BlockStateProvider;
+import net.neoforged.neoforge.client.model.generators.ModelBuilder;
 import net.neoforged.neoforge.client.model.generators.ModelFile;
 import net.neoforged.neoforge.common.data.BlockTagsProvider;
 import net.neoforged.neoforge.common.data.ExistingFileHelper;
@@ -124,12 +125,25 @@ public final class CellaDataGen {
                         .texture("all", modLoc("block/" + name))
                         .texture("particle", modLoc("block/" + name))
                         .element().from(1, 0, 1).to(15, 10, 15)
-                                .allFaces((face, builder) -> builder.texture("#all")).end()
+                                .allFaces((face, builder) -> whole(builder)).end()
                         .element().from(1, 10, 1).to(15, 14, 15)
-                                .allFaces((face, builder) -> builder.texture("#all")).end()
+                                .allFaces((face, builder) -> whole(builder)).end()
                         .element().from(7, 7, 0).to(9, 11, 1)
-                                .allFaces((face, builder) -> builder.texture("#all")).end();
+                                .allFaces((face, builder) -> whole(builder)).end();
             }
+        }
+
+        /**
+         * The whole texture on the face, edge included.
+         *
+         * <p>Without this the coordinates are worked out from where the element is, and
+         * an element from one to fifteen samples one to fifteen - which crops off exactly
+         * the near-black ring the texture is drawn with. The block had its edges and the
+         * thing in your hand did not, which is a strange thing to notice and an obvious
+         * one once noticed.
+         */
+        private static void whole(ModelBuilder<?>.ElementBuilder.FaceBuilder builder) {
+            builder.texture("#all").uvs(0, 0, 16, 16);
         }
     }
 
