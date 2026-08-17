@@ -187,7 +187,11 @@ public final class CellaDataGen {
 
             // Ending itself. Three refusals rather than one, because there are three
             // different things to go and do about it.
-            add("message.cella.ripened", "It has eaten enough. It is a %s now.");
+            // ⚠ No article before the name. Which one it wants depends on the word that
+            // lands there - "a Perfect Cella" against "an Imperfect Cella" - and a format
+            // string cannot choose. Any message that inserts a name has this in it, so the
+            // rule is to write around the article rather than guess at one.
+            add("message.cella.ripened", "It has eaten enough. It is now %s.");
             add("message.cella.lighting", "It begins to shake.");
             add("message.cella.lit", "It has already begun.");
             add("message.cella.notyet", "It has not taken in enough to survive that.");
