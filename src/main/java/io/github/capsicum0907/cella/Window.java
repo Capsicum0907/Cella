@@ -62,6 +62,37 @@ public final class Window implements IItemHandlerModifiable {
 
     private int page;
 
+    /**
+     * The slots a search turned up, in the chest's own order, or null while it is showing
+     * the chest itself.
+     *
+     * <p><b>Paging over a list instead of over a run.</b> That is the whole of searching
+     * from here down: the page still hands out {@link #size} slots and the slots above
+     * still know nothing, but which slot of the chest each one lands on comes from here
+     * rather than from arithmetic. ⚠ The server's only — the client is never told what it
+     * cannot see.
+     */
+    private int[] found;
+
+    /**
+     * What the client has been told about its own page, because it cannot work it out.
+     *
+     * <p>⚠ <b>Neither of these can be the number of slots being looked at.</b> A container
+     * data slot is a {@code short} on the wire, and a Cella Max is 221,184 slots — so what
+     * travels is how many pages there are (4,096 at the very most) and how many squares of
+     * this one are real (192 at the very most), both of which fit, rather than the count
+     * they are derived from, which does not.
+     *
+     * <p><b>Unset until something arrives</b>, and until then the answers are worked out
+     * from the size the chest was opened at, exactly as they were before searching existed.
+     * A client that has been told nothing is looking at a whole chest, which is the only
+     * thing it can be looking at.
+     */
+    private int pages = UNTOLD;
+    private int onThisPage = UNTOLD;
+
+    private static final int UNTOLD = -1;
+
     private Window(IItemHandlerModifiable held, int size, int total, boolean chest) {
         this.held = held;
         this.size = size;
@@ -75,6 +106,58 @@ public final class Window implements IItemHandlerModifiable {
     }
 
     /**
+     * Shows only the slots holding something that answers to that name, from the first of
+     * them.
+     *
+     * <p><b>Empty slots are never a result</b>, which is what makes this worth having: a
+     * search over eighteen pages of mostly nothing comes back as the handful that matched.
+     * An empty query puts the chest back.
+     *
+     * <p>Matched against what the item is called on screen rather than its registry name,
+     * because that is the word the player has in mind, and folded to lower case on both
+     * sides so that neither has to guess at the other's capitals.
+     */
+    public void search(String looking) {
+        page = 0;
+        if (looking.isBlank()) {
+            found = null;
+            return;
+        }
+        String wanted = looking.toLowerCase(java.util.Locale.ROOT);
+        int[] hits = new int[held.getSlots()];
+        int count = 0;
+        for (int slot = 0; slot < held.getSlots(); slot++) {
+            ItemStack stack = held.getStackInSlot(slot);
+            if (!stack.isEmpty() && stack.getHoverName().getString()
+                    .toLowerCase(java.util.Locale.ROOT).contains(wanted)) {
+                hits[count++] = slot;
+            }
+        }
+        found = java.util.Arrays.copyOf(hits, count);
+    }
+
+    /** Whether it is showing results rather than the chest. */
+    public boolean searching() {
+        return found != null;
+    }
+
+    /** How many slots the view is over: the whole chest, or what a search turned up. */
+    private int viewed() {
+        return found != null ? found.length : total;
+    }
+
+    /** How many squares of the page being shown are real. The server's answer to tell. */
+    public int onThisPage() {
+        return Math.clamp(viewed() - page * size, 0, size);
+    }
+
+    /** What the client was told, because it cannot count what it does not have. */
+    public void told(int pages, int onThisPage) {
+        this.pages = pages;
+        this.onThisPage = onThisPage;
+    }
+
+    /**
      * Over a page and nothing else, in a chest said to be that big. The client's.
      *
      * @param shown the page, which is what the server sends and all it sends
@@ -85,9 +168,12 @@ public final class Window implements IItemHandlerModifiable {
         return new Window(shown, size, total, false);
     }
 
-    /** How many pages the chest comes to, and never fewer than the one. */
+    /** How many pages there are to turn, and never fewer than the one. */
     public int pages() {
-        return Math.max(1, (total + size - 1) / size);
+        if (!chest && pages != UNTOLD) {
+            return Math.max(1, pages);
+        }
+        return Math.max(1, (viewed() + size - 1) / size);
     }
 
     public int page() {
@@ -99,9 +185,12 @@ public final class Window implements IItemHandlerModifiable {
         this.page = page;
     }
 
-    /** Whether that slot of this page is a slot of the chest at all. */
+    /** Whether that square of this page is a slot at all. */
     public boolean holds(int slot) {
-        return page * size + slot < total;
+        if (!chest && onThisPage == UNTOLD) {
+            return page * size + slot < total;
+        }
+        return slot < (chest ? onThisPage() : onThisPage);
     }
 
     /** Whether what is underneath has somewhere to put it. */
@@ -110,7 +199,13 @@ public final class Window implements IItemHandlerModifiable {
     }
 
     private int at(int slot) {
-        return chest ? page * size + slot : slot;
+        if (!chest) {
+            return slot;
+        }
+        int into = page * size + slot;
+        return found != null
+                ? (into < found.length ? found[into] : held.getSlots())
+                : into;
     }
 
     @Override

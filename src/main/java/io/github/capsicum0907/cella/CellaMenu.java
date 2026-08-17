@@ -177,7 +177,43 @@ public class CellaMenu extends AbstractContainerMenu {
                 window.openAt(value);
             }
         });
+
+        // How many pages there are, and how many squares of this one are real. Both change
+        // when a search does, and the client cannot work either out: it has the page and
+        // nothing else.
+        //
+        // ⚠ Neither is the number they are derived from. A data slot is a short on the
+        // wire and a Cella Max is 221,184 slots, so what travels is 4,096 at the very most
+        // and 192 at the very most - counts of pages and of squares, which fit.
+        addDataSlot(new DataSlot() {
+            @Override
+            public int get() {
+                return window.pages();
+            }
+
+            @Override
+            public void set(int value) {
+                told = value;
+                window.told(told, onPage);
+            }
+        });
+        addDataSlot(new DataSlot() {
+            @Override
+            public int get() {
+                return window.onThisPage();
+            }
+
+            @Override
+            public void set(int value) {
+                onPage = value;
+                window.told(told, onPage);
+            }
+        });
     }
+
+    /** The two figures the client is told, kept so either can be set without the other. */
+    private int told = 1;
+    private int onPage;
 
     /**
      * Whether this menu is the one open on that chest.

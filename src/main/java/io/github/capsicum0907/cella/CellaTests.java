@@ -1504,6 +1504,65 @@ public final class CellaTests {
     }
 
     /**
+     * Searching pages over what matched, and the slots underneath never find out.
+     *
+     * <p>Which is the whole of it: the page still hands out its own number of squares and
+     * a slot is still an ordinary slot, and the only thing that changed is where each
+     * square lands. Eighteen pages of mostly nothing becomes the handful that answered.
+     *
+     * <p>⚠ <b>Writing through a result has to land on the slot it came from</b>, not on the
+     * position it happens to occupy in the results. That is the same fault the paging was
+     * built to avoid — what is on the screen and what a click acts on being different
+     * things — and it is easier to get wrong here, because the two numbers are no longer
+     * even close.
+     */
+    @GameTest(template = TestStructures.FLOOR)
+    public static void searchingPagesOverWhatMatched(GameTestHelper helper) {
+        int size = 4;
+        ItemStackHandler chest = new ItemStackHandler(200);
+        chest.setStackInSlot(3, new ItemStack(Items.DIAMOND, 1));
+        chest.setStackInSlot(60, new ItemStack(Items.DIAMOND_SWORD, 1));
+        chest.setStackInSlot(61, new ItemStack(Items.EMERALD, 1));
+        chest.setStackInSlot(150, new ItemStack(Items.DIAMOND_BLOCK, 1));
+
+        Window window = Window.onto(chest, size);
+        check(!window.searching(), "it starts out showing the chest");
+        check(window.pages() == 50, "all fifty pages of it: " + window.pages());
+
+        window.search("diamond");
+        check(window.searching(), "and then it is showing results");
+        check(window.pages() == 1, "three hits fit on one page: " + window.pages());
+        check(window.onThisPage() == 3, "and three squares of it are real: " + window.onThisPage());
+        check(window.getStackInSlot(0).is(Items.DIAMOND), "in the chest's own order");
+        check(window.getStackInSlot(1).is(Items.DIAMOND_SWORD), "a sword is a diamond one");
+        check(window.getStackInSlot(2).is(Items.DIAMOND_BLOCK), "and so is a block");
+        check(window.getStackInSlot(3).isEmpty(), "the fourth square is nothing");
+        check(!window.holds(3), "and refuses to be one");
+
+        // The emerald was never a result, and the write lands where the item lives.
+        window.setStackInSlot(1, new ItemStack(Items.GOLD_INGOT, 1));
+        check(chest.getStackInSlot(60).is(Items.GOLD_INGOT),
+                "writing through a result reaches the slot it came from");
+        check(chest.getStackInSlot(1).isEmpty(), "and not the one it sits at on screen");
+
+        // More matches than a page, so results page too. The sword became gold above, so
+        // what is left is the one diamond, the nine added here and the block: eleven.
+        for (int slot = 100; slot < 109; slot++) {
+            chest.setStackInSlot(slot, new ItemStack(Items.DIAMOND, 1));
+        }
+        window.search("diamond");
+        check(window.pages() == 3, "eleven hits over three pages: " + window.pages());
+        window.openAt(2);
+        check(window.onThisPage() == 3, "the last of which is short: " + window.onThisPage());
+        check(window.getStackInSlot(2).is(Items.DIAMOND_BLOCK), "ending where the chest does");
+
+        window.search("");
+        check(!window.searching(), "an empty search puts the chest back");
+        check(window.pages() == 50, "all of it: " + window.pages());
+        helper.succeed();
+    }
+
+    /**
      * The ladder only ever adds, except in the one place it was decided that it takes away.
      *
      * <p><b>This is what makes the table safe to write the way it is written.</b> Each
