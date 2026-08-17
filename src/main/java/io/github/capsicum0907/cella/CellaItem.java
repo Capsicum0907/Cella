@@ -35,6 +35,28 @@ public class CellaItem extends BlockItem {
 
     private static final int BLUE = 0x3B48D8;
 
+    /**
+     * What a dropped one can be destroyed by, which for the top of the ladder is nothing.
+     *
+     * <p>{@code fireResistant()} covers fire and lava and stops there: an item entity is
+     * also killed by explosions and by touching a cactus, and those arrive as ordinary
+     * damage. ⚠ Which means the promise "it does not disappear" cannot be kept by the item
+     * properties alone, and the half that is missing is the half that matters in a blast.
+     *
+     * <p>Blanket rather than a list of the three. A form that survives being set on fire
+     * and blown up but not something added in a later version would be a promise with a
+     * hole in it, and the hole would be wherever the game grew next.
+     */
+    @Override
+    public boolean canBeHurtBy(ItemStack stack, net.minecraft.world.damagesource.DamageSource source) {
+        return !kind().trait().unbreakableAsAnItem() && super.canBeHurtBy(stack, source);
+    }
+
+    /** Which form this is. Everything that differs between them is asked of it. */
+    private Kind kind() {
+        return getBlock() instanceof CellaBlock chest ? chest.kind() : Kind.values()[0];
+    }
+
     @Override
     public int getMaxStackSize(ItemStack stack) {
         return stack.has(CellaRegistry.KEPT.get()) ? 1 : super.getMaxStackSize(stack);

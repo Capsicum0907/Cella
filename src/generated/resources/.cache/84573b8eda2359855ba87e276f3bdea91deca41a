@@ -1,2 +1,7 @@
-// 1.21.1	2026-08-17T09:05:23.7099336	Tags for minecraft:block mod id cella
-b6717da6b7e112f9b50ea51f42dc1b2a7745bfc1 data/minecraft/tags/block/mineable/axe.json
+// 1.21.1	2026-08-18T05:34:14.5072503	Tags for minecraft:block mod id cella
+a11eed3e1b71c2abbcc1cb511b2972c3bddc566d data/minecraft/tags/block/mineable/axe.json
+5e5b14bd2b759c0933e0d872071edcc73638a906 data/minecraft/tags/block/mineable/pickaxe.json
+5449df2c0b219213cc6cd0867893807a6a019a5f data/minecraft/tags/block/needs_diamond_tool.json
+11ad6ea3bcb83eda35a11af5cb247817cd59bb14 data/minecraft/tags/block/needs_iron_tool.json
+37a1b6eef3ce86871a61b2c3afdd1ce65643948e data/minecraft/tags/block/wither_immune.json
+37a1b6eef3ce86871a61b2c3afdd1ce65643948e data/neoforge/tags/block/needs_netherite_tool.json

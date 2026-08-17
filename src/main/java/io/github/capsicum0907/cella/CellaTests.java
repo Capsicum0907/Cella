@@ -1504,6 +1504,50 @@ public final class CellaTests {
     }
 
     /**
+     * The ladder only ever adds, except in the one place it was decided that it takes away.
+     *
+     * <p><b>This is what makes the table safe to write the way it is written.</b> Each
+     * {@link Trait} is the whole answer for the forms that share it, rather than a list of
+     * gains to be added up — which is only equivalent to the cumulative reading while every
+     * column climbs. A step that quietly went backwards would leave a form less than the
+     * one below it, and nothing would say so.
+     *
+     * <p>⚠ The exception is named rather than tolerated: <b>reach goes to nought at Super
+     * Perfect</b>, because a form that has finished growing has no business reaching for
+     * experience it cannot use. That is the one subtraction, and it is asked about here so
+     * that a second one cannot arrive unnoticed.
+     */
+    @GameTest(template = TestStructures.FLOOR)
+    public static void theLadderOnlyAdds(GameTestHelper helper) {
+        Trait[] rungs = Trait.values();
+        for (int at = 1; at < rungs.length; at++) {
+            Trait below = rungs[at - 1];
+            Trait above = rungs[at];
+            String step = below + " -> " + above;
+
+            check(above.resistance() >= below.resistance(), step + " got softer");
+            check(!above.burns() || below.burns(), step + " started burning again");
+            check(above.witherproof() || !below.witherproof(), step + " lost its wither tag");
+            check(above.unbreakableAsAnItem() || !below.unbreakableAsAnItem(),
+                    step + " stopped surviving as an item");
+            check(!below.particular() || above.particular(), step + " stopped needing a tool");
+
+            // The one place it takes something away, and the only one.
+            if (above.reach() < below.reach()) {
+                check(above == Trait.SUPER_PERFECT && above.reach() == 0,
+                        step + " lost reach, and Super Perfect is the only rung allowed to");
+            }
+        }
+
+        // And the forms are wired to rungs in order, so the chain above describes them.
+        check(Kind.LARAVEL.trait() == Trait.LARVA, "the larva is the larva");
+        check(Kind.JUNIOR.trait() == Kind.PERFECT.trait(), "Junior is a Perfect");
+        check(Kind.MAX.trait() == Kind.SUPER_PERFECT.trait(),
+                "and Max has not been given anything of its own yet");
+        helper.succeed();
+    }
+
+    /**
      * A Cella item stamped as having finished growing, which every recipe now requires.
      *
      * <p>Real ones get there by being placed, fed and broken. A test that did that eight

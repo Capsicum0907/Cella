@@ -31,6 +31,25 @@ import net.neoforged.neoforge.registries.DeferredRegister;
  * working without a thought, because a ticker is matched on the type.
  */
 public final class CellaRegistry {
+    /**
+     * Whether the right tool is needed for it to drop anything.
+     *
+     * <p>Only set where there is a level to require. Asking for the correct tool with no
+     * tag saying which one means nothing drops it, ever.
+     */
+    private static BlockBehaviour.Properties particular(BlockBehaviour.Properties properties,
+            Kind kind) {
+        return kind.trait().particular() ? properties.requiresCorrectToolForDrops() : properties;
+    }
+
+    /**
+     * Vanilla's own fire immunity for the dropped item, which is the first of the three
+     * the ladder promises. Explosions and cactus are {@code CellaItem#canBeHurtBy}.
+     */
+    private static Item.Properties fireproof(Item.Properties properties, Kind kind) {
+        return kind.trait().unbreakableAsAnItem() ? properties.fireResistant() : properties;
+    }
+
     public static final DeferredRegister.Blocks BLOCKS = DeferredRegister.createBlocks(Cella.MODID);
     public static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(Cella.MODID);
     public static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITIES =
@@ -69,13 +88,16 @@ public final class CellaRegistry {
 
     static {
         for (Kind kind : Kind.values()) {
+            // Hardness stays 2.5 all the way up - how long it takes to mine is not what
+            // the ladder is about - and everything that does differ comes off the trait.
             BLOCK.put(kind, BLOCKS.register(kind.id(), () -> new CellaBlock(kind,
-                    BlockBehaviour.Properties.of()
+                    particular(BlockBehaviour.Properties.of()
                             .mapColor(MapColor.WOOD)
-                            .strength(2.5F)
-                            .sound(SoundType.WOOD))));
+                            .strength(2.5F, kind.trait().resistance())
+                            .sound(SoundType.WOOD), kind))));
             ITEM.put(kind, ITEMS.register(kind.id(),
-                    () -> new CellaItem(BLOCK.get(kind).get(), new Item.Properties())));
+                    () -> new CellaItem(BLOCK.get(kind).get(), fireproof(new Item.Properties(),
+                            kind))));
         }
     }
 

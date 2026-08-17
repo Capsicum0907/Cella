@@ -472,9 +472,50 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
         return true;
     }
 
-    /** The server's tick: the openers recheck, and the fuse if one is burning. */
+    /**
+     * Experience orbs within reach, taken.
+     *
+     * <p><b>Orbs and not items</b>, which is what makes this fit at all: Magnes pulls items
+     * off the floor, and two mods reaching for the same thing is a pile that goes to
+     * whichever ticked first. Nothing else in this pack wants orbs.
+     *
+     * <p>⚠ <b>Only while it still has room.</b> A full one stops reaching — otherwise a
+     * chest that has finished growing would sit there eating experience it can never use,
+     * out of the hands of the player who killed for it, forever. Which is also why
+     * {@link Trait#reach} goes back to nought at Super Perfect: it is done, and a thing
+     * that is done has no business taking any more.
+     *
+     * <p>Whole orbs. An orb is worth what it is worth and cannot be split, so one that
+     * would take it past the top is left alone rather than shaved — which means a nearly
+     * full chest may sit at ninety-nine percent with a big orb bobbing beside it, and that
+     * is honest: it has not finished, and that orb is not the one that finishes it.
+     */
+    private void absorb() {
+        Kind kind = kind();
+        int room = kind.growth() - experience;
+        if (kind.trait().reach() <= 0 || room <= 0 || level == null) {
+            return;
+        }
+        for (net.minecraft.world.entity.ExperienceOrb orb : level.getEntitiesOfClass(
+                net.minecraft.world.entity.ExperienceOrb.class,
+                new net.minecraft.world.phys.AABB(worldPosition).inflate(kind.trait().reach()),
+                alive -> alive.isAlive() && alive.getValue() <= kind.growth() - experience)) {
+            experience += orb.getValue();
+            orb.discard();
+            setChanged();
+            said(level, worldPosition, SoundEvents.EXPERIENCE_ORB_PICKUP);
+        }
+    }
+
+    /** How often it reaches out. Every tick would be a query per chest per tick. */
+    private static final int REACHES_EVERY = 10;
+
+    /** The server's tick: the openers recheck, the fuse, and reaching for orbs. */
     public void serverTick() {
         recheck();
+        if (level != null && level.getGameTime() % REACHES_EVERY == 0) {
+            absorb();
+        }
         if (!lit() || !(level instanceof net.minecraft.server.level.ServerLevel server)) {
             return;
         }

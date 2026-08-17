@@ -42,6 +42,7 @@ public class Cella {
         CellaRegistry.COMPONENTS.register(modEventBus);
         CellaRegistry.TABS.register(modEventBus);
 
+        modEventBus.addListener(Cella::kindling);
         modEventBus.addListener(Cella::capabilities);
         modEventBus.addListener(Cella::payloads);
         NeoForge.EVENT_BUS.addListener(Cella::left);
@@ -58,6 +59,31 @@ public class Cella {
 
         modContainer.registerConfig(ModConfig.Type.SERVER, CellaConfig.SPEC);
         LOGGER.info("Cella {} loaded.", modContainer.getModInfo().getVersion());
+    }
+
+    /**
+     * The larva burns, and nothing else does.
+     *
+     * <p>⚠ <b>Backwards from how the ladder reads.</b> "Imperfect gains fire resistance"
+     * cannot be implemented by giving Imperfect anything: only blocks handed to
+     * {@code FireBlock#setFlammable} burn at all, and no Cella was ever handed to it, so
+     * every form was already fireproof and the step meant nothing. What makes it true is
+     * registering Laravel — the larva catches, and everything above it is simply what a
+     * block is when left alone.
+     *
+     * <p>The two numbers are the ones a wooden chest has: how readily it catches and how
+     * long it goes on burning.
+     */
+    private static void kindling(net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent event) {
+        event.enqueueWork(() -> {
+            net.minecraft.world.level.block.FireBlock fire =
+                    (net.minecraft.world.level.block.FireBlock) net.minecraft.world.level.block.Blocks.FIRE;
+            for (Kind kind : Kind.values()) {
+                if (kind.trait().burns()) {
+                    fire.setFlammable(CellaRegistry.block(kind).get(), 5, 20);
+                }
+            }
+        });
     }
 
     /**

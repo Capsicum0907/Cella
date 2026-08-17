@@ -118,7 +118,14 @@ public final class CellaDataGen {
         }
     }
 
-    /** An axe, because it is a wooden box. */
+    /**
+     * What opens a Cella, how good it has to be, and what a wither cannot get through.
+     *
+     * <p>All of it read off {@link io.github.capsicum0907.cella.Trait}, so the ladder is
+     * described in one place and generated from there. ⚠ Including the wither, which reads
+     * nothing but its tag — blast resistance does not enter into it, so obsidian-tough and
+     * wither-proof are separate claims and only the second one is here.
+     */
     private static class Tags extends BlockTagsProvider {
         Tags(PackOutput output, CompletableFuture<HolderLookup.Provider> registries,
                 ExistingFileHelper existingFileHelper) {
@@ -128,7 +135,12 @@ public final class CellaDataGen {
         @Override
         protected void addTags(HolderLookup.Provider registries) {
             for (Kind kind : Kind.values()) {
-                tag(BlockTags.MINEABLE_WITH_AXE).add(CellaRegistry.block(kind).get());
+                net.minecraft.world.level.block.Block block = CellaRegistry.block(kind).get();
+                tag(kind.trait().tool()).add(block);
+                kind.trait().level().ifPresent(level -> tag(level).add(block));
+                if (kind.trait().witherproof()) {
+                    tag(BlockTags.WITHER_IMMUNE).add(block);
+                }
             }
         }
     }

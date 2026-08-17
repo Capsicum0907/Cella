@@ -85,7 +85,7 @@ public enum Kind {
      * <p>Junior is off the ramp because it is off the chain, and Max is red-brown because
      * it is barely the same creature.
      */
-    LARAVEL("laravel", "Laravel Cella", 0xB89A5E, 6, 9, 54, false, 160, "imperfect", true, () -> Formula
+    LARAVEL("laravel", "Laravel Cella", 0xB89A5E, 6, 9, 54, false, 160, "imperfect", true, Trait.LARVA, () -> Formula
             .shaped("BPM",
                     "HCR",
                     "OSF")
@@ -101,9 +101,9 @@ public enum Kind {
             .done()),
 
     /** Fed, not made. See {@link #formula()}. */
-    IMPERFECT("imperfect", "Imperfect Cella", 0x5AA33C, 6, 9, 216, true, 315, "", false, null),
+    IMPERFECT("imperfect", "Imperfect Cella", 0x5AA33C, 6, 9, 216, true, 315, "", false, Trait.IMPERFECT, null),
 
-    SEMI_PERFECT("semi_perfect", "Semi-Perfect Cella", 0x6FBA43, 6, 9, 1728, true, 550, "", false, () -> Formula
+    SEMI_PERFECT("semi_perfect", "Semi-Perfect Cella", 0x6FBA43, 6, 9, 1728, true, 550, "", false, Trait.SEMI_PERFECT, () -> Formula
             .shaped("CCC",
                     "COC",
                     "CCC")
@@ -111,7 +111,7 @@ public enum Kind {
             .key('O', () -> Blocks.OBSIDIAN)
             .done()),
 
-    PERFECT("perfect", "Perfect Cella", 0x8ACF48, 12, 16, 13824, true, 5345, "super_perfect", false, () -> Formula
+    PERFECT("perfect", "Perfect Cella", 0x8ACF48, 12, 16, 13824, true, 5345, "super_perfect", false, Trait.PERFECT, () -> Formula
             .shaped("CCC",
                     "CGC",
                     "CCC")
@@ -129,7 +129,7 @@ public enum Kind {
      * make the recipe a machine for making storage out of nothing rather than a strong
      * reward for reaching Perfect.
      */
-    JUNIOR("junior", "Cella Jr.", 0x3FB39A, 12, 16, 3456, true, 5345, "", false, () -> Formula
+    JUNIOR("junior", "Cella Jr.", 0x3FB39A, 12, 16, 3456, true, 5345, "", false, Trait.PERFECT, () -> Formula
             .shaped("DDD",
                     "DCD",
                     "DDD")
@@ -150,7 +150,7 @@ public enum Kind {
      * middle</b>, of which a world has exactly one, so Cella Max — four of these — needed
      * four eggs and could not be built at all.
      */
-    SUPER_PERFECT("super_perfect", "Super Perfect Cella", 0xA3E052, 12, 16, 55296, true, 8670, "", false, null),
+    SUPER_PERFECT("super_perfect", "Super Perfect Cella", 0xA3E052, 12, 16, 55296, true, 8670, "", false, Trait.SUPER_PERFECT, null),
 
     /**
      * ⚠ <b>The elytra and three of the totems are gone.</b> The old shape wanted a dragon
@@ -158,7 +158,7 @@ public enum Kind {
      * is left is four of those, four nether stars and the one totem, all of which a player
      * can go and get again.
      */
-    MAX("max", "Cella Max", 0x8A3A2E, 12, 16, 221184, true, 0, "", false, () -> Formula
+    MAX("max", "Cella Max", 0x8A3A2E, 12, 16, 221184, true, 0, "", false, Trait.SUPER_PERFECT, () -> Formula
             .shaped("CSC",
                     "STS",
                     "CSC")
@@ -177,6 +177,7 @@ public enum Kind {
     private final int growth;
     private final String becomes;
     private final boolean ripens;
+    private final Trait trait;
     private final Supplier<Formula> formula;
 
     /**
@@ -198,6 +199,7 @@ public enum Kind {
      * @param growth how much experience this form takes before it is done growing, in
      *              points, or nought for a form that takes none. See {@link #growth()}.
      * @param ripens whether being full is the whole of it. See {@link #ripens()}.
+     * @param trait what this form is made of, beyond room. See {@link Trait}.
      * @param becomes the id of what it turns into once it is full, or empty for a form
      *              that has nowhere to go. <b>An id and not the constant</b>, because
      *              this one names a form further down the list and Java will not let an
@@ -210,7 +212,7 @@ public enum Kind {
      *              do in its own argument list, but a lambda can put off until asked.
      */
     Kind(String id, String name, int stain, int rows, int columns, int slots,
-            boolean keeps, int growth, String becomes, boolean ripens,
+            boolean keeps, int growth, String becomes, boolean ripens, Trait trait,
             Supplier<Formula> formula) {
         this.id = id;
         this.name = name;
@@ -222,6 +224,7 @@ public enum Kind {
         this.growth = growth;
         this.becomes = becomes;
         this.ripens = ripens;
+        this.trait = trait;
         this.formula = formula;
     }
 
@@ -391,6 +394,17 @@ public enum Kind {
      */
     public boolean ripens() {
         return ripens;
+    }
+
+    /**
+     * What this form is, beyond how much it holds.
+     *
+     * <p>Junior shares Perfect's, which is the whole of what "Cella Jr. is a Perfect in
+     * everything but size" means once it is written down. Max shares Super Perfect's until
+     * it is given something of its own.
+     */
+    public Trait trait() {
+        return trait;
     }
 
     /** The id as written, so a test can tell "names nothing" from "names something absent". */
