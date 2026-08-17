@@ -24,7 +24,9 @@ import net.minecraft.data.PackOutput;
 import net.minecraft.resources.ResourceLocation;
 
 /**
- * One chest sheet per {@link Kind}, drawn from that kind's one colour.
+ * Every picture that depends on which kind of chest it is, drawn from that kind's one
+ * colour: the sheet the block is rendered with, and the flat texture its item is built
+ * from.
  *
  * <p><b>Why this is Java and not a script in {@code tools/}.</b> Everything else that
  * differs between kinds is in the enum; a script would have put their colours in another
@@ -60,7 +62,7 @@ import net.minecraft.resources.ResourceLocation;
  * <p>The shades are worked out from the kind's colour, so the arrangement is theirs and
  * every pixel is ours. Reading how a texture is built is not the same as shipping it.
  */
-public class ChestSheets implements DataProvider {
+public class KindTextures implements DataProvider {
     private static final int SHEET = 64;
 
     /** How often a board meets the next one, counted off vanilla's own faces. */
@@ -77,27 +79,38 @@ public class ChestSheets implements DataProvider {
 
     private static final int CLEAR = 0x00000000;
 
-    private final PackOutput.PathProvider path;
+    /** How big the flat one is, which is the size every block texture in the game is. */
+    private static final int TILE = 16;
 
-    public ChestSheets(PackOutput output) {
-        this.path = output.createPathProvider(PackOutput.Target.RESOURCE_PACK,
+    private final PackOutput.PathProvider sheets;
+    private final PackOutput.PathProvider tiles;
+
+    public KindTextures(PackOutput output) {
+        this.sheets = output.createPathProvider(PackOutput.Target.RESOURCE_PACK,
                 "textures/entity/chest");
+        this.tiles = output.createPathProvider(PackOutput.Target.RESOURCE_PACK,
+                "textures/block");
     }
 
     @Override
     public String getName() {
-        return "Chest Sheets: " + Cella.MODID;
+        return "Kind Textures: " + Cella.MODID;
     }
 
     @Override
     public CompletableFuture<?> run(CachedOutput output) {
         List<CompletableFuture<?>> writing = new ArrayList<>();
         for (Kind kind : Kind.values()) {
-            Path target = path.file(
-                    ResourceLocation.fromNamespaceAndPath(Cella.MODID, kind.id()), "png");
+            ResourceLocation named =
+                    ResourceLocation.fromNamespaceAndPath(Cella.MODID, kind.id());
             int[][] sheet = draw(kind.stain());
+            int[][] tile = tile(kind.stain());
             writing.add(CompletableFuture.runAsync(
-                    () -> write(output, sheet, target), Util.backgroundExecutor()));
+                    () -> write(output, sheet, sheets.file(named, "png")),
+                    Util.backgroundExecutor()));
+            writing.add(CompletableFuture.runAsync(
+                    () -> write(output, tile, tiles.file(named, "png")),
+                    Util.backgroundExecutor()));
         }
         return CompletableFuture.allOf(writing.toArray(CompletableFuture[]::new));
     }
@@ -118,6 +131,19 @@ public class ChestSheets implements DataProvider {
         return sheet;
     }
 
+    /**
+     * The flat one: a single face of the same boards, sixteen square.
+     *
+     * <p>What the item is built from, and what flies off when the block breaks. It exists
+     * because otherwise every kind's item is the same picture — the block was told apart
+     * by colour at a glance and the thing in your hand was not.
+     */
+    private static int[][] tile(int stain) {
+        int[][] tile = new int[TILE][TILE];
+        face(tile, stain, 0, 0, TILE, TILE, false);
+        return tile;
+    }
+
     /** @return each face as {@code x, y, width, height, lengthwise} */
     private static int[][] faces(int u, int v, int w, int h, int d) {
         return new int[][] {
@@ -132,19 +158,22 @@ public class ChestSheets implements DataProvider {
 
     private static void board(int[][] sheet, int stain, int u, int v, int w, int h, int d) {
         for (int[] face : faces(u, v, w, h, d)) {
-            int x = face[0];
-            int y = face[1];
-            for (int dy = 0; dy < face[3]; dy++) {
-                for (int dx = 0; dx < face[2]; dx++) {
-                    boolean rim = dx == 0 || dx == face[2] - 1 || dy == 0 || dy == face[3] - 1;
-                    if (rim) {
-                        sheet[y + dy][x + dx] = shade(stain, EDGE);
-                        continue;
-                    }
-                    int along = face[4] == 1 ? dx : dy;
-                    float[] from = along % BOARD_EVERY == BOARD_EVERY - 1 ? JOINT : BODY;
-                    sheet[y + dy][x + dx] = shade(stain, from[scatter(x + dx, y + dy, from.length)]);
+            face(sheet, stain, face[0], face[1], face[2], face[3], face[4] == 1);
+        }
+    }
+
+    /** Near-black all the way round, a wash inside, darker where boards meet. */
+    private static void face(int[][] sheet, int stain, int x, int y, int w, int h,
+            boolean lengthwise) {
+        for (int dy = 0; dy < h; dy++) {
+            for (int dx = 0; dx < w; dx++) {
+                if (dx == 0 || dx == w - 1 || dy == 0 || dy == h - 1) {
+                    sheet[y + dy][x + dx] = shade(stain, EDGE);
+                    continue;
                 }
+                int along = lengthwise ? dx : dy;
+                float[] from = along % BOARD_EVERY == BOARD_EVERY - 1 ? JOINT : BODY;
+                sheet[y + dy][x + dx] = shade(stain, from[scatter(x + dx, y + dy, from.length)]);
             }
         }
     }

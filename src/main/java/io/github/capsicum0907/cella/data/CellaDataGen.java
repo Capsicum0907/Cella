@@ -13,6 +13,8 @@ import net.minecraft.data.recipes.RecipeCategory;
 import net.minecraft.data.recipes.RecipeOutput;
 import net.minecraft.data.recipes.RecipeProvider;
 import net.minecraft.data.recipes.ShapedRecipeBuilder;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.packs.PackType;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
@@ -43,12 +45,24 @@ public final class CellaDataGen {
         DataGenerator generator = event.getGenerator();
         PackOutput output = generator.getPackOutput();
 
-        generator.addProvider(event.includeClient(),
-                new Models(output, event.getExistingFileHelper()));
+        // The model provider refuses a texture it cannot find, and these are made by the
+        // provider two lines further down - in this same run, and not yet. Saying so is
+        // what stops it stopping the build: "does not exist in any known resource pack"
+        // is true and beside the point.
+        ExistingFileHelper helper = event.getExistingFileHelper();
+        ExistingFileHelper.ResourceType texture = new ExistingFileHelper.ResourceType(
+                PackType.CLIENT_RESOURCES, ".png", "textures");
+        for (Kind kind : Kind.values()) {
+            helper.trackGenerated(
+                    ResourceLocation.fromNamespaceAndPath(Cella.MODID, "block/" + kind.id()),
+                    texture);
+        }
+
+        generator.addProvider(event.includeClient(), new Models(output, helper));
         generator.addProvider(event.includeClient(), new Language(output));
         generator.addProvider(event.includeServer(), new Recipes(output, event.getLookupProvider()));
         generator.addProvider(event.includeServer(), new TestStructures(output));
-        generator.addProvider(event.includeClient(), new ChestSheets(output));
+        generator.addProvider(event.includeClient(), new KindTextures(output));
         generator.addProvider(event.includeClient(), new ChestAtlas(output));
         generator.addProvider(event.includeServer(),
                 new Tags(output, event.getLookupProvider(), event.getExistingFileHelper()));
@@ -100,15 +114,15 @@ public final class CellaDataGen {
             for (Kind kind : Kind.values()) {
                 String name = kind.id();
                 horizontalBlock(CellaRegistry.block(kind).get(),
-                        models().getBuilder(name).texture("particle", modLoc("block/crate")));
+                        models().getBuilder(name).texture("particle", modLoc("block/" + name)));
 
                 // block/block for the parent, which carries the display transforms a
                 // block is held and dropped with. item/generated is for a flat sprite and
                 // would lay this on its side in the hand.
                 itemModels().getBuilder(name)
                         .parent(new ModelFile.UncheckedModelFile("block/block"))
-                        .texture("all", modLoc("block/crate"))
-                        .texture("particle", modLoc("block/crate"))
+                        .texture("all", modLoc("block/" + name))
+                        .texture("particle", modLoc("block/" + name))
                         .element().from(1, 0, 1).to(15, 10, 15)
                                 .allFaces((face, builder) -> builder.texture("#all")).end()
                         .element().from(1, 10, 1).to(15, 14, 15)

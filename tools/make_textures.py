@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Draw the pictures that belong to no kind of chest.
+"""Draw the gui icons.
 
 The chest sheets are not here: they differ per kind, and the list of kinds is
 in Java. Generating them from a second list in a second language would be two
@@ -29,7 +29,6 @@ import zlib
 SIZE = 16  # the block texture; the gui icons are ICON square
 
 ASSETS = pathlib.Path(__file__).resolve().parents[1] / "src/main/resources/assets/cella/textures"
-OUT = ASSETS / "block/crate.png"
 SORT_OUT = ASSETS / "gui/sort.png"
 STOW_OUT = ASSETS / "gui/stow.png"
 TAKE_OUT = ASSETS / "gui/take.png"
@@ -45,55 +44,6 @@ SEAM = (0x5A, 0x3F, 0x23, 0xFF)
 IRON = (0x8C, 0x8C, 0x94, 0xFF)
 IRON_LIT = (0xB2, 0xB2, 0xBA, 0xFF)
 IRON_DARK = (0x66, 0x66, 0x6E, 0xFF)
-
-# Where the boards are divided. Vertical seams, offset per band so the crate does
-# not read as one flat plank.
-SEAMS = {2: (5, 11), 8: (3, 9, 13)}
-BAND_ROWS = {3, 4, 11, 12}
-LATCH = {(x, y) for x in range(7, 9) for y in range(10, 14)}
-
-
-def _band(x: int, y: int) -> bool:
-    return y in BAND_ROWS or (x, y) in LATCH
-
-
-def _seam(x: int, y: int) -> bool:
-    if _band(x, y):
-        return False
-    for start, columns in SEAMS.items():
-        if start <= y < start + 6 and x in columns:
-            return True
-    return y in (0, 15)
-
-
-def _shade(x: int, y: int, same, body, lit, dark):
-    """Light where nothing of the same material is above-left, shadow below-right."""
-    above = same(x, y - 1) if y > 0 else False
-    left = same(x - 1, y) if x > 0 else False
-    below = same(x, y + 1) if y < SIZE - 1 else False
-    right = same(x + 1, y) if x < SIZE - 1 else False
-    if not (above and left):
-        return lit
-    if not (below and right):
-        return dark
-    return body
-
-
-def crate() -> list[list[tuple[int, int, int, int]]]:
-    rows = []
-    for y in range(SIZE):
-        row = []
-        for x in range(SIZE):
-            if _band(x, y):
-                row.append(_shade(x, y, _band, IRON, IRON_LIT, IRON_DARK))
-            elif _seam(x, y):
-                row.append(SEAM)
-            else:
-                row.append(_shade(x, y, lambda a, b: not _band(a, b) and not _seam(a, b),
-                                  WOOD, WOOD_LIT, WOOD_DARK))
-        rows.append(row)
-    return rows
-
 
 # --- the gui icons -----------------------------------------------------------
 #
@@ -226,7 +176,6 @@ def write(path: pathlib.Path, pixels) -> None:
 
 
 if __name__ == "__main__":
-    write(OUT, crate())
     write(SORT_OUT, sort_icon())
     write(STOW_OUT, stow_icon())
     write(TAKE_OUT, take_icon())
