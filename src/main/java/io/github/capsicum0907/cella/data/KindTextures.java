@@ -80,6 +80,24 @@ public class KindTextures implements DataProvider {
     private static final float[] BODY = { 1.16F, 1.09F, 1.03F, 0.98F, 0.92F, 0.86F };
     private static final float EDGE = 0.30F;
 
+    /**
+     * How much darker the two faces you only see with the lid up are.
+     *
+     * <p>Measured off vanilla rather than picked: against an outside of 85 mean
+     * brightness, the underside of its lid is 51 and the floor inside is 33 - three
+     * fifths and two fifths. Every face was the same here, so an open chest showed the
+     * same boards inside as out and looked like a box with the front missing rather than
+     * a box with something in it.
+     *
+     * <p>The floor is the darker of the two because it is the one with a lid over it.
+     */
+    private static final float UNDER_LID = 0.60F;
+    private static final float INSIDE_FLOOR = 0.39F;
+
+    /** Which of the six {@link #faces} looks inwards: the lid's down, the body's up. */
+    private static final int DOWN = 0;
+    private static final int UP = 1;
+
     private static final int LATCH = 0xFF8C8C94;
     private static final int LATCH_LIT = 0xFFC2C2CA;
     private static final int LATCH_DARK = 0xFF5C5C64;
@@ -129,8 +147,8 @@ public class KindTextures implements DataProvider {
         }
         // The lid, then the bottom. The faces you look down at have their boards running
         // the length of the box; the ones you look at have them stacked.
-        board(sheet, stain, 0, 0, 14, 5, 14);
-        board(sheet, stain, 0, 19, 14, 10, 14);
+        board(sheet, stain, 0, 0, 14, 5, 14, DOWN, UNDER_LID);
+        board(sheet, stain, 0, 19, 14, 10, 14, UP, INSIDE_FLOOR);
         // The lock last, in the corner of the sheet the lid's faces leave empty.
         for (int[] face : faces(0, 0, 2, 4, 1)) {
             metal(sheet, face[0], face[1], face[2], face[3]);
@@ -147,7 +165,7 @@ public class KindTextures implements DataProvider {
      */
     private static int[][] tile(int stain) {
         int[][] tile = new int[TILE][TILE];
-        face(tile, stain, 0, 0, TILE, TILE);
+        face(tile, stain, 0, 0, TILE, TILE, 1.0F);
         return tile;
     }
 
@@ -163,22 +181,23 @@ public class KindTextures implements DataProvider {
         };
     }
 
-    private static void board(int[][] sheet, int stain, int u, int v, int w, int h, int d) {
-        for (int[] face : faces(u, v, w, h, d)) {
-            face(sheet, stain, face[0], face[1], face[2], face[3]);
+    private static void board(int[][] sheet, int stain, int u, int v, int w, int h, int d,
+            int inwards, float dimmed) {
+        int[][] faces = faces(u, v, w, h, d);
+        for (int at = 0; at < faces.length; at++) {
+            int[] face = faces[at];
+            face(sheet, stain, face[0], face[1], face[2], face[3],
+                    at == inwards ? dimmed : 1.0F);
         }
     }
 
-    /** Near-black all the way round, a wash inside. */
-    private static void face(int[][] sheet, int stain, int x, int y, int w, int h) {
+    /** Near-black all the way round, a wash inside, the whole face weighted by `lit`. */
+    private static void face(int[][] sheet, int stain, int x, int y, int w, int h, float lit) {
         for (int dy = 0; dy < h; dy++) {
             for (int dx = 0; dx < w; dx++) {
-                if (dx == 0 || dx == w - 1 || dy == 0 || dy == h - 1) {
-                    sheet[y + dy][x + dx] = shade(stain, EDGE);
-                    continue;
-                }
-                sheet[y + dy][x + dx] =
-                        shade(stain, BODY[scatter(x + dx, y + dy, BODY.length)]);
+                boolean rim = dx == 0 || dx == w - 1 || dy == 0 || dy == h - 1;
+                float weight = rim ? EDGE : BODY[scatter(x + dx, y + dy, BODY.length)];
+                sheet[y + dy][x + dx] = shade(stain, weight * lit);
             }
         }
     }
