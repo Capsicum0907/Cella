@@ -1442,6 +1442,44 @@ public final class CellaTests {
         helper.succeed();
     }
 
+    /**
+     * The wave kills what is inside it and leaves what is outside.
+     *
+     * <p>The blocks are the spectacle and this is the cost. It has an edge for the same
+     * reason the crater does — something has to be far enough away — so both halves are
+     * asked, since a sweep that killed everything loaded would be a very different mod.
+     */
+    @GameTest(template = TestStructures.FLOOR)
+    public static void theWaveKillsWhatIsInsideIt(GameTestHelper helper) {
+        Blast.forget();
+        net.minecraft.server.level.ServerLevel level = helper.getLevel();
+        BlockPos centre = helper.absolutePos(new BlockPos(2, 40, 2));
+        int reach = 6;
+
+        net.minecraft.world.entity.animal.Pig inside = spawn(level, centre.offset(3, 0, 0));
+        net.minecraft.world.entity.animal.Pig outside = spawn(level, centre.offset(20, 0, 0));
+        check(inside.isAlive() && outside.isAlive(), "both should start out alive");
+
+        Blast.start(level, centre, reach);
+
+        helper.succeedWhen(() -> {
+            check(Blast.running() == 0, "the wave should have finished");
+            check(!inside.isAlive(), "the one inside should be dead");
+            check(outside.isAlive(), "and the one well outside should not be");
+        });
+    }
+
+    private static net.minecraft.world.entity.animal.Pig spawn(
+            net.minecraft.server.level.ServerLevel level, BlockPos where) {
+        net.minecraft.world.entity.animal.Pig pig =
+                net.minecraft.world.entity.EntityType.PIG.create(level);
+        pig.moveTo(where.getX() + 0.5, where.getY(), where.getZ() + 0.5, 0.0F, 0.0F);
+        // Still, so that walking does not decide the test.
+        pig.setNoAi(true);
+        level.addFreshEntity(pig);
+        return pig;
+    }
+
     /** The store as it is on disk, holding one entry. See the note on the migration test. */
     private static CompoundTag store(CompoundTag entry) {
         ListTag chests = new ListTag();

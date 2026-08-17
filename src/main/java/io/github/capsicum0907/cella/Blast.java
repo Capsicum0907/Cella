@@ -6,6 +6,10 @@ import java.util.List;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
@@ -40,6 +44,13 @@ import net.neoforged.neoforge.event.tick.LevelTickEvent;
  * <p>Shells are walked as the surface of a cube rather than by testing every position in
  * it, or each step would cost the volume it encloses instead of its surface, and the last
  * shell of a big one would cost eight million tests to find a quarter of a million blocks.
+ *
+ * <h2>What it does to whatever is standing there</h2>
+ *
+ * <p><b>Kills it.</b> The blocks are the spectacle and this is the cost: everything alive
+ * inside the front dies as the front passes it, the one who lit it included. That is what
+ * the fuse is for — five seconds is enough to leave the middle and nowhere near enough to
+ * leave the reach, which is the bargain being offered.
  *
  * <h2>⚠ What it will not touch</h2>
  *
@@ -123,7 +134,38 @@ public final class Blast {
         for (int shell = 0; shell < SPEED && at <= reach; shell++, at++) {
             surface(at);
         }
+        sweep();
         return at > reach;
+    }
+
+    /**
+     * Everything alive inside the front, killed.
+     *
+     * <p><b>The whole sphere each tick and not the band it just passed.</b> The band is
+     * what the blocks want, because a block that has been removed stays removed — but a
+     * living thing can walk into somewhere the wave has already been, or be spawned there,
+     * and the band would let it stand in the crater untouched. Asking about the whole of
+     * the inside costs the same query and has no hole in it: whatever is already dead is
+     * filtered out before anything is done to it.
+     *
+     * <p><b>Damage rather than {@code kill()}</b>, so that the game's own answers still
+     * apply — a totem is a thing players are entitled to be saved by, and a creative-mode
+     * player is a thing that has to survive it or this could not be tested. The amount is
+     * past anything armour reduces to survivable.
+     *
+     * <p>⚠ <b>Which includes the player who lit it</b>, and is meant to: five seconds is
+     * enough to leave the middle and nowhere near enough to leave the reach.
+     */
+    private void sweep() {
+        Vec3 middle = Vec3.atCenterOf(centre);
+        AABB box = AABB.ofSize(middle, at * 2.0, at * 2.0, at * 2.0);
+        DamageSource source = level.damageSources().explosion(null, null);
+        double within = (double) at * at;
+        for (Entity caught : level.getEntities((Entity) null, box, Entity::isAlive)) {
+            if (caught.distanceToSqr(middle) <= within) {
+                caught.hurt(source, Float.MAX_VALUE);
+            }
+        }
     }
 
     /**
