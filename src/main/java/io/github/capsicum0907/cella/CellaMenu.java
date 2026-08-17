@@ -29,13 +29,43 @@ import net.neoforged.neoforge.items.ItemStackHandler;
 public class CellaMenu extends AbstractContainerMenu {
     private static final int PLAYER_ROWS = 3;
     private static final int HOTBAR = CellaConfig.PLAYER_COLUMNS;
-    private static final int SLOT = 18;
+    public static final int SLOT = 18;
 
     /** The lid is seventeen deep, and the first row of slots begins under it. */
     private static final int FIRST_Y = 18;
 
     /** The margin either side of the widest thing on the panel. */
     private static final int MARGIN = 7;
+
+    /**
+     * Everything on the screen that is not a row of chest slots: the lid, the two labels
+     * and the player's own four rows.
+     *
+     * <p>Here rather than in the screen because it is asked both ways round. The screen
+     * works out how tall a panel is from how many rows it has; the client works out how
+     * many rows it can have from how tall a screen is - see {@link Room}. Two places would
+     * be two chances to disagree about the same rectangle.
+     */
+    public static final int CHROME = 114;
+
+    /** How tall a panel of that many rows comes out. */
+    public static int height(int rows) {
+        return CHROME + rows * SLOT;
+    }
+
+    /** How wide, never narrower than the player's own nine. */
+    public static int width(int columns) {
+        return Math.max(CellaConfig.PLAYER_COLUMNS, columns) * SLOT + 2 * MARGIN;
+    }
+
+    /** The other way round: rows that fit in that height, and columns in that width. */
+    public static int rowsIn(int height) {
+        return (height - CHROME) / SLOT;
+    }
+
+    public static int columnsIn(int width) {
+        return (width - 2 * MARGIN) / SLOT;
+    }
 
     /**
      * The button ids that are not a page.
@@ -109,9 +139,7 @@ public class CellaMenu extends AbstractContainerMenu {
         this.pageSize = window.getSlots();
         this.window = window;
         this.server = !inventory.player.level().isClientSide;
-        // As wide as the widest of the two inventories, and never narrower than the
-        // player's, which is nine whatever the chest is.
-        this.width = Math.max(CellaConfig.PLAYER_COLUMNS, columns) * SLOT + 2 * MARGIN;
+        this.width = width(columns);
         int chestLeft = (width - columns * SLOT) / 2;
         int playerLeft = (width - CellaConfig.PLAYER_COLUMNS * SLOT) / 2;
 

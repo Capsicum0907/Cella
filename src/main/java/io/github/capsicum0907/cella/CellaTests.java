@@ -361,6 +361,53 @@ public final class CellaTests {
         helper.succeed();
     }
 
+    /**
+     * What a screen can show only ever cuts a page down, never stretches it.
+     *
+     * <p>The page shape is the kind's - Laravel is six by nine because a Laravel should
+     * look like a chest - and {@link Room} is a ceiling on it. A player with a wall for a
+     * monitor gets what the chest was designed to show; a player with the window this
+     * game opens in gets fewer rows of it and more pages.
+     */
+    @GameTest(template = TestStructures.FLOOR)
+    public static void aScreenCutsThePageDownAndNeverUp(GameTestHelper helper) {
+        Room small = new Room(6, 9);
+        check(small.rowsFor(KIND) == 6, "a short screen should get six rows of a Perfect");
+        check(small.columnsFor(KIND) == 9, "and nine columns");
+
+        Room wall = new Room(64, 64);
+        check(wall.rowsFor(KIND) == CellaConfig.rows(KIND),
+                "a big screen should get the kind's own shape");
+        check(wall.columnsFor(KIND) == CellaConfig.columns(KIND), "in both directions");
+        check(wall.rowsFor(Kind.LARAVEL) == CellaConfig.rows(Kind.LARAVEL),
+                "and a small chest should not be stretched to fill it");
+
+        Player nobody = helper.makeMockPlayer(GameType.SURVIVAL);
+        check(Room.of(nobody).equals(Room.ANY),
+                "a player who has not said anything should have nothing cut down");
+        helper.succeed();
+    }
+
+    /**
+     * The panel's height and the rows that fit in it are the same arithmetic.
+     *
+     * <p>Asked both ways round by two different places - the screen sizes a panel from
+     * its rows, the client counts rows into a window - so this is the property that stops
+     * them being two rectangles.
+     */
+    @GameTest(template = TestStructures.FLOOR)
+    public static void thePanelMeasuresTheSameBothWays(GameTestHelper helper) {
+        for (int rows = 1; rows <= 20; rows++) {
+            check(CellaMenu.rowsIn(CellaMenu.height(rows)) == rows,
+                    rows + " rows should measure back to " + rows);
+        }
+        for (int columns = CellaConfig.PLAYER_COLUMNS; columns <= 20; columns++) {
+            check(CellaMenu.columnsIn(CellaMenu.width(columns)) == columns,
+                    columns + " columns should measure back to " + columns);
+        }
+        helper.succeed();
+    }
+
     private static java.util.List<ItemStack> dropped(GameTestHelper helper) {
         return helper.getEntities(net.minecraft.world.entity.EntityType.ITEM).stream()
                 .map(entity -> ((net.minecraft.world.entity.item.ItemEntity) entity).getItem())

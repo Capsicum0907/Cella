@@ -4,7 +4,7 @@ A chest with more than one page.
 
 *Cella* is Latin for a storeroom, and also a compartment inside one.
 
-> **Status: the chest works.** Nineteen game tests, watched in a client.
+> **Status: the chest works.** Twenty-one game tests, watched in a client.
 
 ## Target
 
@@ -206,20 +206,29 @@ Two consequences of the top of the ladder, neither solved. **1,024 pages cannot 
 reached with two arrows**, and the sort and the two movers read the whole chest once per
 press, which at 221,184 slots is a real amount of work for one keystroke.
 
-### The page shape is in the wrong place, and it is why the screen cannot fit
+### A bigger screen shows more of the chest
 
-`rows` and `columns` are server config, so the server decides them and sends them when a
-screen opens. That contradicts the sentence this design is built on: **how a chest is cut
-into pages is a fact about looking at it.** The chest is a flat run of slots and the page
-is a way of seeing them, so the shape belongs to whoever is looking — and could then
-follow their window, which is the only way "a bigger screen shows more" can work.
+**How a chest is cut into pages is a fact about looking at it** — the chest is a flat run
+of slots and a page is a way of seeing them. So the shape belongs to whoever is looking,
+and the client says: it measures its window, sends what fits, and the server remembers it
+against that player. Two people can read one chest cut two different ways at the same
+time, and nothing has to reconcile them, because there was never anything to reconcile.
 
-Until it moves, one number has to suit everyone on a server. The panel is 114 pixels plus
-18 a row and 14 plus 18 a column, so twelve by sixteen is **330 × 302** and wants about
-640×360 of GUI — a 1080p screen at scale 3. Minecraft's *automatic* scale leaves as little
-as 320×240, and 240 is the height this game's own default window of 854×480 gets, so the
-default here does not fit that: turn `rows` down to 6. Six, eight and twelve have all been
-watched in a client, which is how those numbers are known rather than guessed.
+**What arrives is a ceiling, not a shape.** The page a kind has is still the kind's
+business — Laravel is six by nine because a Laravel should look like a chest — and the
+screen only ever cuts that down. A wall-sized monitor gets what the chest was designed to
+show and no more; the window this game opens in gets fewer rows of it and more pages.
+
+It is measured every tick and sent only when the answer changes, because a window is
+resized, made fullscreen and rescaled while the player stands there — a value sent once
+on joining is wrong from the first time they drag a corner. `page.automatic` in the client
+config turns the measuring off in favour of two numbers.
+
+The arithmetic is one place run both ways: the panel is 114 pixels plus 18 a row and 14
+plus 18 a column, so twelve rows by sixteen is 330 × 302 and wants about 640×360 of GUI —
+a 1080p screen at scale 3. Minecraft's automatic scale leaves as little as 320×240. Six,
+eight and twelve rows were all watched in a client before any of this, which is how those
+numbers are known rather than guessed.
 
 **The Perfect that makes Cella Jr. is not spent.** Seven come out and the parent is
 still standing there, which is what happened. That is a property of the one recipe and

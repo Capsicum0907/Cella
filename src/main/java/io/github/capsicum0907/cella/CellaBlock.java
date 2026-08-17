@@ -131,11 +131,15 @@ public class CellaBlock extends BaseEntityBlock {
         }
         if (level.getBlockEntity(pos) instanceof CellaBlockEntity chest
                 && player instanceof ServerPlayer server) {
+            // The kind's own shape, cut down to what this player's screen can show.
+            // Somebody else standing at the same chest may be looking at a different
+            // shape, and neither of them has to know: see Room.
+            Room room = Room.of(player);
             server.openMenu(chest, buffer -> {
                 buffer.writeBlockPos(pos);
                 buffer.writeVarInt(chest.contents().getSlots());
-                buffer.writeVarInt(CellaConfig.rows(kind));
-                buffer.writeVarInt(CellaConfig.columns(kind));
+                buffer.writeVarInt(room.rowsFor(kind));
+                buffer.writeVarInt(room.columnsFor(kind));
             });
             chest.opened(player);
         }

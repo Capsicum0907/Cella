@@ -116,7 +116,7 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
         // A page's worth of rows, which is the menu's - it is a page tall.
         this.rows = menu.rows();
         this.imageWidth = menu.width();
-        this.imageHeight = 114 + rows * SLOT;
+        this.imageHeight = CellaMenu.height(rows);
         this.inventoryLabelY = this.imageHeight - 94;
     }
 

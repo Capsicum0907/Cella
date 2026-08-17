@@ -2,8 +2,10 @@ package io.github.capsicum0907.cella;
 
 import com.mojang.logging.LogUtils;
 
+import io.github.capsicum0907.cella.client.CellaClientConfig;
 import io.github.capsicum0907.cella.client.CellaRenderer;
 import io.github.capsicum0907.cella.client.CellaScreen;
+import io.github.capsicum0907.cella.client.Measure;
 
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
@@ -15,7 +17,10 @@ import net.minecraft.world.item.CreativeModeTabs;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
+import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 
 import org.slf4j.Logger;
@@ -40,9 +45,12 @@ public class Cella {
 
         modEventBus.addListener(Cella::capabilities);
         modEventBus.addListener(Cella::creativeTab);
+        modEventBus.addListener(Cella::payloads);
+        NeoForge.EVENT_BUS.addListener(Cella::left);
         if (FMLEnvironment.dist == Dist.CLIENT) {
             modEventBus.addListener(Cella::screens);
             modEventBus.addListener(Cella::renderers);
+            onlyOnTheClient(modContainer);
         }
 
         modContainer.registerConfig(ModConfig.Type.SERVER, CellaConfig.SPEC);
@@ -76,6 +84,32 @@ public class Cella {
                 event.accept(CellaRegistry.item(kind).get());
             }
         }
+    }
+
+    /**
+     * One message, in one direction: how much a player's screen can show.
+     *
+     * <p>See {@link Room}. Marked optional so that a client without this mod - or with an
+     * older one - connects rather than being turned away over a layout hint; a player who
+     * never says gets the chest's own shape.
+     */
+    private static void payloads(RegisterPayloadHandlersEvent event) {
+        event.registrar("1").optional().playToServer(Room.TYPE, Room.STREAM_CODEC,
+                (room, context) -> Room.remember(context.player().getUUID(), room));
+    }
+
+    /** A window that has gone is a window there is nothing to remember about. */
+    private static void left(PlayerEvent.PlayerLoggedOutEvent event) {
+        Room.forget(event.getEntity().getUUID());
+    }
+
+    /**
+     * The two things that only exist on a client, kept behind a method so that loading
+     * this class on a dedicated server does not go looking for them.
+     */
+    private static void onlyOnTheClient(ModContainer modContainer) {
+        modContainer.registerConfig(ModConfig.Type.CLIENT, CellaClientConfig.SPEC);
+        NeoForge.EVENT_BUS.addListener(Measure::tick);
     }
 
     private static void screens(RegisterMenuScreensEvent event) {
