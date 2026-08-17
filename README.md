@@ -157,6 +157,19 @@ shown all at once and IPN's rule never bites. Growing the page is the only thing
 would make an outside sorter work here, and it costs drawing our own background: the
 vanilla chest picture is six rows tall and no more.
 
+### Jade is left to struggle, and that is the answer
+
+Jade summarises a container in its tooltip: at most 54 kinds, ten thousand slots to a
+pass, resumed across ticks, showing *Collecting items…* until it has been all the way
+round. A Cella Max is 221,184 slots, so that is some twenty-three passes. It is bounded
+and it yields, so nothing hangs — it simply never quite catches up.
+
+**Left alone rather than hidden from.** A chest that cannot be summed up at a glance is
+telling the truth about itself, and the tooltip failing to finish says something a
+finished one could not. The cost is real and proportional to capacity; it is also the
+first place the top of the ladder shows through from outside this mod, which is worth
+knowing rather than papering over.
+
 ### The size travels with the screen
 
 A chest keeps the size it was built with, so any world whose config has been turned
