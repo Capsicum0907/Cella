@@ -55,6 +55,19 @@ public class Spawning extends ShapedRecipe {
      * <p>Spawning hands the parent back rather than eating it, which is a difference about
      * what happens to the ingredients and not about which ingredients qualify. See
      * {@link Formula#grown}.
+     *
+     * <p><b>Kept deliberately, after being asked whether it should be.</b> ⚠ It is not a
+     * price — the parent comes back with everything it had, so it is paid once and never
+     * again, and after the first time it costs nothing to spawn seven more. What it is is
+     * a gate on <em>when</em>: a Perfect that has taken in all it can use is one nether
+     * star away from ending itself, so requiring it says <b>Junior comes to somebody who
+     * has already taken a Perfect to the top</b>. Which is where it comes from in the story
+     * as well.
+     *
+     * <p>⚠ The argument against is the same fact read the other way: a gate that only bites
+     * once is friction every time after that. If it starts reading as friction, this is the
+     * line to delete — and the rule in {@link Formula#grown} would then have its first
+     * exception, which is worth a sentence there when it happens.
      */
     @Override
     public boolean matches(CraftingInput input, Level level) {

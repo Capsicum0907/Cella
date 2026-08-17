@@ -137,7 +137,7 @@ public enum Kind {
      * make the recipe a machine for making storage out of nothing rather than a strong
      * reward for reaching Perfect.
      */
-    JUNIOR("junior", "Cella Jr.", 0x3FB39A, 12, 16, 3456, true, 30970, "", false, Trait.PERFECT, () -> Formula
+    JUNIOR("junior", "Cella Jr.", 0x3FB39A, 12, 16, 3456, true, 0, "", false, Trait.PERFECT, () -> Formula
             .shaped("DDD",
                     "DCD",
                     "DDD")
@@ -352,8 +352,11 @@ public enum Kind {
      * sixty-four of those in a Perfect.
      *
      * <p><b>Every form that is ever an ingredient has one</b>, because a recipe will not
-     * accept a Cella that has not finished growing; see {@code Formula#grown}. A form with
-     * nothing above it needs none, which is why Max is the only nought left.
+     * accept a Cella that has not finished growing; see {@code Formula#grown}. The noughts
+     * are the two forms that are neither: Max, which has nothing above it to grow into, and
+     * <b>Junior, which nothing is made out of</b> — it is a Perfect in every other respect,
+     * and this is the one place that stops short of saying so, because a threshold with
+     * nothing on the far side of it is a bar that fills for no reason.
      *
      * <p>⚠ <b>The figures are a first pass and want playing with.</b> They compound: eight
      * full Imperfects go into a Semi-Perfect and eight of those into a Perfect, so a
