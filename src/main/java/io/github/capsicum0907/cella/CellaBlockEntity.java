@@ -5,13 +5,10 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.Containers;
-import net.minecraft.world.MenuProvider;
-import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -29,7 +26,7 @@ import net.neoforged.neoforge.items.ItemStackHandler;
  * hopper, a comparator and the sort button all see the whole thing without asking, and
  * the two things that have to be true here are that it is saved and that it is one run.
  */
-public class CellaBlockEntity extends BlockEntity implements MenuProvider, LidBlockEntity {
+public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
     private static final String CONTENTS = "Contents";
 
     private final ItemStackHandler contents;
@@ -281,14 +278,16 @@ public class CellaBlockEntity extends BlockEntity implements MenuProvider, LidBl
                 SoundSource.BLOCKS, 0.5F, level.getRandom().nextFloat() * 0.1F + 0.9F);
     }
 
-    @Override
+    /**
+     * What the screen is titled.
+     *
+     * <p>This is not a {@code MenuProvider} any more. It was, and that put the making of
+     * the menu here — where the only shape available is the config's, while the packet
+     * that goes with it is written by the block from the player's own screen. Those are
+     * two answers to one question. The block makes both now; see {@code CellaBlock}.
+     */
     public Component getDisplayName() {
         return Component.translatable(getBlockState().getBlock().getDescriptionId());
     }
 
-    @Override
-    public AbstractContainerMenu createMenu(int id, Inventory inventory, Player player) {
-        return CellaMenu.at(id, inventory, getBlockPos(), contents.getSlots(),
-                CellaConfig.rows(kind()), CellaConfig.columns(kind()));
-    }
 }

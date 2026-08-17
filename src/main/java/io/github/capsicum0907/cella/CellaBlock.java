@@ -10,6 +10,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -134,13 +135,27 @@ public class CellaBlock extends BaseEntityBlock {
             // The kind's own shape, cut down to what this player's screen can show.
             // Somebody else standing at the same chest may be looking at a different
             // shape, and neither of them has to know: see Room.
+            //
+            // Worked out once, into three local variables, and both the menu and the
+            // packet are built from those. It was written the other way first - the
+            // packet from Room and the menu from the block entity's own createMenu,
+            // which still read the config - and the two disagreed the moment a screen
+            // was small enough to be cut down. The server then sent 228 slots to a menu
+            // holding 148 and the client walked off the end of its own list. A number
+            // that has to be the same in two places should be in one.
             Room room = Room.of(player);
-            server.openMenu(chest, buffer -> {
-                buffer.writeBlockPos(pos);
-                buffer.writeVarInt(chest.contents().getSlots());
-                buffer.writeVarInt(room.rowsFor(kind));
-                buffer.writeVarInt(room.columnsFor(kind));
-            });
+            int size = chest.contents().getSlots();
+            int rows = room.rowsFor(kind);
+            int columns = room.columnsFor(kind);
+            server.openMenu(new SimpleMenuProvider(
+                    (id, inventory, who) -> CellaMenu.at(id, inventory, pos, size, rows, columns),
+                    chest.getDisplayName()),
+                    buffer -> {
+                        buffer.writeBlockPos(pos);
+                        buffer.writeVarInt(size);
+                        buffer.writeVarInt(rows);
+                        buffer.writeVarInt(columns);
+                    });
             chest.opened(player);
         }
         return InteractionResult.CONSUME;
