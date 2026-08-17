@@ -2,20 +2,17 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "key": {
-    "C": {
-      "item": "minecraft:chest"
-    },
     "I": {
       "item": "minecraft:emerald"
     },
-    "P": {
-      "item": "minecraft:iron_nugget"
+    "X": {
+      "item": "cella:imperfect"
     }
   },
   "pattern": [
-    "PCP",
-    "CIC",
-    "PCP"
+    " I ",
+    "IXI",
+    " I "
   ],
   "result": {
     "count": 1,

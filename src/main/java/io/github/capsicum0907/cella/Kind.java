@@ -25,20 +25,35 @@ import net.minecraft.world.level.ItemLike;
  */
 public enum Kind {
     /**
-     * The seven, smallest first.
+     * The seven, along the way they grow.
      *
-     * <p>Capacity climbs with the form and the middle of the recipe climbs with it. The
-     * largest stops at thirty-two pages because that is where the config stops, and the
-     * config stops there because every slot is in the menu — see the README.
+     * <p>A chain, not a ladder of equals: each is made from the one before it, and
+     * <b>Cella Jr. comes off Perfect</b> rather than sitting between two of the others.
+     * It is stronger than the second form by a long way, which is why it is not where its
+     * size would otherwise put it.
+     *
+     * <p>Capacity climbs with the form. The last stops at thirty-two pages because that
+     * is where the config stops, and the config stops there because every slot is in the
+     * menu — see the README.
      */
-    LARAVEL("laravel", "Laravel Cella", 0x8C9B5A, 3, 1, () -> Items.COPPER_INGOT),
-    JUNIOR("junior", "Cella Jr.", 0x3FB39A, 3, 2, () -> Items.IRON_INGOT),
-    IMPERFECT("imperfect", "Imperfect Cella", 0x4C7A38, 4, 3, () -> Items.GOLD_INGOT),
-    SEMI_PERFECT("semi_perfect", "Semi-Perfect Cella", 0x74A84C, 5, 5, () -> Items.EMERALD),
-    PERFECT("perfect", "Perfect Cella", 0x2F8F52, 6, 8, () -> Items.DIAMOND),
+    LARAVEL("laravel", "Laravel Cella", 0x8C9B5A, 3, 1, () -> Items.COPPER_INGOT, null, 1),
+    IMPERFECT("imperfect", "Imperfect Cella", 0x4C7A38, 4, 3,
+            () -> Items.GOLD_INGOT, () -> LARAVEL, 1),
+    SEMI_PERFECT("semi_perfect", "Semi-Perfect Cella", 0x74A84C, 5, 5,
+            () -> Items.EMERALD, () -> IMPERFECT, 1),
+    PERFECT("perfect", "Perfect Cella", 0x2F8F52, 6, 8,
+            () -> Items.DIAMOND, () -> SEMI_PERFECT, 1),
+    /**
+     * Seven at a time, because that is how many of them there were.
+     *
+     * <p>Each is smaller than the Perfect it came from and seven of them are half as much
+     * again, which is the whole reason to take the branch.
+     */
+    JUNIOR("junior", "Cella Jr.", 0x3FB39A, 6, 6, () -> Items.EGG, () -> PERFECT, 7),
     SUPER_PERFECT("super_perfect", "Super Perfect Cella", 0x2FB36A, 6, 16,
-            () -> Items.NETHERITE_INGOT),
-    MAX("max", "Cella Max", 0x8A3A2E, 6, 32, () -> Items.NETHER_STAR);
+            () -> Items.NETHERITE_INGOT, () -> PERFECT, 1),
+    MAX("max", "Cella Max", 0x8A3A2E, 6, 32,
+            () -> Items.NETHER_STAR, () -> SUPER_PERFECT, 1);
 
     private final String id;
     private final String name;
@@ -46,6 +61,8 @@ public enum Kind {
     private final int rows;
     private final int pages;
     private final Supplier<ItemLike> core;
+    private final Supplier<Kind> from;
+    private final int count;
 
     /**
      * @param id    the registry path, and the file name of everything belonging to it
@@ -53,18 +70,25 @@ public enum Kind {
      * @param stain the one colour the whole sheet is derived from; see {@code ChestSheets}
      * @param rows  rows of nine on one page
      * @param pages pages in one chest — the config may say otherwise, this is the default
-     * @param core  the middle of the recipe, which is what makes it this kind rather than
-     *              another. A supplier because a kind is built before the registries are,
-     *              so a constant here would be read too early once one of these is a
-     *              block of this mod's own rather than a vanilla ingot.
+     * @param core  what surrounds the one before it, and what makes this kind this kind.
+     *              A supplier because a kind is built before the registries are, so a
+     *              constant here would be read too early.
+     * @param from  the form this one grows out of, or null for the one that grows out of
+     *              nothing. Also a supplier, and for a duller reason: an enum constant
+     *              cannot name another in its own argument list, and a lambda puts the
+     *              looking-up off until somebody asks.
+     * @param count how many come out at once. One, except where seven did.
      */
-    Kind(String id, String name, int stain, int rows, int pages, Supplier<ItemLike> core) {
+    Kind(String id, String name, int stain, int rows, int pages, Supplier<ItemLike> core,
+            Supplier<Kind> from, int count) {
         this.id = id;
         this.name = name;
         this.stain = stain;
         this.rows = rows;
         this.pages = pages;
         this.core = core;
+        this.from = from;
+        this.count = count;
     }
 
     public String id() {
@@ -90,6 +114,15 @@ public enum Kind {
 
     public ItemLike core() {
         return core.get();
+    }
+
+    /** What this grows out of, or empty for the one that grows out of nothing. */
+    public java.util.Optional<Kind> from() {
+        return java.util.Optional.ofNullable(from).map(Supplier::get);
+    }
+
+    public int count() {
+        return count;
     }
 
     /** Slots on one page, which is also how tall the screen is drawn. */

@@ -150,21 +150,46 @@ public final class CellaDataGen {
             super(output, registries);
         }
 
-        /** The middle is what makes it one kind rather than another; the rest is shared. */
+        /**
+         * The first is built; the rest are grown.
+         *
+         * <p>One kind grows out of nothing and is made of chests, the way any chest is.
+         * Every other one is the form before it with this form's own material round it —
+         * which is the shape of the thing being modelled, and also means a player cannot
+         * skip a step.
+         */
         @Override
         protected void buildRecipes(RecipeOutput output) {
             for (Kind kind : Kind.values()) {
-                ShapedRecipeBuilder.shaped(RecipeCategory.DECORATIONS,
-                                CellaRegistry.block(kind).get())
-                        .pattern("PCP")
-                        .pattern("CIC")
-                        .pattern("PCP")
-                        .define('P', Items.IRON_NUGGET)
-                        .define('C', Blocks.CHEST)
-                        .define('I', kind.core())
-                        .unlockedBy("has_chest", has(Blocks.CHEST))
-                        .save(output);
+                kind.from().ifPresentOrElse(
+                        previous -> grown(output, kind, previous),
+                        () -> built(output, kind));
             }
+        }
+
+        private void built(RecipeOutput output, Kind kind) {
+            ShapedRecipeBuilder.shaped(RecipeCategory.DECORATIONS,
+                            CellaRegistry.block(kind).get(), kind.count())
+                    .pattern("PCP")
+                    .pattern("CIC")
+                    .pattern("PCP")
+                    .define('P', Items.IRON_NUGGET)
+                    .define('C', Blocks.CHEST)
+                    .define('I', kind.core())
+                    .unlockedBy("has_chest", has(Blocks.CHEST))
+                    .save(output);
+        }
+
+        private void grown(RecipeOutput output, Kind kind, Kind previous) {
+            ShapedRecipeBuilder.shaped(RecipeCategory.DECORATIONS,
+                            CellaRegistry.block(kind).get(), kind.count())
+                    .pattern(" I ")
+                    .pattern("IXI")
+                    .pattern(" I ")
+                    .define('I', kind.core())
+                    .define('X', CellaRegistry.block(previous).get())
+                    .unlockedBy("has_" + previous.id(), has(CellaRegistry.block(previous).get()))
+                    .save(output);
         }
     }
 }

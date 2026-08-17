@@ -1,10 +1,10 @@
 {
   "values": [
     "cella:laravel",
-    "cella:junior",
     "cella:imperfect",
     "cella:semi_perfect",
     "cella:perfect",
+    "cella:junior",
     "cella:super_perfect",
     "cella:max"
   ]

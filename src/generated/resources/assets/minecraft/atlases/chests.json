@@ -1,13 +1,9 @@
 {
-  "__comment": "Adds laravel, junior, imperfect, semi_perfect, perfect, super_perfect, max to the chest atlas.",
+  "__comment": "Adds laravel, imperfect, semi_perfect, perfect, junior, super_perfect, max to the chest atlas.",
   "sources": [
     {
       "type": "minecraft:single",
       "resource": "cella:entity/chest/laravel"
-    },
-    {
-      "type": "minecraft:single",
-      "resource": "cella:entity/chest/junior"
     },
     {
       "type": "minecraft:single",
@@ -20,6 +16,10 @@
     {
       "type": "minecraft:single",
       "resource": "cella:entity/chest/perfect"
+    },
+    {
+      "type": "minecraft:single",
+      "resource": "cella:entity/chest/junior"
     },
     {
       "type": "minecraft:single",

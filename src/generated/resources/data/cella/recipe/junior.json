@@ -2,23 +2,20 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "key": {
-    "C": {
-      "item": "minecraft:chest"
-    },
     "I": {
-      "item": "minecraft:iron_ingot"
+      "item": "minecraft:egg"
     },
-    "P": {
-      "item": "minecraft:iron_nugget"
+    "X": {
+      "item": "cella:perfect"
     }
   },
   "pattern": [
-    "PCP",
-    "CIC",
-    "PCP"
+    " I ",
+    "IXI",
+    " I "
   ],
   "result": {
-    "count": 1,
+    "count": 7,
     "id": "cella:junior"
   }
 }

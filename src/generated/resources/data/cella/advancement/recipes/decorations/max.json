@@ -1,11 +1,11 @@
 {
   "parent": "minecraft:recipes/root",
   "criteria": {
-    "has_chest": {
+    "has_super_perfect": {
       "conditions": {
         "items": [
           {
-            "items": "minecraft:chest"
+            "items": "cella:super_perfect"
           }
         ]
       },
@@ -21,7 +21,7 @@
   "requirements": [
     [
       "has_the_recipe",
-      "has_chest"
+      "has_super_perfect"
     ]
   ],
   "rewards": {
