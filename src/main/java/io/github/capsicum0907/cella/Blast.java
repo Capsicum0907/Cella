@@ -84,6 +84,19 @@ public final class Blast {
      */
     private static final int SPEED = 2;
 
+    /**
+     * How hard it hits. Enough for anything: the dragon has two hundred and the wither
+     * three hundred.
+     *
+     * <p>⚠ <b>Not {@code Float.MAX_VALUE}.</b> {@code LivingEntity#hurt} keeps the last
+     * amount in {@code lastHurt} and, inside the invulnerability window, refuses anything
+     * that does not exceed it. Hitting with the largest float there is leaves a target
+     * <b>nothing can ever hurt again</b> — no value is larger, and {@code /kill} uses that
+     * same value, so even that is refused. It is only reachable by something that survived
+     * the first hit, which is to say it turned luck into immortality.
+     */
+    private static final float BITE = 1000.0F;
+
     private static final List<Blast> RUNNING = new ArrayList<>();
 
     private final ServerLevel level;
@@ -92,6 +105,16 @@ public final class Blast {
 
     /** How far out it has already been. Starts at one: the centre is what survived. */
     private int at = 1;
+
+    /**
+     * Who has already been hit, so that nobody is hit twice.
+     *
+     * <p>⚠ <b>Not an optimisation.</b> Hitting every tick refreshes the invulnerability
+     * window, which holds {@code lastHurt} in place, which is what made a survivor
+     * unkillable. Once each also means a totem does what a totem is for: whoever it saves
+     * is not immediately hit again by the same wave.
+     */
+    private final java.util.Set<Integer> bitten = new java.util.HashSet<>();
 
     private Blast(ServerLevel level, BlockPos centre, int reach) {
         this.level = level;
@@ -148,10 +171,15 @@ public final class Blast {
      * the inside costs the same query and has no hole in it: whatever is already dead is
      * filtered out before anything is done to it.
      *
-     * <p><b>Damage rather than {@code kill()}</b>, so that the game's own answers still
-     * apply — a totem is a thing players are entitled to be saved by, and a creative-mode
-     * player is a thing that has to survive it or this could not be tested. The amount is
-     * past anything armour reduces to survivable.
+     * <p><b>Killed the way the void kills.</b> Not an explosion's damage, which armour,
+     * resistance, a totem and the invulnerability window can all stop — this is the source
+     * the game uses for falling out of the world, and it bypasses every one of them.
+     * ⚠ <b>Creative-mode players die too</b>, which is the price of "everything" meaning
+     * everything.
+     *
+     * <p>⚠ <b>Once each.</b> See {@link #BITE}: an earlier version hit every tick with the
+     * largest float there is, and turned "killed by the wave" into "immune to everything,
+     * including {@code /kill}" — for exactly whatever had survived the first hit.
      *
      * <p>⚠ <b>Which includes the player who lit it</b>, and is meant to: five seconds is
      * enough to leave the middle and nowhere near enough to leave the reach.
@@ -159,11 +187,16 @@ public final class Blast {
     private void sweep() {
         Vec3 middle = Vec3.atCenterOf(centre);
         AABB box = AABB.ofSize(middle, at * 2.0, at * 2.0, at * 2.0);
-        DamageSource source = level.damageSources().explosion(null, null);
+        // ⚠ The void's own, and not an explosion's. It carries bypasses_invulnerability
+        // and bypasses_cooldown, which is why falling out of the world kills a player in
+        // creative and why nothing can sit out a wave behind an invulnerability window.
+        // An explosion source is stoppable by armour, resistance, a totem and the cooldown;
+        // this one is not, and "everything caught in it dies" is the whole instruction.
+        DamageSource source = level.damageSources().fellOutOfWorld();
         double within = (double) at * at;
         for (Entity caught : level.getEntities((Entity) null, box, Entity::isAlive)) {
-            if (caught.distanceToSqr(middle) <= within) {
-                caught.hurt(source, Float.MAX_VALUE);
+            if (caught.distanceToSqr(middle) <= within && bitten.add(caught.getId())) {
+                caught.hurt(source, BITE);
             }
         }
     }
