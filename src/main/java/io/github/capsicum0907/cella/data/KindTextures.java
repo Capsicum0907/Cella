@@ -81,22 +81,31 @@ public class KindTextures implements DataProvider {
     private static final float EDGE = 0.30F;
 
     /**
-     * How much darker the two faces you only see with the lid up are.
+     * The underside of the lid: dark boards, three fifths the weight of the outside.
      *
-     * <p>Measured off vanilla rather than picked: against an outside of 85 mean
-     * brightness, the underside of its lid is 51 and the floor inside is 33 - three
-     * fifths and two fifths. Every face was the same here, so an open chest showed the
-     * same boards inside as out and looked like a box with the front missing rather than
-     * a box with something in it.
-     *
-     * <p>The floor is the darker of the two because it is the one with a lid over it.
+     * <p>Measured off vanilla, whose lid underside means #4F3713 against a top of
+     * #7F5C25 - darker, and every bit as brown.
      */
     private static final float UNDER_LID = 0.60F;
-    private static final float INSIDE_FLOOR = 0.39F;
 
-    /** Which of the six {@link #faces} looks inwards: the lid's down, the body's up. */
+    /**
+     * <b>The floor is not dark boards. It is a hole.</b>
+     *
+     * <p>Vanilla's inside floor is <em>#000000 for a hundred of its hundred and ninety-six
+     * pixels</em> - a fourteen square face with two pixels of dark wood round the rim and
+     * a ten by ten of nothing in the middle. That is what makes an open chest look like it
+     * has a space in it rather than a painted bottom, and it is why the first attempt at
+     * this was wrong: dimming the boards to two fifths kept their colour, and a dark brown
+     * floor still reads as a floor.
+     */
+    private static final int HOLLOW = 0xFF000000;
+    private static final int RIM = 2;
+    private static final float RIM_WEIGHT = 0.35F;
+
+    /** Which of the six {@link #faces} is which: the lid's down, the body's up. */
     private static final int DOWN = 0;
     private static final int UP = 1;
+    private static final int NONE = -1;
 
     private static final int LATCH = 0xFF8C8C94;
     private static final int LATCH_LIT = 0xFFC2C2CA;
@@ -148,7 +157,10 @@ public class KindTextures implements DataProvider {
         // The lid, then the bottom. The faces you look down at have their boards running
         // the length of the box; the ones you look at have them stacked.
         board(sheet, stain, 0, 0, 14, 5, 14, DOWN, UNDER_LID);
-        board(sheet, stain, 0, 19, 14, 10, 14, UP, INSIDE_FLOOR);
+        board(sheet, stain, 0, 19, 14, 10, 14, NONE, 1.0F);
+        // The one face that is not boards at all.
+        int[] floor = faces(0, 19, 14, 10, 14)[UP];
+        hollow(sheet, stain, floor[0], floor[1], floor[2], floor[3]);
         // The lock last, in the corner of the sheet the lid's faces leave empty.
         for (int[] face : faces(0, 0, 2, 4, 1)) {
             metal(sheet, face[0], face[1], face[2], face[3]);
@@ -188,6 +200,18 @@ public class KindTextures implements DataProvider {
             int[] face = faces[at];
             face(sheet, stain, face[0], face[1], face[2], face[3],
                     at == inwards ? dimmed : 1.0F);
+        }
+    }
+
+    /** A rim of dark boards and nothing in the middle: what you see when you look in. */
+    private static void hollow(int[][] sheet, int stain, int x, int y, int w, int h) {
+        for (int dy = 0; dy < h; dy++) {
+            for (int dx = 0; dx < w; dx++) {
+                boolean edge = dx < RIM || dx >= w - RIM || dy < RIM || dy >= h - RIM;
+                sheet[y + dy][x + dx] = edge
+                        ? shade(stain, RIM_WEIGHT * BODY[scatter(x + dx, y + dy, BODY.length)])
+                        : HOLLOW;
+            }
         }
     }
 
