@@ -556,6 +556,49 @@ public final class CellaTests {
         helper.succeed();
     }
 
+    /**
+     * Spawning leaves the parent's contents with the parent, and gives the children none.
+     *
+     * <p>The half that matters since fusions exist. Cella Jr. is the one recipe that eats
+     * a Cella and does <em>not</em> carry anything, because nothing was eaten — the
+     * Perfect is still standing there. So its name has to come back on it, and it must
+     * not come back on the seven as well: seven items naming one chest would be seven
+     * players racing to place the first, and six empty chests.
+     */
+    @GameTest(template = TestStructures.FLOOR)
+    public static void spawningLeavesTheContentsWithTheParent(GameTestHelper helper) {
+        var recipes = helper.getLevel().getServer().getRecipeManager();
+        var junior = recipes.byKey(ResourceLocation.fromNamespaceAndPath(Cella.MODID, "junior"))
+                .orElseThrow(() -> new GameTestAssertException("no junior recipe"));
+        check(junior.value() instanceof Spawning, "a spawning, not a fusion");
+        Spawning spawning = (Spawning) junior.value();
+
+        Held named = new Held(java.util.List.of(java.util.UUID.randomUUID()), 5,
+                Kind.PERFECT.slots());
+        ItemStack perfect = new ItemStack(CellaRegistry.item(Kind.PERFECT).get());
+        perfect.set(CellaRegistry.KEPT.get(), named);
+
+        ItemStack diamond = new ItemStack(Items.DIAMOND_BLOCK);
+        CraftingInput bench = CraftingInput.of(3, 3, java.util.List.of(
+                diamond, diamond, diamond,
+                diamond, perfect, diamond,
+                diamond, diamond, diamond));
+
+        check(spawning.matches(bench, helper.getLevel()), "it should be a recipe");
+
+        ItemStack back = spawning.getRemainingItems(bench).get(4);
+        check(back.is(CellaRegistry.item(Kind.PERFECT).get()), "the Perfect should come back");
+        check(named.equals(back.get(CellaRegistry.KEPT.get())),
+                "still naming what it was carrying");
+
+        ItemStack made = spawning.assemble(bench, helper.getLevel().registryAccess());
+        check(made.getCount() == 7, "seven at a time: " + made.getCount());
+        check(!made.has(CellaRegistry.KEPT.get()),
+                "and none of them naming the chest that spawned them");
+        check(made.getMaxStackSize() > 1, "so they stack, being empty");
+        helper.succeed();
+    }
+
     private static java.util.List<ItemStack> dropped(GameTestHelper helper) {
         return helper.getEntities(net.minecraft.world.entity.EntityType.ITEM).stream()
                 .map(entity -> ((net.minecraft.world.entity.item.ItemEntity) entity).getItem())
