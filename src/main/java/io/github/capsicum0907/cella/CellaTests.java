@@ -1287,6 +1287,53 @@ public final class CellaTests {
         helper.succeed();
     }
 
+    /**
+     * The wave clears everything from one block out to its reach, and stops there.
+     *
+     * <p><b>Written because a screenshot could be read two ways.</b> After the first one in
+     * a real game there was cobblestone still standing directly under the chest, which is
+     * either a platform somebody built afterwards or the first shells never running — and
+     * those want opposite responses. The block below the centre is the first position the
+     * wave ever touches, so asking about it settles which.
+     *
+     * <p>The centre itself is left, because that is what came back.
+     */
+    @GameTest(template = TestStructures.FLOOR)
+    public static void theWaveClearsFromOneBlockOutToItsReach(GameTestHelper helper) {
+        Blast.forget();
+        net.minecraft.server.level.ServerLevel level = helper.getLevel();
+        BlockPos centre = helper.absolutePos(new BlockPos(2, 40, 2));
+        int reach = 6;
+        int side = reach + 3;
+
+        for (int x = -side; x <= side; x++) {
+            for (int y = -side; y <= side; y++) {
+                for (int z = -side; z <= side; z++) {
+                    level.setBlock(centre.offset(x, y, z),
+                            net.minecraft.world.level.block.Blocks.STONE.defaultBlockState(), 2);
+                }
+            }
+        }
+        check(!level.getBlockState(centre.below()).isAir(), "the ground starts out solid");
+
+        Blast.start(level, centre, reach);
+
+        helper.succeedWhen(() -> {
+            check(Blast.running() == 0, "the wave should have finished");
+            check(!level.getBlockState(centre).isAir(),
+                    "the centre is what survived, and is left alone");
+            check(level.getBlockState(centre.below()).isAir(),
+                    "the block under it is the first thing the wave touches");
+            check(level.getBlockState(centre.above()).isAir(), "and the one over it");
+            for (int out = 1; out <= reach; out++) {
+                check(level.getBlockState(centre.offset(out, 0, 0)).isAir(),
+                        out + " blocks out should be gone");
+            }
+            check(!level.getBlockState(centre.offset(reach + 2, 0, 0)).isAir(),
+                    "and past the reach nothing is touched");
+        });
+    }
+
     /** The store as it is on disk, holding one entry. See the note on the migration test. */
     private static CompoundTag store(CompoundTag entry) {
         ListTag chests = new ListTag();
