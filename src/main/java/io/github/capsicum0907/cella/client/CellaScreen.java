@@ -1,6 +1,7 @@
 package io.github.capsicum0907.cella.client;
 
 import io.github.capsicum0907.cella.Cella;
+import io.github.capsicum0907.cella.Look;
 import io.github.capsicum0907.cella.CellaMenu;
 import io.github.capsicum0907.cella.Mods;
 
@@ -11,6 +12,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
+import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 
@@ -62,8 +64,18 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     /** How deep the highlight and the shadow run, counted off vanilla's own panel. */
     private static final int BEVEL = 3;
 
-    /** Where vanilla draws a container title, and so where ours starts. */
+    /** Where vanilla draws a container title, and so where the magnifier goes. */
     private static final int TITLE_X = 8;
+
+    /**
+     * How long the box waits after the last keystroke before asking.
+     *
+     * <p>⚠ <b>Because the asking is not free.</b> A query is walked against every non-empty
+     * slot on the server, and a full Cella Max is 221,184 of them — a packet per keystroke
+     * would be that walk per keystroke. Four ticks is a fifth of a second: long enough that
+     * typing a word costs one search rather than six, short enough that nobody waits.
+     */
+    private static final int SETTLES = 4;
 
     private static final int BUTTON = IconButton.SIZE;
     private static final int BUTTON_Y = 3;
@@ -180,17 +192,113 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
                 icon("sort"), Component.translatable("gui.cella.sort"),
                 () -> send(CellaMenu.SORT)));
 
-        if (menu.pages() <= 1) {
-            return;
-        }
         // The two arrows next to each other. They were either side of the number, which
         // put fifty pixels between them - a long way to travel to press one twice.
+        //
+        // ⚠ Always built, and hidden when there is one page. They used not to exist at all
+        // in that case, which was fine while the number of pages was fixed at opening -
+        // searching changes it while the screen is up, and a widget that was never made
+        // cannot come back.
         int next = sort - APART - BUTTON;
         controls = next - SPACE - BUTTON;
-        addRenderableWidget(new IconButton(leftPos + controls, topPos + BUTTON_Y,
+        back = addRenderableWidget(new IconButton(leftPos + controls, topPos + BUTTON_Y,
                 icon("prev"), Component.translatable("gui.cella.prev"), () -> turn(-1)));
-        addRenderableWidget(new IconButton(leftPos + next, topPos + BUTTON_Y,
+        on = addRenderableWidget(new IconButton(leftPos + next, topPos + BUTTON_Y,
                 icon("next"), Component.translatable("gui.cella.next"), () -> turn(1)));
+
+        // The magnifier where the title used to start, and the title moved along. It is the
+        // switch for that row rather than for the contents, so it belongs beside the thing
+        // it changes - and once the row is a box, a magnifier at its left edge is what a
+        // search box looks like everywhere else.
+        this.titleLabelX = TITLE_X + BUTTON + SPACE;
+        addRenderableWidget(new IconButton(leftPos + TITLE_X, topPos + BUTTON_Y,
+                icon("find"), Component.translatable("gui.cella.find"), this::toggle));
+
+        looking = new EditBox(font, leftPos + titleLabelX, topPos + BUTTON_Y - 1,
+                controls - titleLabelX - BESIDE - font.width("99 / 99"), BUTTON + 2,
+                Component.translatable("gui.cella.find"));
+        looking.setMaxLength(Look.LONGEST);
+        // Unbordered and in the title's own grey, because it is standing where the title
+        // stands: the lid should look like the lid with a word in it, not like a form.
+        looking.setBordered(false);
+        looking.setTextColor(LABEL);
+        looking.setHint(Component.translatable("gui.cella.find.hint"));
+        looking.setResponder(typed -> settles = SETTLES);
+        looking.setVisible(false);
+        addRenderableWidget(looking);
+        paging();
+    }
+
+    private IconButton back;
+    private IconButton on;
+    private EditBox looking;
+
+    /** What the server was last told, so an unchanged box asks nothing. */
+    private String asked = "";
+
+    /** Ticks left before the box asks. Negative when there is nothing to ask. */
+    private int settles = -1;
+
+    /** Whether the row is a box at the moment. */
+    private boolean finding;
+
+    /**
+     * Opens the box, or shuts it and puts the chest back.
+     *
+     * <p>Shutting it clears the query, which is the only thing it could sensibly do: a
+     * hidden box with a word still in it would be a chest showing four of its slots for
+     * reasons nothing on the screen explains.
+     */
+    private void toggle() {
+        finding = !finding;
+        looking.setVisible(finding);
+        looking.setFocused(finding);
+        setFocused(finding ? looking : null);
+        if (!finding && !looking.getValue().isEmpty()) {
+            looking.setValue("");
+        }
+        settles = finding ? -1 : 0;
+    }
+
+    /** Arrows only where there is somewhere to go. Asked every tick, because it changes. */
+    private void paging() {
+        boolean many = menu.pages() > 1;
+        back.visible = many;
+        on.visible = many;
+    }
+
+    @Override
+    protected void containerTick() {
+        super.containerTick();
+        paging();
+        if (settles < 0) {
+            return;
+        }
+        if (settles-- == 0 && !looking.getValue().equals(asked)) {
+            asked = looking.getValue();
+            net.neoforged.neoforge.network.PacketDistributor.sendToServer(new Look(asked));
+        }
+    }
+
+    /**
+     * ⚠ <b>The inventory key has to reach the box before it reaches the screen.</b>
+     *
+     * <p>{@code AbstractContainerScreen} closes on it, and an {@code EditBox} answers false
+     * to a plain letter — those arrive as typed characters, not as key presses — so
+     * pressing E while typing would shut the chest instead of writing an E. Asking the box
+     * whether it <em>could</em> take the key is the question that gets this right; asking
+     * whether it did take it is the question that does not.
+     */
+    @Override
+    public boolean keyPressed(int key, int scan, int modifiers) {
+        if (finding && key == org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE) {
+            toggle();
+            return true;
+        }
+        if (finding && (looking.keyPressed(key, scan, modifiers) || looking.canConsumeInput())) {
+            return true;
+        }
+        return super.keyPressed(key, scan, modifiers);
     }
 
     /**
@@ -322,8 +430,10 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     @Override
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
         Component page = Component.literal((menu.page() + 1) + " / " + menu.pages());
-        graphics.drawString(font, fitted(title, room(page)), titleLabelX, titleLabelY,
-                LABEL, false);
+        if (!finding) {
+            graphics.drawString(font, fitted(title, room(page)), titleLabelX, titleLabelY,
+                    LABEL, false);
+        }
         graphics.drawString(font, playerInventoryTitle, inventoryLabelX, inventoryLabelY,
                 LABEL, false);
 

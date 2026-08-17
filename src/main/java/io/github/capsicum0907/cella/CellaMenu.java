@@ -289,6 +289,26 @@ public class CellaMenu extends AbstractContainerMenu {
     }
 
     /**
+     * Shows only what answers to that word, or the chest again for an empty one.
+     *
+     * <p><b>The same recantation a page turn needs, for the same reason.</b> The window
+     * moved and the slots did not know — the menu works out what to send by comparing each
+     * slot against what it last told the client that slot held, and that reasoning only
+     * holds while nothing moves underneath a slot. So the client is told all of it again
+     * rather than the difference. See {@link #turnTo}.
+     *
+     * <p>⚠ <b>Server only, and it goes back to the first page.</b> Staying on page nine of
+     * a chest while showing four results would be a window off the end of its own answer.
+     */
+    public void look(String looking) {
+        if (!server) {
+            return;
+        }
+        window.search(looking);
+        sendAllDataToRemote();
+    }
+
+    /**
      * A page, or one of the five things that are not a slot click.
      *
      * <p>The buttons run on the server because they change what is in the chest. What

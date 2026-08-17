@@ -101,7 +101,8 @@ public class Cella {
     }
 
     /**
-     * One message, in one direction: how much a player's screen can show.
+     * Two messages, both from the client and neither answered directly: how much a
+     * player's screen can show, and what they are looking for.
      *
      * <p>See {@link Room}. Marked optional so that a client without this mod - or with an
      * older one - connects rather than being turned away over a layout hint; a player who
@@ -110,6 +111,14 @@ public class Cella {
     private static void payloads(RegisterPayloadHandlersEvent event) {
         event.registrar("1").optional().playToServer(Room.TYPE, Room.STREAM_CODEC,
                 (room, context) -> Room.remember(context.player().getUUID(), room));
+        // Straight to whatever that player has open, and only if it is one of ours. A
+        // message about a chest is only ever about the chest they are standing at.
+        event.registrar("1").optional().playToServer(Look.TYPE, Look.STREAM_CODEC,
+                (look, context) -> {
+                    if (context.player().containerMenu instanceof CellaMenu menu) {
+                        menu.look(look.looking());
+                    }
+                });
     }
 
     /** A window that has gone is a window there is nothing to remember about. */

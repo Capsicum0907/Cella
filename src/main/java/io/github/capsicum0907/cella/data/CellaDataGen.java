@@ -225,6 +225,8 @@ public final class CellaDataGen {
             add("gui.cella.stow.shift", "Shift: your whole inventory");
             add("gui.cella.take", "Take more of what you are carrying");
             add("gui.cella.take.shift", "Shift: as much as will fit");
+            add("gui.cella.find", "Search this chest");
+            add("gui.cella.find.hint", "Search");
             add("gui.cella.prev", "Previous page");
             add("gui.cella.next", "Next page");
 
