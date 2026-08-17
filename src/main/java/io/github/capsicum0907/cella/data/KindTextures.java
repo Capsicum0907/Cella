@@ -65,12 +65,19 @@ import net.minecraft.resources.ResourceLocation;
 public class KindTextures implements DataProvider {
     private static final int SHEET = 64;
 
-    /** How often a board meets the next one, counted off vanilla's own faces. */
-    private static final int BOARD_EVERY = 4;
-
-    /** The shades a face is washed with, as weights on the kind's own colour. */
+    /**
+     * The shades a face is washed with, as weights on the kind's own colour.
+     *
+     * <p><b>No line among them.</b> There was one every fourth row, on the reading that
+     * vanilla's faces have a periodic row - which they do. What they do not have is a
+     * <em>darker</em> one: the row that repeats is #A76E1F against a body of #8F691D,
+     * lighter rather than darker, and a shade a step sideways does not draw a line. Mine
+     * was a fifth to a third darker and drew seven of them per face.
+     *
+     * <p>So there is one range and every pixel comes out of it. If a board edge is ever
+     * wanted back, it belongs inside this range and not below it.
+     */
     private static final float[] BODY = { 1.16F, 1.09F, 1.03F, 0.98F, 0.92F, 0.86F };
-    private static final float[] JOINT = { 0.79F, 0.73F, 0.67F };
     private static final float EDGE = 0.30F;
 
     private static final int LATCH = 0xFF8C8C94;
@@ -140,40 +147,38 @@ public class KindTextures implements DataProvider {
      */
     private static int[][] tile(int stain) {
         int[][] tile = new int[TILE][TILE];
-        face(tile, stain, 0, 0, TILE, TILE, false);
+        face(tile, stain, 0, 0, TILE, TILE);
         return tile;
     }
 
-    /** @return each face as {@code x, y, width, height, lengthwise} */
+    /** @return each face as {@code x, y, width, height} */
     private static int[][] faces(int u, int v, int w, int h, int d) {
         return new int[][] {
-                { u + d, v, w, d, 1 },
-                { u + d + w, v, w, d, 1 },
-                { u, v + d, d, h, 0 },
-                { u + d, v + d, w, h, 0 },
-                { u + d + w, v + d, d, h, 0 },
-                { u + d + w + d, v + d, w, h, 0 },
+                { u + d, v, w, d },
+                { u + d + w, v, w, d },
+                { u, v + d, d, h },
+                { u + d, v + d, w, h },
+                { u + d + w, v + d, d, h },
+                { u + d + w + d, v + d, w, h },
         };
     }
 
     private static void board(int[][] sheet, int stain, int u, int v, int w, int h, int d) {
         for (int[] face : faces(u, v, w, h, d)) {
-            face(sheet, stain, face[0], face[1], face[2], face[3], face[4] == 1);
+            face(sheet, stain, face[0], face[1], face[2], face[3]);
         }
     }
 
-    /** Near-black all the way round, a wash inside, darker where boards meet. */
-    private static void face(int[][] sheet, int stain, int x, int y, int w, int h,
-            boolean lengthwise) {
+    /** Near-black all the way round, a wash inside. */
+    private static void face(int[][] sheet, int stain, int x, int y, int w, int h) {
         for (int dy = 0; dy < h; dy++) {
             for (int dx = 0; dx < w; dx++) {
                 if (dx == 0 || dx == w - 1 || dy == 0 || dy == h - 1) {
                     sheet[y + dy][x + dx] = shade(stain, EDGE);
                     continue;
                 }
-                int along = lengthwise ? dx : dy;
-                float[] from = along % BOARD_EVERY == BOARD_EVERY - 1 ? JOINT : BODY;
-                sheet[y + dy][x + dx] = shade(stain, from[scatter(x + dx, y + dy, from.length)]);
+                sheet[y + dy][x + dx] =
+                        shade(stain, BODY[scatter(x + dx, y + dy, BODY.length)]);
             }
         }
     }
