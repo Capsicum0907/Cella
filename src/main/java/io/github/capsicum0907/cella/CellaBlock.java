@@ -13,11 +13,14 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Containers;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
@@ -126,6 +129,64 @@ public class CellaBlock extends BaseEntityBlock {
     @Override
     protected RenderShape getRenderShape(BlockState state) {
         return RenderShape.ENTITYBLOCK_ANIMATED;
+    }
+
+    /**
+     * A nether star on a form that has taken in all it can use, in the End: it lights.
+     *
+     * <p><b>Neither a command nor a button on its screen.</b> A command would put the one
+     * step of the ladder that is not arithmetic behind an operator, which would make it
+     * something only a server owner could do. A button in the chest's own screen sits an
+     * inch from the sort button, and this is the one action in the mod that cannot be
+     * taken back.
+     *
+     * <p><b>A nether star has no path to being pressed by accident.</b> Flint and steel is
+     * the game's own verb for setting something off, and was the obvious choice until the
+     * obvious problem with it: it is cheap and it lives in a pocket, so a storage room full
+     * of these would be a storage room one misclick from a crater. Nobody idly right-clicks
+     * a chest holding a nether star. It also comes off a fight, which is what everything
+     * else about this step is made of.
+     *
+     * <p><b>Every refusal says which refusal it is.</b> Not enough taken in, wrong world,
+     * already going: three different things to do about it, so three different answers.
+     */
+    @Override
+    protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level,
+            BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
+        if (!stack.is(Items.NETHER_STAR) || kind.becomes().isEmpty()) {
+            return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+        }
+        if (level.isClientSide) {
+            return ItemInteractionResult.SUCCESS;
+        }
+        if (!(level.getBlockEntity(pos) instanceof CellaBlockEntity chest)) {
+            return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+        }
+        if (chest.lit()) {
+            return refused(player, "message.cella.lit");
+        }
+        // ⚠ The End, and the reason is not flavour. What follows removes a hundred blocks
+        // in every direction, and there is exactly one place in this game where that is
+        // somebody's problem and not everybody's.
+        if (level.dimension() != Level.END) {
+            return refused(player, "message.cella.elsewhere");
+        }
+        if (chest.grown() < 1.0F) {
+            return refused(player, "message.cella.notyet");
+        }
+        if (!chest.light()) {
+            return refused(player, "message.cella.notyet");
+        }
+        stack.consume(1, player);
+        level.playSound(null, pos, SoundEvents.END_PORTAL_SPAWN, SoundSource.BLOCKS, 0.6F, 1.6F);
+        player.displayClientMessage(Component.translatable("message.cella.lighting"), true);
+        return ItemInteractionResult.CONSUME;
+    }
+
+    /** A refusal that says which one it is, and takes nothing for having said so. */
+    private static ItemInteractionResult refused(Player player, String why) {
+        player.displayClientMessage(Component.translatable(why), true);
+        return ItemInteractionResult.CONSUME;
     }
 
     @Override
@@ -306,7 +367,7 @@ public class CellaBlock extends BaseEntityBlock {
                 ? createTickerHelper(type, CellaRegistry.BLOCK_ENTITY.get(),
                         CellaBlockEntity::lidTick)
                 : createTickerHelper(type, CellaRegistry.BLOCK_ENTITY.get(),
-                        (l, p, s, chest) -> chest.recheck());
+                        (l, p, s, chest) -> chest.serverTick());
     }
 
     /** A block event is how the server tells everyone watching that the lid moved. */

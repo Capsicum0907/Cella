@@ -194,6 +194,9 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
         super.saveAdditional(tag, registries);
         tag.put(CONTENTS, contents.serializeNBT(registries));
         tag.putInt(EXPERIENCE, experience);
+        // A lit chest that is saved is still lit when the world comes back. Forgetting it
+        // would be a chest that quietly stopped being dangerous.
+        tag.putInt(FUSE, fuse);
     }
 
     /**
@@ -212,6 +215,7 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
         // Absent in every chest written before experience existed, which reads as nought
         // and is the truth: none of them had been fed anything.
         experience = tag.getInt(EXPERIENCE);
+        fuse = tag.contains(FUSE) ? tag.getInt(FUSE) : UNLIT;
     }
 
     /** Set once {@link #handOver} has dropped the item itself. See {@code CellaBlock}. */
@@ -411,6 +415,106 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
         if (level != null && !remove) {
             openers.recheckOpeners(level, getBlockPos(), getBlockState());
         }
+    }
+
+    /** Ticks left before it ends itself, or {@link #UNLIT}. */
+    private int fuse = UNLIT;
+
+    private static final String FUSE = "Fuse";
+
+    /** Not counting. Negative so that nought can be the tick it goes off on. */
+    private static final int UNLIT = -1;
+
+    /**
+     * How long between the star and the blast.
+     *
+     * <p>⚠ <b>There has to be one.</b> The wave removes the ground rather than damaging
+     * anybody, so in the End what it does to whoever is standing there is drop them into
+     * nothing — and an irreversible thing that happens the same instant it is asked for is
+     * a thing players lose worlds to. Five seconds is enough to get away from the middle
+     * and nowhere near enough to get a hundred blocks out, which is the intended bargain.
+     *
+     * <p>It counts down out loud for the same reason.
+     */
+    private static final int FUSE_TICKS = 100;
+
+    public boolean lit() {
+        return fuse > UNLIT;
+    }
+
+    /**
+     * Starts the countdown, if this is a form that has somewhere to go and has taken in
+     * everything it can use.
+     *
+     * @return whether it took
+     */
+    public boolean light() {
+        if (lit() || kind().becomes().isEmpty() || grown() < 1.0F) {
+            return false;
+        }
+        fuse = FUSE_TICKS;
+        setChanged();
+        return true;
+    }
+
+    /** The server's tick: the openers recheck, and the fuse if one is burning. */
+    public void serverTick() {
+        recheck();
+        if (!lit() || !(level instanceof net.minecraft.server.level.ServerLevel server)) {
+            return;
+        }
+        fuse--;
+        if (fuse % 20 == 0 && fuse > 0) {
+            said(level, worldPosition, SoundEvents.NOTE_BLOCK_BASEDRUM.value());
+        }
+        if (fuse <= 0) {
+            fuse = UNLIT;
+            end(server);
+        }
+    }
+
+    /**
+     * It destroys itself and comes back as what it was becoming.
+     *
+     * <p><b>The contents move from block to block and never become an item.</b> An item at
+     * the centre of this would be thrown by the explosion, in a dimension made largely of
+     * somewhere to fall — so the one thing that must survive would be the one thing put
+     * where it could not. Nothing is filed and nothing is dropped; the chest is simply
+     * standing there afterwards, which is also what happened in the story.
+     *
+     * <p><b>Poured rather than restored</b>, because what it comes back as is bigger. See
+     * {@link #restore}: putting a filed chest back brings its size with it, which is right
+     * when it is the same chest and wrong when the whole point is that it is not.
+     *
+     * <p>The experience is spent. It bought this.
+     */
+    private void end(net.minecraft.server.level.ServerLevel server) {
+        Kind next = kind().becomes().orElse(null);
+        if (next == null) {
+            return;
+        }
+        BlockPos pos = getBlockPos();
+        CompoundTag was = contents.serializeNBT(server.registryAccess());
+
+        // Emptied before the block is replaced, so that onRemove finds nothing worth
+        // keeping and neither files it nor drops an item naming it.
+        contents.setSize(contents.getSlots());
+        experience = 0;
+
+        BlockState born = CellaRegistry.block(next).get().defaultBlockState()
+                .setValue(CellaBlock.FACING, getBlockState().getValue(CellaBlock.FACING));
+        server.setBlockAndUpdate(pos, born);
+        if (server.getBlockEntity(pos) instanceof CellaBlockEntity reborn) {
+            reborn.pour(server.registryAccess(),
+                    java.util.List.of(new Kept.Chest(was, 0)));
+        }
+
+        // Vanilla's explosion for what vanilla's explosion is good at - the noise, the
+        // light and throwing whatever is standing about. It is not what removes the
+        // ground; see Blast for why it cannot be.
+        server.explode(null, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, 8.0F,
+                Level.ExplosionInteraction.NONE);
+        Blast.start(server, pos, Blast.REACH);
     }
 
     /** The client's half: the lid swings towards where the block event said it should be. */

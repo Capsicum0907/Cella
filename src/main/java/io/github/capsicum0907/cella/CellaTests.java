@@ -1201,6 +1201,92 @@ public final class CellaTests {
         helper.succeed();
     }
 
+    /**
+     * Every form that says what it becomes names one that exists.
+     *
+     * <p>The column holds an id rather than the constant, because Java will not let an
+     * enum constant refer to one declared after it. That trade gives up the compiler's
+     * check, so the check is here instead — a name with no form behind it would otherwise
+     * be found by somebody standing in the End with a nether star.
+     */
+    @GameTest(template = TestStructures.FLOOR)
+    public static void everyFormBecomesOneThatExists(GameTestHelper helper) {
+        int found = 0;
+        for (Kind kind : Kind.values()) {
+            if (!kind.rawBecomes().isEmpty()) {
+                check(kind.becomes().isPresent(),
+                        kind.id() + " says it becomes " + kind.rawBecomes() + ", which is nothing");
+                found++;
+            }
+        }
+        check(found > 0, "at least one form should have somewhere to go");
+        check(Kind.PERFECT.becomes().orElse(null) == Kind.SUPER_PERFECT,
+                "and Perfect's somewhere is Super Perfect");
+
+        // A form that can end itself has to be one that can be fed, or it could never
+        // reach the state that allows it.
+        for (Kind kind : Kind.values()) {
+            check(kind.becomes().isEmpty() || kind.grows(),
+                    kind.id() + " can end itself but can never be ready to");
+        }
+        helper.succeed();
+    }
+
+    /**
+     * A chest that has not taken in enough will not light, and one that has will.
+     *
+     * <p>The condition is the whole cost of the step. Everything else about it — the star,
+     * the dimension — gates where and how, and this is the part that had to be earned.
+     */
+    @GameTest(template = TestStructures.FLOOR)
+    public static void onlyAFullOneWillLight(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper, KIND);
+        check(!chest.lit(), "it should not start out going");
+        check(!chest.light(), "and an empty one should refuse");
+        check(!chest.lit(), "and still not be going");
+
+        Player rich = helper.makeMockPlayer(GameType.SURVIVAL);
+        rich.giveExperienceLevels(200);
+        chest.absorb(rich);
+        check(chest.grown() == 1.0F, "now it has taken in all it can use");
+
+        check(chest.light(), "so it should light");
+        check(chest.lit(), "and be going");
+        check(!chest.light(), "and lighting it twice should do nothing");
+
+        // A form with nowhere to go never lights, however full it is.
+        CellaBlockEntity larva = place(helper, Kind.LARAVEL);
+        check(!larva.light(), "a form with nowhere to go should refuse");
+        helper.succeed();
+    }
+
+    /**
+     * The wave walks the surface of a cube and never the inside of it.
+     *
+     * <p>Which is the difference between a step costing what it reaches and a step costing
+     * everything it encloses: the last shell of a hundred-block wave is a quarter of a
+     * million positions on the surface and eight million inside it. This asks the shape
+     * rather than the timing, because a timing test on a build machine says nothing.
+     */
+    @GameTest(template = TestStructures.FLOOR)
+    public static void theWaveWalksSurfacesAndNotVolumes(GameTestHelper helper) {
+        for (int out = 1; out <= 12; out++) {
+            int surface = 0;
+            for (int x = -out; x <= out; x++) {
+                for (int y = -out; y <= out; y++) {
+                    for (int z = -out; z <= out; z++) {
+                        if (Math.max(Math.abs(x), Math.max(Math.abs(y), Math.abs(z))) == out) {
+                            surface++;
+                        }
+                    }
+                }
+            }
+            check(surface == Blast.surfaceOf(out),
+                    out + " out should be " + surface + " positions, not " + Blast.surfaceOf(out));
+        }
+        helper.succeed();
+    }
+
     /** The store as it is on disk, holding one entry. See the note on the migration test. */
     private static CompoundTag store(CompoundTag entry) {
         ListTag chests = new ListTag();

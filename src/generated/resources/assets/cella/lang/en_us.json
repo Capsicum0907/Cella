@@ -32,10 +32,14 @@
   "gui.cella.take": "Take more of what you are carrying",
   "gui.cella.take.shift": "Shift: as much as will fit",
   "itemGroup.cella": "Cella",
+  "message.cella.elsewhere": "Not here. Somewhere the world can be spared.",
   "message.cella.fed": "Absorbed. %s%% grown.",
   "message.cella.full": "Absorbed. It has taken in all it can use.",
   "message.cella.grown": "It has already taken in all it can use.",
+  "message.cella.lighting": "It begins to shake.",
+  "message.cella.lit": "It has already begun.",
   "message.cella.nothing": "You have no experience to give it.",
+  "message.cella.notyet": "It has not taken in enough to survive that.",
   "tooltip.cella.filled": "%s of %s slots used (%s%%)",
   "tooltip.cella.grown": "%s%% grown"
 }

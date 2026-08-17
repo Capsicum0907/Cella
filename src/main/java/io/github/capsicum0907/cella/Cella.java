@@ -46,6 +46,9 @@ public class Cella {
         modEventBus.addListener(Cella::payloads);
         NeoForge.EVENT_BUS.addListener(Cella::left);
         NeoForge.EVENT_BUS.addListener(KeptCommand::register);
+        NeoForge.EVENT_BUS.addListener(Blast::tick);
+        NeoForge.EVENT_BUS.addListener(
+                (net.neoforged.neoforge.event.server.ServerStoppingEvent event) -> Blast.forget());
         if (FMLEnvironment.dist == Dist.CLIENT) {
             modEventBus.addListener(Cella::screens);
             modEventBus.addListener(Cella::renderers);

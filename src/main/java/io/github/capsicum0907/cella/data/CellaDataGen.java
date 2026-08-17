@@ -185,6 +185,13 @@ public final class CellaDataGen {
             add("message.cella.grown", "It has already taken in all it can use.");
             add("message.cella.nothing", "You have no experience to give it.");
 
+            // Ending itself. Three refusals rather than one, because there are three
+            // different things to go and do about it.
+            add("message.cella.lighting", "It begins to shake.");
+            add("message.cella.lit", "It has already begun.");
+            add("message.cella.notyet", "It has not taken in enough to survive that.");
+            add("message.cella.elsewhere", "Not here. Somewhere the world can be spared.");
+
             // /cella kept — see KeptCommand. Three answers about a form rather than two,
             // because "names one this version does not have" is not "names none".
             add("commands.cella.kept.none", "No chest contents are kept.");

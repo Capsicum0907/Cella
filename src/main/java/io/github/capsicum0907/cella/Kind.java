@@ -83,7 +83,7 @@ public enum Kind {
      * <p>Junior is off the ramp because it is off the chain, and Max is red-brown because
      * it is barely the same creature.
      */
-    LARAVEL("laravel", "Laravel Cella", 0xB89A5E, 6, 9, 54, false, 0, () -> Formula
+    LARAVEL("laravel", "Laravel Cella", 0xB89A5E, 6, 9, 54, false, 0, "", () -> Formula
             .shaped("BPM",
                     "HCR",
                     "OSF")
@@ -99,9 +99,9 @@ public enum Kind {
             .done()),
 
     /** Fed, not made. See {@link #formula()}. */
-    IMPERFECT("imperfect", "Imperfect Cella", 0x5AA33C, 6, 9, 216, true, 0, null),
+    IMPERFECT("imperfect", "Imperfect Cella", 0x5AA33C, 6, 9, 216, true, 0, "", null),
 
-    SEMI_PERFECT("semi_perfect", "Semi-Perfect Cella", 0x6FBA43, 6, 9, 1728, true, 0, () -> Formula
+    SEMI_PERFECT("semi_perfect", "Semi-Perfect Cella", 0x6FBA43, 6, 9, 1728, true, 0, "", () -> Formula
             .shaped("CCC",
                     "COC",
                     "CCC")
@@ -109,7 +109,7 @@ public enum Kind {
             .key('O', () -> Blocks.OBSIDIAN)
             .done()),
 
-    PERFECT("perfect", "Perfect Cella", 0x8ACF48, 12, 16, 13824, true, 5345, () -> Formula
+    PERFECT("perfect", "Perfect Cella", 0x8ACF48, 12, 16, 13824, true, 5345, "super_perfect", () -> Formula
             .shaped("CCC",
                     "CGC",
                     "CCC")
@@ -127,7 +127,7 @@ public enum Kind {
      * make the recipe a machine for making storage out of nothing rather than a strong
      * reward for reaching Perfect.
      */
-    JUNIOR("junior", "Cella Jr.", 0x3FB39A, 12, 16, 3456, true, 0, () -> Formula
+    JUNIOR("junior", "Cella Jr.", 0x3FB39A, 12, 16, 3456, true, 0, "", () -> Formula
             .shaped("DDD",
                     "DCD",
                     "DDD")
@@ -137,7 +137,7 @@ public enum Kind {
             .spawning()
             .done()),
 
-    SUPER_PERFECT("super_perfect", "Super Perfect Cella", 0xA3E052, 12, 16, 55296, true, 0, () -> Formula
+    SUPER_PERFECT("super_perfect", "Super Perfect Cella", 0xA3E052, 12, 16, 55296, true, 0, "", () -> Formula
             .shaped("CSC",
                     "SES",
                     "CSC")
@@ -146,7 +146,7 @@ public enum Kind {
             .key('E', () -> Blocks.DRAGON_EGG)
             .done()),
 
-    MAX("max", "Cella Max", 0x8A3A2E, 12, 16, 221184, true, 0, () -> Formula
+    MAX("max", "Cella Max", 0x8A3A2E, 12, 16, 221184, true, 0, "", () -> Formula
             .shaped("CTC",
                     "TET",
                     "CTC")
@@ -163,6 +163,7 @@ public enum Kind {
     private final int slots;
     private final boolean keeps;
     private final int growth;
+    private final String becomes;
     private final Supplier<Formula> formula;
 
     /**
@@ -183,13 +184,19 @@ public enum Kind {
      *              {@link #keeps()}.
      * @param growth how much experience this form takes before it is done growing, in
      *              points, or nought for a form that takes none. See {@link #growth()}.
+     * @param becomes the id of what it turns into when it destroys itself, or empty for
+     *              a form that has nowhere to go. <b>An id and not the constant</b>, because
+     *              this one names a form further down the list and Java will not let an
+     *              enum constant refer forwards to another, in a lambda or out of it. A
+     *              test walks the column so that a name with no form behind it is found by
+     *              the build rather than by somebody in the End. See {@link #becomes()}.
      * @param formula how it is made, or null for the one that is not made at all. A
      *              supplier for two reasons: a kind is built before the registries are,
      *              and several of these name other kinds - which an enum constant cannot
      *              do in its own argument list, but a lambda can put off until asked.
      */
     Kind(String id, String name, int stain, int rows, int columns, int slots,
-            boolean keeps, int growth, Supplier<Formula> formula) {
+            boolean keeps, int growth, String becomes, Supplier<Formula> formula) {
         this.id = id;
         this.name = name;
         this.stain = stain;
@@ -198,6 +205,7 @@ public enum Kind {
         this.slots = slots;
         this.keeps = keeps;
         this.growth = growth;
+        this.becomes = becomes;
         this.formula = formula;
     }
 
@@ -319,6 +327,32 @@ public enum Kind {
     /** Whether experience means anything to this form. See {@link #growth()}. */
     public boolean grows() {
         return growth > 0;
+    }
+
+    /**
+     * What it comes back as after destroying itself, or empty for a form that does not.
+     *
+     * <p><b>This is the step that is not arithmetic.</b> Every other rung is what its
+     * recipe ate — four Perfects into a Super Perfect is four times the room because four
+     * went in — and that is exactly what was wrong with it. A Super Perfect is not four
+     * of anything put together; it is <em>one</em> that nearly died and came back, which
+     * is a thing that happens to an individual rather than to a pile.
+     *
+     * <p>So what it costs is not more chests. It is the experience the form spent its life
+     * taking in ({@link #growth}), and it is spent: what comes back has none of it.
+     *
+     * <p>⚠ <b>Which means the capacity of a form with this set is not what went into
+     * it</b>, and the note at the top of this list does not cover it. Nothing was eaten.
+     * That is the point, and it is the one place the ladder's arithmetic is deliberately
+     * broken rather than accidentally.
+     */
+    public java.util.Optional<Kind> becomes() {
+        return named(becomes);
+    }
+
+    /** The id as written, so a test can tell "names nothing" from "names something absent". */
+    public String rawBecomes() {
+        return becomes;
     }
 
     /**
