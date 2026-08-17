@@ -43,13 +43,22 @@ public final class CellaConfig {
         for (Kind kind : Kind.values()) {
             builder.push(kind.id());
             ROWS.put(kind, builder
-                    .comment("Rows on one page. Six is a large chest and the screen is drawn",
-                            "to fit, so more would work and would also be very tall.")
-                    .defineInRange("rows", kind.defaultRows(), 1, 6));
+                    .comment("Rows on one page. Six is a large chest; eight is what the",
+                            "forms from Perfect up use, and that is about the ceiling.",
+                            "The screen is 114 pixels plus 18 a row, and Minecraft picks",
+                            "its automatic GUI scale so as to leave at least 320x240 - so",
+                            "eight rows is 258 and fits 1920x1080 (270) with twelve pixels",
+                            "over, while 1366x768 (256) is two short and wants the scale",
+                            "set a step lower. Anything above eight is for a large screen",
+                            "and nothing else.")
+                    .defineInRange("rows", kind.defaultRows(), 1, 12));
             COLUMNS.put(kind, builder
                     .comment("How wide a page is. Nine is a vanilla chest; wider is drawn by",
-                            "this mod and the player's own inventory stays nine, in the middle.")
-                    .defineInRange("columns", kind.defaultColumns(), 1, 15));
+                            "this mod and the player's own inventory stays nine, in the",
+                            "middle. The screen is 14 + 18 a column, so sixteen is 302 and",
+                            "still inside the 320 that Minecraft's automatic GUI scale",
+                            "leaves at its narrowest. Eighteen would be 338 and would not.")
+                    .defineInRange("columns", kind.defaultColumns(), 1, 18));
             SLOTS.put(kind, builder
                     .comment("How big the chest is. Fifty-four is a large chest, and the",
                             "forms are written in those: four of them, then eight times",

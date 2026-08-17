@@ -170,36 +170,54 @@ server refuses and then sit waiting for an answer that is not coming.
 ### There is a list of kinds, and it is the only one
 
 Seven of them: Laravel, Imperfect, Semi-Perfect, Perfect, Super Perfect, Cella Max,
-and Cella Jr. off the side of Perfect. Capacity climbs with the form, and a page gets
-wider as well as taller towards the top.
+and Cella Jr. off the side of Perfect. Capacity climbs with the form, and the page gets
+both wider and taller once past Semi-Perfect.
 
 **Capacity is what went into the chest.** A large chest is fifty-four slots, Imperfect is
 four of them, and each step multiplies by what its recipe eats.
 
 | | large chests | slots | page | pages |
 |---|---|---|---|---|
-| Laravel | ½ | 27 | 3×9 | 1 |
+| Laravel | 1 | 54 | 6×9 | 1 |
 | Imperfect | 4 | 216 | 6×9 | 4 |
 | Semi-Perfect | 32 | 1,728 | 6×9 | 32 |
-| Perfect | 256 | 13,824 | 6×9 | 256 |
-| Cella Jr. | 64 | 3,456 | 6×9 | 64 |
-| Super Perfect | 1,024 | 55,296 | 6×12 | 768 |
-| Cella Max | 4,096 | 221,184 | 6×15 | 2,458 |
+| Perfect | 256 | 13,824 | 8×16 | 108 |
+| Cella Jr. | 64 | 3,456 | 8×16 | 27 |
+| Super Perfect | 1,024 | 55,296 | 8×16 | 432 |
+| Cella Max | 4,096 | 221,184 | 8×16 | 1,728 |
+
+**The page grows at Perfect**, from fifty-four slots to a hundred and twenty-eight. That
+is where the chest stops being something you could have built out of chests, and it keeps
+the page counts countable: 1,728 pages of 128 where a six-by-fifteen page would have been
+2,458 of 90.
+
+A hundred and twenty-eight is not chosen for looking right. Every capacity from Perfect up
+has to divide by it, and those four are 27 × 2⁷, 2⁹, 2¹¹ and 2¹³ — so the page has to
+divide 3,456, the smallest of them, and a power of two does exactly. The shape then
+follows from the screen.
 
 **The column in `Kind` is the capacity and the pages follow from it**, which is the way
 round it was not written first. How big a chest is is a fact about the chest; how it is
 cut into pages is a fact about looking at it. Writing the pages down made the second
-decide the first, and the two do not even divide: Cella Max's last page holds fifty-four
-of its ninety squares. That is fine and it is drawn honestly. Bending the capacity so
-the pages come out round would not be.
+decide the first, and the two need not divide. An earlier shape put Cella Max's last page
+at fifty-four of its ninety squares; a short last page is fine and is drawn short.
+Bending the capacity so the pages come out round would not be.
 
 **Multiplying by what a recipe eats is addition, not fusion**, and that is the part left
 open. Four put together giving four times the room is arithmetic; whatever a form is
 worth beyond that is not room. Nothing here buys anything but room yet.
 
-Two consequences of the top of the ladder, neither solved: **2,458 pages cannot be
+Two consequences of the top of the ladder, neither solved. **1,024 pages cannot be
 reached with two arrows**, and the sort and the two movers read the whole chest once per
 press, which at 221,184 slots is a real amount of work for one keystroke.
+
+And **eight rows is about the ceiling of what fits on a screen**. The panel is 114 pixels
+plus 18 a row and 14 plus 18 a column, so 258 by 302, against the 320×240 that Minecraft's
+automatic GUI scale leaves at its narrowest. The width is inside that; the height is not,
+and it is the height that binds. Twelve rows was tried first and is a better-looking
+screen: it needs 640×337 and does not fit 1920×1080 at the scale that machine picks for
+itself, which is not an edge case. Eight fits 1080p with twelve pixels over. 1366×768 is
+two pixels short and wants its GUI scale a step lower — that is the size of the margin.
 
 **The Perfect that makes Cella Jr. is not spent.** Seven come out and the parent is
 still standing there, which is what happened. That is a property of the one recipe and

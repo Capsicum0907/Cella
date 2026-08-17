@@ -36,20 +36,29 @@ public enum Kind {
      * enough becomes one. That is why a formula is allowed to be absent rather than every
      * kind having to have one.
      *
-     * <p><b>Capacity is what went into it.</b> A large chest is fifty-four slots, and
-     * Imperfect is four of them. Each step after multiplies by what its recipe eats —
-     * eight, eight, four, four — so the chain runs 4, 32, 256, 1024, 4096 large chests,
-     * and Junior is a quarter of the Perfect it came off. Laravel is half of one, being
-     * three rows and no more.
+     * <p><b>Capacity is what went into it.</b> A large chest is fifty-four slots. Laravel
+     * is one, Imperfect is four, and each step after multiplies by what its recipe eats —
+     * eight, eight, four, four — so the chain runs 1, 4, 32, 256, 1024, 4096 large chests,
+     * with Junior a quarter of the Perfect it came off.
      *
      * <p><b>The column is the capacity, and the number of pages follows from it.</b> Not
      * the other way round, which is how it was written first: how big the chest is is a
      * fact about the chest, and how it is cut into pages is a fact about looking at it.
-     * Writing the pages down instead made the second decide the first, and the two do not
-     * even divide — Cella Max is 221,184 slots and its page is fifteen wide, which comes
-     * to 2,457 pages and a last one holding fifty-four. That is fine and it is drawn
-     * honestly; see {@code CellaScreen}. It is only wrong if the capacity is made to bend
-     * so the pages come out round.
+     * Writing the pages down instead made the second decide the first, and it does not
+     * even divide reliably — an earlier shape put Cella Max at 2,457 pages and a last one
+     * holding fifty-four of its ninety squares. A short last page is fine and is drawn
+     * short; bending the capacity so the pages come out round would not be.
+     *
+     * <p><b>The page grows at Perfect</b>, from fifty-four slots to a hundred and
+     * twenty-eight — eight rows of sixteen. That is where the chest stops being something
+     * you could have built out of chests, and it is what keeps the page counts countable:
+     * 221,184 slots is 1,728 pages of 128 where six by fifteen would have been 2,458.
+     *
+     * <p><b>A hundred and twenty-eight is not chosen for looking right.</b> Every capacity
+     * from Perfect up has to divide by it, and those four are 27 × 2⁷, 2⁹, 2¹¹ and 2¹³ —
+     * so the page has to divide 3,456, the smallest of them. A power of two does, exactly,
+     * for all four. The shape then follows from the screen: eight rows is as tall as it
+     * will take and sixteen keeps it narrow enough. See {@code CellaConfig}.
      *
      * <p><b>Multiplying by what a recipe eats is addition, not fusion.</b> That is the
      * open question and it is deliberately left open here: four put together giving four
@@ -65,7 +74,7 @@ public enum Kind {
      * <p>Junior is off the ramp because it is off the chain, and Max is red-brown because
      * it is barely the same creature.
      */
-    LARAVEL("laravel", "Laravel Cella", 0xB89A5E, 3, 9, 27, () -> Formula
+    LARAVEL("laravel", "Laravel Cella", 0xB89A5E, 6, 9, 54, () -> Formula
             .shaped("BPM",
                     "HCR",
                     "OSF")
@@ -91,7 +100,7 @@ public enum Kind {
             .key('O', () -> Blocks.OBSIDIAN)
             .done()),
 
-    PERFECT("perfect", "Perfect Cella", 0x8ACF48, 6, 9, 13824, () -> Formula
+    PERFECT("perfect", "Perfect Cella", 0x8ACF48, 8, 16, 13824, () -> Formula
             .shaped("CCC",
                     "CGC",
                     "CCC")
@@ -103,14 +112,13 @@ public enum Kind {
      * Seven at a time, because that is how many of them there were - and the Perfect that
      * made them <b>is still standing there</b>, which is also what happened.
      *
-     * <p><b>Held back until Perfect can move.</b> This is meant to be a quarter of the
-     * Perfect it came from, which is sixty-four large chests. It cannot be that yet:
-     * Perfect is still small, and a recipe that eats a Perfect and gives back seven of
-     * something eight times larger - while leaving the Perfect standing - is not a
-     * lopsided table, it is a way of making storage out of nothing. So it stays under
-     * Perfect until both can go up together.
+     * <p><b>A quarter of the Perfect it came from</b>, which is sixty-four large chests.
+     * Seven of those out of one Perfect is a great deal of room for eight diamond blocks,
+     * and it is meant to be: what it is not is more room than the Perfect, which would
+     * make the recipe a machine for making storage out of nothing rather than a strong
+     * reward for reaching Perfect.
      */
-    JUNIOR("junior", "Cella Jr.", 0x3FB39A, 6, 9, 3456, () -> Formula
+    JUNIOR("junior", "Cella Jr.", 0x3FB39A, 8, 16, 3456, () -> Formula
             .shaped("DDD",
                     "DCD",
                     "DDD")
@@ -120,7 +128,7 @@ public enum Kind {
             .spawning()
             .done()),
 
-    SUPER_PERFECT("super_perfect", "Super Perfect Cella", 0xA3E052, 6, 12, 55296, () -> Formula
+    SUPER_PERFECT("super_perfect", "Super Perfect Cella", 0xA3E052, 8, 16, 55296, () -> Formula
             .shaped("CSC",
                     "SES",
                     "CSC")
@@ -129,7 +137,7 @@ public enum Kind {
             .key('E', () -> Blocks.DRAGON_EGG)
             .done()),
 
-    MAX("max", "Cella Max", 0x8A3A2E, 6, 15, 221184, () -> Formula
+    MAX("max", "Cella Max", 0x8A3A2E, 8, 16, 221184, () -> Formula
             .shaped("CTC",
                     "TET",
                     "CTC")
@@ -154,11 +162,12 @@ public enum Kind {
      * @param columns how wide a page is. <b>Nine is the vanilla chest and anything else
      *              is a screen this mod draws itself</b>, which it can, because the panel
      *              is drawn rather than blitted whole - see {@code CellaScreen}. The
-     *              player's own inventory stays nine and sits in the middle.
+     *              player's own inventory stays nine and sits in the middle. Eighteen is
+     *              338 pixels across, which is the widest here.
      * @param slots how big the chest is, in slots. <b>Fifty-four is a large chest</b>, and
-     *              the ladder is written in those: 27 is half of one, 216 is four, and so
-     *              on up. The pages follow from this and the page size, and need not come
-     *              out whole - see the note on the list above.
+     *              the ladder is written in those: 54 is one, 216 is four, and so on up.
+     *              The pages follow from this and the page size, and need not come out
+     *              whole - see the note on the list above.
      * @param formula how it is made, or null for the one that is not made at all. A
      *              supplier for two reasons: a kind is built before the registries are,
      *              and several of these name other kinds - which an enum constant cannot
