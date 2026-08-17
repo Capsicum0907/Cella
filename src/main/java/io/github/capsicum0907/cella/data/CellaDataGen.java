@@ -232,7 +232,7 @@ public final class CellaDataGen {
             // string cannot choose. Any message that inserts a name has this in it, so the
             // rule is to write around the article rather than guess at one.
             add("message.cella.ripened", "It has eaten enough. It is now %s.");
-            add("death.attack." + Annihilation.MESSAGE, "%1$s was annihilated by a Cella");
+            add("death.attack." + Annihilation.MESSAGE, "%1$s was annihilated by Cella");
             add("message.cella.lighting", "It begins to shake.");
             add("message.cella.lit", "It has already begun.");
             add("message.cella.notyet", "It has not taken in enough to survive that.");
@@ -241,6 +241,12 @@ public final class CellaDataGen {
             // /cella kept — see KeptCommand. Three answers about a form rather than two,
             // because "names one this version does not have" is not "names none".
             add("commands.cella.kept.none", "No chest contents are kept.");
+            // ⚠ Cella takes no article and no plural. It is a name rather than a kind of
+            // box - the chest is the creature - so it is "annihilated by Cella" and never
+            // "a Cella", the way you would not write "a Steve". That is narrower than it
+            // sounds: counts of chests and hours below are ordinary English and still
+            // inflect. What is exempt is the name.
+            //
             // Two keys rather than an "s" added in Java: which words change with a count
             // is a fact about the language, so it belongs on this side of the file.
             add("commands.cella.kept.header",
@@ -266,7 +272,7 @@ public final class CellaDataGen {
             add("commands.cella.kept.more", "...and %s more, not shown.");
             add("commands.cella.kept.click", "Click to write a give command for %s");
             add("commands.cella.kept.gave",
-                    "Gave you a %s naming %s of %s slots. The contents stay kept until it "
+                    "Gave you %s, naming %s of %s slots. The contents stay kept until it "
                             + "is placed, and come back once.");
             add("commands.cella.kept.missing", "Nothing is kept under %s.");
             add("commands.cella.kept.noform", "There is no form called %s.");
