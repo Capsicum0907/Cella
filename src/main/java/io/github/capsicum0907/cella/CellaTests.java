@@ -53,6 +53,23 @@ public final class CellaTests {
     private static final int LATER = 2;
 
     /**
+     * A batch of its own for each test that sets a wave going.
+     *
+     * <p>⚠ <b>Tests in one batch run at the same time, and batches run one after another.</b>
+     * The waves in flight are one list for the whole server — which is right, since a server
+     * has one set of them — so two of these running together would have one asking whether
+     * "the wave" has finished while another's was still going, and {@code Blast.forget}
+     * clearing a wave the test beside it was waiting on. That is a real collision and not a
+     * quirk of the harness: the same list is what a second player lighting a second Cella
+     * would land in.
+     */
+    private static final String WAVE_CLEARS = "waveClears";
+
+    private static final String WAVE_KILLS = "waveKills";
+
+    private static final String WAVE_NAMES = "waveNames";
+
+    /**
      * The menu is one page tall, whatever the chest is.
      *
      * <p>This is what an open screen costs, and it is the reason for the whole rewrite: a
@@ -1162,7 +1179,7 @@ public final class CellaTests {
      * that are. Those are the same static list for the whole server, and a test that
      * reached into it would be answering for whatever else was running beside it.
      */
-    @GameTest(template = TestStructures.FLOOR)
+    @GameTest(template = TestStructures.FLOOR, batch = WAVE_NAMES)
     public static void theWaveTakesTheNamesItSweepsUp(GameTestHelper helper) {
         net.minecraft.server.level.ServerLevel level = helper.getLevel();
         HolderLookup.Provider registries = level.registryAccess();
@@ -1545,7 +1562,7 @@ public final class CellaTests {
      *
      * <p>The centre itself is left, because that is what came back.
      */
-    @GameTest(template = TestStructures.FLOOR)
+    @GameTest(template = TestStructures.FLOOR, batch = WAVE_CLEARS)
     public static void theWaveClearsFromOneBlockOutToItsReach(GameTestHelper helper) {
         Blast.forget();
         net.minecraft.server.level.ServerLevel level = helper.getLevel();
@@ -1684,7 +1701,7 @@ public final class CellaTests {
      * reason the crater does — something has to be far enough away — so both halves are
      * asked, since a sweep that killed everything loaded would be a very different mod.
      */
-    @GameTest(template = TestStructures.FLOOR)
+    @GameTest(template = TestStructures.FLOOR, batch = WAVE_KILLS)
     public static void theWaveKillsWhatIsInsideIt(GameTestHelper helper) {
         Blast.forget();
         net.minecraft.server.level.ServerLevel level = helper.getLevel();
