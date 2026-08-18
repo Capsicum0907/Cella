@@ -115,6 +115,17 @@ public final class Blast {
     private int at = 1;
 
     /**
+     * Set when this wave reaches its edge, and only then.
+     *
+     * <p>⚠ <b>Not the same as being absent from {@link #RUNNING}.</b> {@link #forget}
+     * empties that list without any wave having arrived anywhere, so a caller reading the
+     * list would be told a wave that was thrown away had finished. This says it ran out,
+     * and a wave that was dropped never says anything — which is the answer that stalls
+     * whoever is waiting, rather than the one that lets them carry on believing it swept.
+     */
+    private boolean over;
+
+    /**
      * Who has already been hit, so that nobody is hit twice.
      *
      * <p>⚠ <b>Not an optimisation.</b> Hitting every tick refreshes the invulnerability
@@ -130,14 +141,18 @@ public final class Blast {
         this.reach = reach;
     }
 
-    /** Sets one going. It runs itself from there. */
-    public static void start(ServerLevel level, BlockPos centre, int reach) {
-        RUNNING.add(new Blast(level, centre, reach));
-    }
-
-    /** Whether anything is going on, which is the only thing a test can ask from outside. */
-    public static int running() {
-        return RUNNING.size();
+    /**
+     * Sets one going. It runs itself from there.
+     *
+     * @return the wave itself, which is the only handle on it. Asking "is anything going
+     *     on" instead of "is <i>mine</i> finished" reads the same in a game, where there is
+     *     one, and is a different question under test, where several run at once in one
+     *     world and any of them finishing answers it.
+     */
+    public static Blast start(ServerLevel level, BlockPos centre, int reach) {
+        Blast blast = new Blast(level, centre, reach);
+        RUNNING.add(blast);
+        return blast;
     }
 
     public static void tick(LevelTickEvent.Post event) {
@@ -150,14 +165,26 @@ public final class Blast {
                 continue;
             }
             if (blast.step()) {
+                blast.over = true;
                 each.remove();
             }
         }
     }
 
-    /** Forgets everything in flight. A world that is going away owes nobody a crater. */
+    /**
+     * Forgets everything in flight. A world that is going away owes nobody a crater.
+     *
+     * <p>⚠ <b>Every wave, not one.</b> That is right for a server on its way down and wrong
+     * for anything else — nothing that has a wave of its own should reach for this, because
+     * it takes everybody's. See {@link #over}.
+     */
     public static void forget() {
         RUNNING.clear();
+    }
+
+    /** @return whether <em>this</em> wave has reached its edge. */
+    public boolean over() {
+        return over;
     }
 
     /** @return whether it has finished */

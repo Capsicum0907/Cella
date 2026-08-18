@@ -1678,7 +1678,6 @@ public final class CellaTests {
      */
     @GameTest(template = TestStructures.FLOOR, batch = WAVE_CLEARS)
     public static void theWaveClearsFromOneBlockOutToItsReach(GameTestHelper helper) {
-        Blast.forget();
         net.minecraft.server.level.ServerLevel level = helper.getLevel();
         BlockPos centre = helper.absolutePos(new BlockPos(2, 40, 2));
         int reach = 6;
@@ -1694,10 +1693,10 @@ public final class CellaTests {
         }
         check(!level.getBlockState(centre.below()).isAir(), "the ground starts out solid");
 
-        Blast.start(level, centre, reach);
+        Blast wave = Blast.start(level, centre, reach);
 
         helper.succeedWhen(() -> {
-            check(Blast.running() == 0, "the wave should have finished");
+            check(wave.over(), "the wave should have finished");
             check(!level.getBlockState(centre).isAir(),
                     "the centre is what survived, and is left alone");
             check(level.getBlockState(centre.below()).isAir(),
@@ -1817,7 +1816,6 @@ public final class CellaTests {
      */
     @GameTest(template = TestStructures.FLOOR, batch = WAVE_KILLS)
     public static void theWaveKillsWhatIsInsideIt(GameTestHelper helper) {
-        Blast.forget();
         net.minecraft.server.level.ServerLevel level = helper.getLevel();
         BlockPos centre = helper.absolutePos(new BlockPos(2, 40, 2));
         int reach = 6;
@@ -1826,10 +1824,10 @@ public final class CellaTests {
         net.minecraft.world.entity.animal.Pig outside = spawn(level, centre.offset(20, 0, 0));
         check(inside.isAlive() && outside.isAlive(), "both should start out alive");
 
-        Blast.start(level, centre, reach);
+        Blast wave = Blast.start(level, centre, reach);
 
         helper.succeedWhen(() -> {
-            check(Blast.running() == 0, "the wave should have finished");
+            check(wave.over(), "the wave should have finished");
             check(inside.isRemoved(), "the one inside should be gone");
             check(outside.isAlive(), "and the one well outside should not be");
 
