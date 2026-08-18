@@ -109,6 +109,12 @@ final class Carried {
      * right way round for a Cella in particular: a lost item is a name lost, and the
      * contents are still filed for {@code /cella kept} to hand back, whereas two items
      * naming one chest is a thing this mod goes out of its way never to make.
+     *
+     * <p>⚠ <b>That trade is bought for the chest that holds something, and an empty one
+     * pays for it.</b> A Super Perfect with nothing in it names nothing, so there is no
+     * entry to reissue and losing it is simply losing it — a hundred and fifty thousand
+     * points of somebody's fighting. It is still the right way round, because the rule has
+     * to be one rule and the other way risks the state that has no cure at all.
      */
     static void give(Player player) {
         CompoundTag persisted = persisted(player);
