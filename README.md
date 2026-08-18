@@ -309,6 +309,12 @@ is lost. All three are closed for the top of the ladder, as one promise rather t
 because a form that survives being blown up and then quietly times out is the same loss
 arriving later.
 
+⚠ **The void is the exception, and not a hole in the implementation.** Below the world the
+game calls `discard` on anything at all - a removal and not damage, so nothing an item can
+be made of refuses it. What survives is the half worth having: the contents were filed the
+moment the chest was picked up and the void reports nothing, so they stay in the store and
+`/cella kept give` puts them on a new item. **The name goes and the chest does not.**
+
 ### Ending itself
 
 A nether star, on a Perfect that has taken in everything it can use, **in the End**. It

@@ -112,6 +112,14 @@ public enum Trait {
      *              not disappear is one promise. Splitting it would invite a form that
      *              survives being blown up and then quietly times out, which is the same
      *              loss arriving later.
+     *              <p>⚠ <b>The void is the exception, and it is not a hole in the
+     *              implementation.</b> Below the world the game calls {@code discard} on
+     *              anything at all — a removal and not damage, so nothing an item can be
+     *              made of refuses it. What the promise still covers is the part worth
+     *              covering: the contents were filed the moment the chest was picked up,
+     *              the void reports nothing, so they stay in {@link Kept} and
+     *              {@code /cella kept give} can put them on a new item. <b>The name goes
+     *              and the chest does not.</b>
      * @param finds whether its screen has a search box. ⚠ <b>It arrives where turning
      *              pages stops working</b>, not where that becomes unbearable: 1,728 slots
      *              is eighteen pages, and making somebody climb to 144 before offering
