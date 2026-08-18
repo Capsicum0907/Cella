@@ -55,22 +55,22 @@ public enum Trait {
      * <p>Every one of those is the same fact: it has what the others have and cannot use
      * any of it yet. See {@link Kind#keeps}.
      */
-    LARVA(true, 2.5F, false, BlockTags.MINEABLE_WITH_AXE, null, 0, false, false),
+    LARVA(true, 2.5F, false, BlockTags.MINEABLE_WITH_AXE, null, 0, false, false, false),
 
     /** Fireproof, and it holds on to what is inside it. Cobblestone shrugs off a creeper. */
     IMPERFECT(false, 6.0F, false, BlockTags.MINEABLE_WITH_AXE, BlockTags.NEEDS_IRON_TOOL, 4, false,
-            false),
+            false, false),
 
     /** Obsidian-tough, and it reaches further for what it is owed. */
     SEMI_PERFECT(false, 1200.0F, false, BlockTags.MINEABLE_WITH_AXE,
-            BlockTags.NEEDS_DIAMOND_TOOL, 8, false, true),
+            BlockTags.NEEDS_DIAMOND_TOOL, 8, false, true, false),
 
     /**
      * Not a box any more: a pickaxe job, and the wither is the only thing left that opens
      * it by force.
      */
     PERFECT(false, 1200.0F, false, BlockTags.MINEABLE_WITH_PICKAXE,
-            BlockTags.NEEDS_DIAMOND_TOOL, 8, false, true),
+            BlockTags.NEEDS_DIAMOND_TOOL, 8, false, true, false),
 
     /**
      * As hard as the world's floor, safe from a wither, and <b>done taking anything in</b>.
@@ -81,7 +81,7 @@ public enum Trait {
      * to be lying about</b>. Reaching stopped being what it is.
      */
     SUPER_PERFECT(false, 3600000.0F, true, BlockTags.MINEABLE_WITH_PICKAXE,
-            Tags.Blocks.NEEDS_NETHERITE_TOOL, 0, true, true);
+            Tags.Blocks.NEEDS_NETHERITE_TOOL, 0, true, true, true);
 
     private final boolean burns;
     private final float resistance;
@@ -91,6 +91,7 @@ public enum Trait {
     private final int reach;
     private final boolean unbreakableAsAnItem;
     private final boolean finds;
+    private final boolean keptOnDeath;
 
     /**
      * @param burns whether fire takes it — see the note above, this is the only true entry
@@ -126,9 +127,15 @@ public enum Trait {
      *              relief is charging them for having got that far. A Laravel is one page
      *              and an Imperfect four, and a box over those is a control that answers a
      *              question nobody had
+     * @param keptOnDeath whether it gets up again with whoever was carrying it. ⚠ <b>Not a
+     *              reading of {@code unbreakableAsAnItem}</b>: dying does not destroy what
+     *              was being carried, it leaves it where the person was standing — which
+     *              this mod's own ending makes a crater a hundred blocks across with
+     *              nothing under it. See {@link Carried}
      */
     Trait(boolean burns, float resistance, boolean witherproof, TagKey<Block> tool,
-            TagKey<Block> level, int reach, boolean unbreakableAsAnItem, boolean finds) {
+            TagKey<Block> level, int reach, boolean unbreakableAsAnItem, boolean finds,
+            boolean keptOnDeath) {
         this.burns = burns;
         this.resistance = resistance;
         this.witherproof = witherproof;
@@ -137,6 +144,7 @@ public enum Trait {
         this.reach = reach;
         this.unbreakableAsAnItem = unbreakableAsAnItem;
         this.finds = finds;
+        this.keptOnDeath = keptOnDeath;
     }
 
     public boolean burns() {
@@ -198,5 +206,18 @@ public enum Trait {
     /** Whether its screen offers a way to search it. */
     public boolean finds() {
         return finds;
+    }
+
+    /**
+     * Whether it gets up again with whoever was carrying it when they died.
+     *
+     * <p><b>A different question from {@link #unbreakableAsAnItem}</b>, and not a reading
+     * of it: a death does not destroy what was being carried, it puts it where the person
+     * was standing. That is ordinarily somewhere they can walk back to — and it is not
+     * here, because this mod's own ending kills them in a crater a hundred blocks across
+     * with nothing under it. See {@link Carried}.
+     */
+    public boolean keptOnDeath() {
+        return keptOnDeath;
     }
 }

@@ -49,6 +49,9 @@ public class Cella {
         // Two halves of one question, and the answer is at the second: see Expiring.
         NeoForge.EVENT_BUS.addListener(Expiring::reached);
         NeoForge.EVENT_BUS.addListener(Expiring::tick);
+        // Out of the drops on the way down, back into the inventory on the way up.
+        NeoForge.EVENT_BUS.addListener(Carried::died);
+        NeoForge.EVENT_BUS.addListener(Carried::respawned);
         NeoForge.EVENT_BUS.addListener(KeptCommand::register);
         NeoForge.EVENT_BUS.addListener(Blast::tick);
         NeoForge.EVENT_BUS.addListener(

@@ -1169,6 +1169,56 @@ public final class CellaTests {
     }
 
     /**
+     * What the top of the ladder was being carried in gets up again; nothing else does.
+     *
+     * <p>Driven at the two halves rather than through a death, because a game test has no
+     * player with a connection to respawn — what it can do is exactly what the game does
+     * between them: carry {@code PERSISTED_NBT_TAG} across to whoever gets up. ⚠ <b>That
+     * hand-off is the whole reason the data lives there</b> rather than in a map, since a
+     * player can close the game while the death screen is up.
+     *
+     * <p>And handed back once. A respawn that minted a fresh Super Perfect every time would
+     * be worse than losing it: two items naming one chest is the state this mod goes out of
+     * its way never to make.
+     */
+    @GameTest(template = TestStructures.FLOOR)
+    public static void theTopOfTheLadderGetsUpWithYou(GameTestHelper helper) {
+        check(Kind.SUPER_PERFECT.trait().keptOnDeath(), "the top of the ladder gets up");
+        check(Kind.MAX.trait().keptOnDeath(), "and Max is a Super Perfect, so it does too");
+        check(!Kind.PERFECT.trait().keptOnDeath(), "and the step below it does not");
+
+        Player died = helper.makeMockPlayer(GameType.SURVIVAL);
+        java.util.List<net.minecraft.world.entity.item.ItemEntity> drops =
+                new java.util.ArrayList<>();
+        drops.add(dropping(helper, new ItemStack(CellaRegistry.item(Kind.SUPER_PERFECT).get())));
+        drops.add(dropping(helper, new ItemStack(CellaRegistry.item(Kind.PERFECT).get())));
+        drops.add(dropping(helper, new ItemStack(Items.GOLD_INGOT, 5)));
+
+        Carried.keep(died, drops);
+        check(drops.size() == 2, "only the one that gets up is taken out of the drops: "
+                + drops.size());
+        check(drops.stream().noneMatch(drop -> drop.getItem().getItem()
+                        == CellaRegistry.item(Kind.SUPER_PERFECT).get()),
+                "and it is the Super Perfect that went");
+
+        Player alive = helper.makeMockPlayer(GameType.SURVIVAL);
+        // What ServerPlayer#restoreFrom does, and the only reason this survives at all.
+        alive.getPersistentData().put(Player.PERSISTED_NBT_TAG,
+                died.getPersistentData().getCompound(Player.PERSISTED_NBT_TAG));
+
+        Carried.give(alive);
+        check(alive.getInventory().countItem(CellaRegistry.item(Kind.SUPER_PERFECT).get()) == 1,
+                "it should be in the hands of whoever got up");
+        check(alive.getInventory().countItem(CellaRegistry.item(Kind.PERFECT).get()) == 0,
+                "and nothing that was left in the crater should be");
+
+        Carried.give(alive);
+        check(alive.getInventory().countItem(CellaRegistry.item(Kind.SUPER_PERFECT).get()) == 1,
+                "and once however often they get up, because two of one chest is worse");
+        helper.succeed();
+    }
+
+    /**
      * The wave goes round the top of the ladder and through everything under it.
      *
      * <p>⚠ <b>Both, because the rule used to be "any Cella".</b> Sparing a Laravel for
@@ -1892,6 +1942,8 @@ public final class CellaTests {
                     step + " stopped surviving as an item");
             check(!below.particular() || above.particular(), step + " stopped needing a tool");
             check(above.finds() || !below.finds(), step + " lost its search box");
+            check(above.keptOnDeath() || !below.keptOnDeath(),
+                    step + " stopped getting up again");
 
             // The one place it takes something away, and the only one.
             if (above.reach() < below.reach()) {
@@ -1993,6 +2045,17 @@ public final class CellaTests {
         CompoundTag tag = new CompoundTag();
         tag.put("Chests", chests);
         return tag;
+    }
+
+    /**
+     * A death drop: an item entity that has been made and not yet added to anything.
+     *
+     * <p>Which is what the drops of a death are when they are offered round — removing one
+     * from that collection is the difference between an item existing and never having.
+     */
+    private static net.minecraft.world.entity.item.ItemEntity dropping(GameTestHelper helper,
+            ItemStack stack) {
+        return new net.minecraft.world.entity.item.ItemEntity(helper.getLevel(), 0, 0, 0, stack);
     }
 
     /** One chest in a store, with something in it so that it was worth filing. */

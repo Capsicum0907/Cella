@@ -282,7 +282,7 @@ climbed because it was never at the bottom of it.
 | **Imperfect** | keeps its contents / stops burning / reaches four blocks for orbs / iron axe |
 | **Semi-Perfect** | cobblestone-tough / reaches eight / diamond axe / **can be searched** |
 | **Perfect** | obsidian-tough / a pickaxe job / diamond pickaxe |
-| **Super Perfect** | bedrock-tough / safe from a wither / netherite pickaxe / the dropped item does not go away / **stops reaching for orbs** |
+| **Super Perfect** | bedrock-tough / safe from a wither / netherite pickaxe / the dropped item does not go away / **gets up again with you if you die** / **stops reaching for orbs** |
 
 **Cella Jr. is a Perfect** in everything but size. **Cella Max is a Super Perfect, on
 purpose**: it is not waiting for something of its own. Nothing may have a property Super
@@ -314,6 +314,16 @@ game calls `discard` on anything at all - a removal and not damage, so nothing a
 be made of refuses it. What survives is the half worth having: the contents were filed the
 moment the chest was picked up and the void reports nothing, so they stay in the store and
 `/cella kept give` puts them on a new item. **The name goes and the chest does not.**
+
+**Dying is a separate column, because it is a separate thing.** A death does not destroy
+what was being carried, it leaves it where the person was standing - which is ordinarily
+somewhere they can walk back to, and is not, when this mod's own ending kills them in a
+hundred-block crater with nothing under it. So a Super Perfect or a Cella Max in the
+inventory is taken out of the death drops and handed back on respawn. It waits in the one
+corner of a player's data that crosses a death *and* goes to disk, because the gap between
+dying and getting up is a screen somebody can close the game on. Slots the inventory itself
+holds, not a Cella inside a shulker box; and with `keepInventory` on, nothing is dropped so
+nothing is taken.
 
 ### Ending itself
 
