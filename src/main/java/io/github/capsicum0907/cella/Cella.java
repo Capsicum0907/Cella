@@ -8,7 +8,6 @@ import io.github.capsicum0907.cella.client.CellaScreen;
 import io.github.capsicum0907.cella.client.Measure;
 
 import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
@@ -18,7 +17,6 @@ import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.neoforge.event.entity.item.ItemExpireEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
@@ -48,11 +46,16 @@ public class Cella {
         modEventBus.addListener(Cella::capabilities);
         modEventBus.addListener(Cella::payloads);
         NeoForge.EVENT_BUS.addListener(Cella::left);
-        NeoForge.EVENT_BUS.addListener(EventPriority.LOWEST, Cella::ranOut);
+        // Two halves of one question, and the answer is at the second: see Expiring.
+        NeoForge.EVENT_BUS.addListener(Expiring::reached);
+        NeoForge.EVENT_BUS.addListener(Expiring::tick);
         NeoForge.EVENT_BUS.addListener(KeptCommand::register);
         NeoForge.EVENT_BUS.addListener(Blast::tick);
         NeoForge.EVENT_BUS.addListener(
-                (net.neoforged.neoforge.event.server.ServerStoppingEvent event) -> Blast.forget());
+                (net.neoforged.neoforge.event.server.ServerStoppingEvent event) -> {
+                    Blast.forget();
+                    Expiring.forget();
+                });
         if (FMLEnvironment.dist == Dist.CLIENT) {
             modEventBus.addListener(Cella::screens);
             modEventBus.addListener(Cella::renderers);
@@ -127,27 +130,6 @@ public class Cella {
     /** A window that has gone is a window there is nothing to remember about. */
     private static void left(PlayerEvent.PlayerLoggedOutEvent event) {
         Room.forget(event.getEntity().getUUID());
-    }
-
-    /**
-     * Running out of time is a way of being destroyed, and the chest it named goes too.
-     *
-     * <p>⚠ <b>This is the commonest one.</b> The usual way a Cella is lost is not fire or
-     * a creeper, it is the five minutes every dropped item has — see
-     * {@code CellaItem#onEntityItemUpdate}, which is why the top of the ladder never
-     * arrives here at all. So the orphans left by waiting outnumber the ones left by
-     * everything that can be watched happening.
-     *
-     * <p><b>Last of the listeners, and only when nobody bought it more time.</b> This event
-     * is an offer rather than an announcement: any mod may hand the item more life, and the
-     * game removes it only if none did. ⚠ Reading the total after everyone has spoken is
-     * the difference between "it is going" and "it was going to" — and acting on the second
-     * would file the contents away from an item still lying there holding the name.
-     */
-    private static void ranOut(ItemExpireEvent event) {
-        if (event.getExtraLife() == 0) {
-            Kept.destroyed(event.getEntity().level(), event.getEntity().getItem());
-        }
     }
 
     /**

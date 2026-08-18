@@ -1200,30 +1200,47 @@ public final class CellaTests {
     }
 
     /**
-     * A name that simply runs out is lost as surely as one that burns.
+     * A name that simply runs out is lost; one that was given more time is not.
      *
-     * <p>⚠ <b>And it is the commonest way of the two by a long way</b>, so a cleanup that
+     * <p>⚠ <b>Running out is the commonest of the two by a long way</b>, so a cleanup that
      * only watched for fire would be watching the small half. Everything below the top of
      * the ladder has five minutes on the floor; the top winds its own clock back and never
-     * reaches this at all.
+     * gets here.
+     *
+     * <p>The second half is the one worth the machinery. The expiry event is an offer any
+     * mod can answer, so being told an item is due is not being told it went — and the
+     * store is read from that difference. Nothing in ordinary play arranges it on demand,
+     * which is why {@link Expiring#watch} is reachable from here: an item that was written
+     * down and then did not go is exactly the state another mod's extra five minutes makes.
+     *
+     * <p>Nothing is ticked by hand. The decision is taken when the level has finished
+     * ticking, so a test that drove the entity itself would be asking before the answer.
      */
     @GameTest(template = TestStructures.FLOOR)
-    public static void aNameThatRunsOutIsLostToo(GameTestHelper helper) {
+    public static void aNameThatRunsOutIsLostAndOneGivenMoreTimeIsNot(GameTestHelper helper) {
         HolderLookup.Provider registries = helper.getLevel().registryAccess();
         Kept kept = Kept.of(helper.getLevel()).orElseThrow(
                 () -> new GameTestAssertException("a game test has a server, so it has a store"));
         java.util.UUID waited = file(kept, registries);
+        java.util.UUID spared = file(kept, registries);
 
         net.minecraft.world.entity.item.ItemEntity fading =
                 carrying(helper, Kind.IMPERFECT, java.util.List.of(waited));
         fading.lifespan = 3;
-        for (int tick = 0; tick < 12; tick++) {
-            fading.tick();
-        }
 
-        check(fading.isRemoved(), "the item should have run out");
-        check(kept.trace(waited).isEmpty(), "and the chest it named should have gone with it");
-        helper.succeed();
+        net.minecraft.world.entity.item.ItemEntity lasting =
+                carrying(helper, Kind.IMPERFECT, java.util.List.of(spared));
+        Expiring.watch(lasting);
+
+        helper.runAfterDelay(10, () -> {
+            check(fading.isRemoved(), "the one that ran out should be gone");
+            check(kept.trace(waited).isEmpty(), "and the chest it named with it");
+            check(lasting.isAlive(), "the one that was given more time should still be lying there");
+            check(kept.trace(spared).isPresent(),
+                    "and its chest still filed, because it is still holding the name");
+            kept.forget(spared);
+            helper.succeed();
+        });
     }
 
     /**
