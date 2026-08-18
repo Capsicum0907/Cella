@@ -119,8 +119,13 @@ public class CellaItem extends BlockItem {
         Kept.destroyed(entity.level(), entity.getItem());
     }
 
-    /** Which form this is. Everything that differs between them is asked of it. */
-    private Kind kind() {
+    /**
+     * Which form this is. Everything that differs between them is asked of it.
+     *
+     * <p>Public because the wave has to ask it of an item lying on the ground, and derived
+     * from the block rather than stored, so there is nothing here to be out of date.
+     */
+    public Kind kind() {
         return getBlock() instanceof CellaBlock chest ? chest.kind() : Kind.values()[0];
     }
 

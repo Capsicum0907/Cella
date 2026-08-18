@@ -353,8 +353,12 @@ that slowed down would read as the game struggling. Shells are walked as the sur
 cube, or each step would cost the volume it encloses instead of its surface.
 
 It will not touch anything the game says cannot be broken - **the End's way home is
-bedrock** - nor other Cellas, which is the story's answer and the practical one both.
-Blocks are set to air rather than broken, so nothing drops. Everything alive inside dies:
+bedrock** - nor **Super Perfect and Cella Max, which are as hard as the world's floor**.
+⚠ That hardness is the whole of the reason: being a Cella earns nothing, so everything
+from Perfect down is a box in the way. A Cella that goes files its contents and drops the
+name as it goes, and the front sweeps that item up behind itself, so a crater is not a
+pile of orphans. Blocks are otherwise set to air rather than broken, so nothing drops.
+Everything alive inside dies:
 players by a damage type this mod declares, so the screen says what happened and the
 reasons it goes through armour and invulnerability are written in its tags rather than
 borrowed from the void's. Everything else is simply removed, because a crater full of the

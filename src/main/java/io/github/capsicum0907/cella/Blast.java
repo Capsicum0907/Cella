@@ -58,14 +58,21 @@ import net.neoforged.neoforge.event.tick.LevelTickEvent;
  * <ul>
  *   <li><b>Anything the game says cannot be broken.</b> The End's exit portal is bedrock,
  *       and a mod that strands players in the End is a mod nobody keeps.
- *   <li><b>Other Cellas.</b> Which is the source material's answer as well as this mod's:
- *       nothing here is a threat to its own kind. It is also the practical one — a Cella
- *       removed by this would drop an item into a blast, in a dimension made mostly of
- *       nothing to fall into, and an item lost there is contents that only
- *       {@code /cella kept} can find again.
+ *   <li><b>The top of the ladder, standing or lying.</b> Super Perfect and Cella Max are
+ *       as hard as the world's floor, and that is the whole of the reason — see
+ *       {@link Trait#survivesAnnihilation}. ⚠ <b>Being a Cella earns nothing here</b>:
+ *       everything under that hardness is a box in the way, and a box in the way of this is
+ *       a box that was.
  *   <li>Blocks are set to air rather than broken, so nothing drops. Forty thousand item
  *       entities is not a spectacle, it is a stall. This is annihilation and not mining.
  * </ul>
+ *
+ * <p>⚠ <b>The one thing that does drop is a Cella under that hardness</b>, which files its
+ * contents and hands out the name on its way out however it was removed — that is what
+ * {@code CellaBlockEntity#handOver} is for. The front sweeps that item up along with
+ * everything else and says so, so nothing is left filed with nobody able to ask for it. See
+ * {@link Kept#lost}: <b>removing is the road that does not go through the item</b>, which
+ * makes this the one place in the mod that has to remember on its own.
  *
  * <p>⚠ <b>Waves are not saved.</b> One lasts a few seconds, so a server stopping in the
  * middle of one leaves a crater that stops half way — untidy, and nothing a world cannot
@@ -200,6 +207,13 @@ public final class Blast {
             if (caught.distanceToSqr(middle) > within || !bitten.add(caught.getId())) {
                 continue;
             }
+            // The same rule the blocks get, because it is the same claim: the top of the
+            // ladder is as hard as the world's floor whether it is standing or lying.
+            if (caught instanceof net.minecraft.world.entity.item.ItemEntity lying
+                    && lying.getItem().getItem() instanceof CellaItem cella
+                    && cella.kind().trait().survivesAnnihilation()) {
+                continue;
+            }
             // Players are killed and everything else is simply gone. A player has to die
             // properly - a death screen, a respawn, and whatever the world's rules say
             // about their belongings - and discarding one would be removing them from the
@@ -303,7 +317,11 @@ public final class Blast {
         if (state.getDestroySpeed(level, pos) < 0.0F) {
             return;
         }
-        if (state.getBlock() instanceof CellaBlock) {
+        // As hard as the world's floor, and nothing else about a Cella counts. What is
+        // under that hardness files its contents and drops the name as it goes; sweep()
+        // catches that item in the same tick and tells the store.
+        if (state.getBlock() instanceof CellaBlock cella
+                && cella.kind().trait().survivesAnnihilation()) {
             return;
         }
         // Set, not destroyed: nothing drops, and nothing tells its neighbours. A wave that

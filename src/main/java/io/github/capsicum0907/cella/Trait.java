@@ -3,6 +3,7 @@ package io.github.capsicum0907.cella;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 import net.neoforged.neoforge.common.Tags;
 
 /**
@@ -163,6 +164,27 @@ public enum Trait {
 
     public boolean unbreakableAsAnItem() {
         return unbreakableAsAnItem;
+    }
+
+    /**
+     * Whether the wave goes round it rather than through it — standing as a block, and
+     * lying as an item.
+     *
+     * <p><b>Read off {@link #resistance} rather than written down a second time.</b> The
+     * top of the ladder is set as hard as the world's floor, and "as hard as the world's
+     * floor" is exactly the thing worth asking here: a form that was ever given that number
+     * would survive for the reason it was given it, and every form below it is a box in the
+     * way. Nothing else about a Cella earns it — <b>there is no reason for the wave to spare
+     * a chest for being a chest.</b>
+     *
+     * <p>⚠ <b>Not the arithmetic an explosion does.</b> A vanilla explosion takes each
+     * block's resistance off the ray passing through it and stops when the ray runs out,
+     * which is why a hundred blocks cannot be blown up at any radius; see {@link Blast}.
+     * This is a threshold and nothing is spent: the front crosses everything under the
+     * floor's hardness at the same speed, and is turned aside by nothing else.
+     */
+    public boolean survivesAnnihilation() {
+        return resistance >= Blocks.BEDROCK.getExplosionResistance();
     }
 
     /** Whether its screen offers a way to search it. */

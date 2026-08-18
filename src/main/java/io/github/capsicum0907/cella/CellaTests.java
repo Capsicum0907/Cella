@@ -69,6 +69,8 @@ public final class CellaTests {
 
     private static final String WAVE_NAMES = "waveNames";
 
+    private static final String WAVE_LADDER = "waveLadder";
+
     /**
      * The menu is one page tall, whatever the chest is.
      *
@@ -1164,6 +1166,51 @@ public final class CellaTests {
 
         kept.forget(lifted);
         helper.succeed();
+    }
+
+    /**
+     * The wave goes round the top of the ladder and through everything under it.
+     *
+     * <p>⚠ <b>Both, because the rule used to be "any Cella".</b> Sparing a Laravel for
+     * being a Cella is a chest surviving annihilation for being a chest, which is not a
+     * reason; what earns it is being as hard as the world's floor, and only the top two
+     * forms are.
+     *
+     * <p>And the contents go with the block rather than being filed and left. A Cella
+     * removed by anything hands its contents over and drops the name — which is right, and
+     * would leave one orphan per chest in every crater if the front did not sweep the item
+     * up behind itself.
+     */
+    @GameTest(template = TestStructures.FLOOR, batch = WAVE_LADDER)
+    public static void theWaveGoesRoundTheTopOfTheLadderAndThroughTheRest(GameTestHelper helper) {
+        net.minecraft.server.level.ServerLevel level = helper.getLevel();
+        Kept kept = Kept.of(level).orElseThrow(
+                () -> new GameTestAssertException("a game test has a server, so it has a store"));
+        BlockPos centre = helper.absolutePos(new BlockPos(2, 40, 2));
+        BlockPos standing = centre.offset(2, 0, 0);
+        BlockPos falling = centre.offset(3, 0, 0);
+        int filed = kept.size();
+
+        check(Kind.SUPER_PERFECT.trait().survivesAnnihilation(), "the top of the ladder survives");
+        check(!Kind.PERFECT.trait().survivesAnnihilation(), "and the step below it does not");
+
+        level.setBlock(standing,
+                CellaRegistry.block(Kind.SUPER_PERFECT).get().defaultBlockState(), 2);
+        level.setBlock(falling, CellaRegistry.block(Kind.PERFECT).get().defaultBlockState(), 2);
+        // Something in it, so that being removed is something it would file if it could.
+        ((CellaBlockEntity) level.getBlockEntity(falling)).contents()
+                .setStackInSlot(0, new ItemStack(Items.GOLD_INGOT, 1));
+
+        Blast.start(level, centre, 6);
+        helper.succeedWhen(() -> {
+            check(level.getBlockState(falling).isAir(),
+                    "a Perfect in the reach is a box in the way");
+            check(level.getBlockState(standing).getBlock() instanceof CellaBlock,
+                    "and a Super Perfect is as hard as the world's floor");
+            check(kept.size() == filed,
+                    "and what was in the one that went is annihilated rather than filed: "
+                            + kept.size() + " against " + filed);
+        });
     }
 
     /**
