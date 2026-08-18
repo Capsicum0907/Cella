@@ -45,7 +45,18 @@ jobs:
 
       # Compiling only proves the code is well formed, which the local build
       # already says. This is the step that checks the mod does what it claims:
-      # it launches a headless server, runs every registered game test, and
-      # exits non-zero if any of them fail.
+      # it launches a headless server, runs every registered test, and exits
+      # non-zero if any of them fail.
+      #
+      # Asked rather than assumed, because GameTestServer treats having no tests
+      # as a reason to crash, and a mod that is still a scaffold has none. One
+      # workflow that adapts beats two that drift: a new mod starts without
+      # tests, gains them, and this step starts running on its own. The skip is
+      # announced so that "no tests ran" cannot be read as "all tests passed".
       - name: Run game tests
-        run: bash gradlew runGameTestServer
+        run: |
+          if grep -rq "@GameTestHolder" src/main/java; then
+            bash gradlew runGameTestServer
+          else
+            echo "::warning::No @GameTestHolder in src/main/java - nothing was verified beyond compiling."
+          fi
