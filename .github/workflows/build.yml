@@ -2,7 +2,13 @@ name: Build
 
 # Documentation-only pushes do not change what the jar does, and the game tests
 # are the expensive half of this workflow. Skipping them costs nothing to catch.
+#
+# workflow_dispatch takes no path filter by design: a manual run is asked for by
+# a person who already knows what they want checked. It is the way to re-verify
+# a branch nothing has been pushed to - the toolchain and the dependencies move
+# even when the code does not.
 on:
+  workflow_dispatch:
   push:
     paths-ignore:
       - '**.md'
@@ -55,8 +61,16 @@ jobs:
       # announced so that "no tests ran" cannot be read as "all tests passed".
       - name: Run game tests
         run: |
+          set -o pipefail
           if grep -rq "@GameTestHolder" src/main/java; then
-            bash gradlew runGameTestServer
+            bash gradlew runGameTestServer | tee gametest.log
+            # The server exits zero when the mod fails to construct, so the task
+            # goes green having run nothing at all. Only the summary line proves
+            # the tests were reached.
+            if ! grep -q "GAME TESTS COMPLETE" gametest.log; then
+              echo "::error::The game test server exited without reporting a result - the tests never ran."
+              exit 1
+            fi
           else
             echo "::warning::No @GameTestHolder in src/main/java - nothing was verified beyond compiling."
           fi
