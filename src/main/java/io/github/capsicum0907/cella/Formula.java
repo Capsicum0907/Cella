@@ -1,5 +1,6 @@
 package io.github.capsicum0907.cella;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 
 import net.minecraft.world.item.BlockItem;
@@ -27,12 +28,12 @@ import net.minecraft.world.level.ItemLike;
  * because several of them are other kinds of this same chest — which cannot be looked up
  * until they exist.
  */
-public record Formula(List<String> pattern, Map<Character, Supplier<ItemLike>> of,
+public record Formula(List<String> pattern, Map<Character, List<Supplier<ItemLike>>> of,
         int count, boolean spawns, boolean fuses) {
     /** A builder, because a map literal of nine entries is not a thing Java says nicely. */
     public static class Builder {
         private final List<String> pattern;
-        private final Map<Character, Supplier<ItemLike>> of = new LinkedHashMap<>();
+        private final Map<Character, List<Supplier<ItemLike>>> of = new LinkedHashMap<>();
         private int count = 1;
         private boolean spawns;
         private boolean eatsAChest;
@@ -42,7 +43,7 @@ public record Formula(List<String> pattern, Map<Character, Supplier<ItemLike>> o
         }
 
         public Builder key(char letter, Supplier<ItemLike> what) {
-            of.put(letter, what);
+            of.put(letter, List.of(what));
             return this;
         }
 
@@ -52,10 +53,34 @@ public record Formula(List<String> pattern, Map<Character, Supplier<ItemLike>> o
          * <p>Which is also how a recipe knows it is a fusion: something that eats a Cella
          * has contents to carry into what it makes. Said by using this rather than by a
          * second flag, so the two cannot disagree.
+         *
+         * <p><b>Further kinds mean any one of them will do</b>, in that one square. That
+         * is one recipe with a choice in it rather than two recipes that happen to make
+         * the same thing: the bench has one entry, a recipe viewer shows one page, and
+         * nothing has to be kept in step between two copies of the same layout.
+         *
+         * <p>⚠ <b>The others are named by id and not by constant</b>, and that is the
+         * language rather than a preference: a kind's own argument list cannot name a kind
+         * declared below it, whether the name is qualified or not, and a lambda does not
+         * get round it either. {@link Kind#becomes} is a string for the same reason.
+         * {@link Kind#named} turns it back, and it is looked up when the formula is asked
+         * for rather than here, so a wrong id is a loud failure in data generation and in
+         * {@code CellaTests.everyFormCanBeReached} instead of a quiet nothing.
+         *
+         * <p>⚠ Which one was laid down is not recorded anywhere, and does not need to be.
+         * {@code Spawning} hands back whatever Cella it finds in the grid, so the chest
+         * that comes back is the one that went in — see {@code Spawning#getRemainingItems}.
          */
-        public Builder key(char letter, Kind kind) {
+        public Builder key(char letter, Kind kind, String... orNamed) {
             eatsAChest = true;
-            return key(letter, () -> CellaRegistry.block(kind).get());
+            List<Supplier<ItemLike>> any = new ArrayList<>();
+            any.add(() -> CellaRegistry.block(kind).get());
+            for (String id : orNamed) {
+                any.add(() -> CellaRegistry.block(Kind.named(id).orElseThrow(
+                        () -> new IllegalStateException("no kind is called " + id))).get());
+            }
+            of.put(letter, List.copyOf(any));
+            return this;
         }
 
         public Builder count(int made) {

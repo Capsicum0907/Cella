@@ -136,13 +136,26 @@ public enum Kind {
      * and it is meant to be: what it is not is more room than the Perfect, which would
      * make the recipe a machine for making storage out of nothing rather than a strong
      * reward for reaching Perfect.
+     *
+     * <p><b>A Super Perfect does as well</b>, and for the same eight diamond blocks. Not a
+     * better deal — a second way in for somebody who no longer has the first. Growing a
+     * Perfect into a Super Perfect is the hard part of this mod, and asking somebody who
+     * has done it to build another Perfect from the bottom just to have a Jr. is asking
+     * them to undo their own progress on paper. ⚠ <b>Max is deliberately not here</b>:
+     * that one is not crafted, and a form you cannot make is not a form you spend.
+     *
+     * <p>The count does not change with the parent, because <b>the parent is not spent</b>
+     * either way. What is being paid is the diamond, and that is the same on both paths.
      */
     JUNIOR("junior", "Cella Jr.", 0x3FB39A, 12, 16, 3456, true, 0, "", false, Trait.PERFECT, () -> Formula
             .shaped("DDD",
                     "DCD",
                     "DDD")
             .key('D', () -> Blocks.DIAMOND_BLOCK)
-            .key('C', PERFECT)
+            // ⚠ By id, because Super Perfect is declared below this one and an enum
+            // constant's own arguments cannot name one that is - qualifying it does not
+            // help and neither does the lambda. See Formula.Builder#key.
+            .key('C', PERFECT, "super_perfect")
             .count(7)
             .spawning()
             .done()),

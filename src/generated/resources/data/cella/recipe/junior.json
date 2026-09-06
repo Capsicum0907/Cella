@@ -2,9 +2,14 @@
   "type": "cella:spawning",
   "category": "misc",
   "key": {
-    "C": {
-      "item": "cella:perfect"
-    },
+    "C": [
+      {
+        "item": "cella:perfect"
+      },
+      {
+        "item": "cella:super_perfect"
+      }
+    ],
     "D": {
       "item": "minecraft:diamond_block"
     }

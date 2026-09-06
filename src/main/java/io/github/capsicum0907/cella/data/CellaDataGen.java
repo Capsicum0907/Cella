@@ -27,6 +27,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.neoforged.neoforge.common.data.DatapackBuiltinEntriesProvider;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.ShapedRecipe;
 import net.minecraft.world.level.ItemLike;
@@ -367,11 +368,13 @@ public final class CellaDataGen {
                             RecipeCategory.DECORATIONS,
                             CellaRegistry.block(kind).get(), formula.count());
                     formula.pattern().forEach(shaped::pattern);
-                    formula.of().forEach((letter, what) -> shaped.define(letter, what.get()));
+                    formula.of().forEach((letter, any) -> shaped.define(letter,
+                            Ingredient.of(any.stream().map(java.util.function.Supplier::get)
+                                    .toArray(ItemLike[]::new))));
 
                     // Unlocked by the first thing it asks for, which for everything past
                     // the first form is the form before it.
-                    ItemLike first = formula.of().values().iterator().next().get();
+                    ItemLike first = formula.of().values().iterator().next().getFirst().get();
                     shaped.unlockedBy("has_" + BuiltInRegistries.ITEM.getKey(first.asItem())
                             .getPath(), has(first));
                     shaped.save(rebuilt(output, kind, formula));
