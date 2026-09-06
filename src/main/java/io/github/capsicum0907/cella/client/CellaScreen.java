@@ -345,6 +345,44 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     }
 
     /**
+     * Lets the row go without shutting it: the word stays, and the keyboard comes back.
+     *
+     * <p><b>Not {@link #toggle}.</b> Shutting the box clears the query, which is right for
+     * the magnifier and wrong here — the whole point of letting go is to keep looking at
+     * what the search turned up while the keys do what they usually do. An {@code EditBox}
+     * that is focused answers {@code canConsumeInput}, and while it does, every letter is
+     * a letter typed into it rather than a key the game knows.
+     */
+    private void letGo() {
+        looking.setFocused(false);
+        if (getFocused() == looking) {
+            setFocused(null);
+        }
+    }
+
+    /**
+     * ⚠ <b>Clicking somewhere else does not take focus off a box by itself.</b>
+     *
+     * <p>{@code ContainerEventHandler} gives focus to a child that answers a click and
+     * leaves focus where it is when nothing answers — and a slot is not a child. So
+     * clicking a slot to look it up in a recipe viewer left the box holding the keyboard,
+     * which is the thing this is here to stop.
+     *
+     * <p>⚠ <b>Asked before the click is dispatched</b>, because dispatching it can open
+     * the box: the magnifier is a child, it answers, and {@link #toggle} focuses the box
+     * on the way past. {@code grabbing} says that just happened.
+     */
+    @Override
+    public boolean mouseClicked(double x, double y, int button) {
+        boolean onBox = finding && looking.isMouseOver(x, y);
+        boolean handled = super.mouseClicked(x, y, button);
+        if (!onBox && !grabbing && looking.isFocused()) {
+            letGo();
+        }
+        return handled;
+    }
+
+    /**
      * ⚠ <b>The inventory key has to reach the box before it reaches the screen.</b>
      *
      * <p>{@code AbstractContainerScreen} closes on it, and an {@code EditBox} answers false
@@ -357,6 +395,17 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     public boolean keyPressed(int key, int scan, int modifiers) {
         if (finding && key == org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE) {
             toggle();
+            return true;
+        }
+        if (finding && looking.isFocused()
+                && (key == org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER
+                        || key == org.lwjgl.glfw.GLFW.GLFW_KEY_KP_ENTER)) {
+            // Asked for now rather than after the wait: the wait is there to keep a chest
+            // of two hundred thousand slots from being walked once per keystroke, and
+            // somebody who has pressed enter has finished typing. Nought rather than a
+            // send from here, so that containerTick stays the only place that asks.
+            settles = 0;
+            letGo();
             return true;
         }
         if (finding && (looking.keyPressed(key, scan, modifiers) || looking.canConsumeInput())) {
