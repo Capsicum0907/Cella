@@ -120,20 +120,114 @@ public final class Window implements IItemHandlerModifiable {
     public void search(String looking) {
         page = 0;
         if (looking.isBlank()) {
+            wanted = null;
             found = null;
             return;
         }
-        String wanted = looking.toLowerCase(java.util.Locale.ROOT);
+        wanted = looking.toLowerCase(java.util.Locale.ROOT);
+        rebuild();
+    }
+
+    /**
+     * The word being answered, folded to lower case, or null while showing the chest.
+     *
+     * <p>Kept because a result list that is maintained rather than rebuilt has to be able
+     * to ask the question again of one slot. See {@link #changed}.
+     */
+    private String wanted;
+
+    private void rebuild() {
         int[] hits = new int[held.getSlots()];
         int count = 0;
         for (int slot = 0; slot < held.getSlots(); slot++) {
-            ItemStack stack = held.getStackInSlot(slot);
-            if (!stack.isEmpty() && stack.getHoverName().getString()
-                    .toLowerCase(java.util.Locale.ROOT).contains(wanted)) {
+            if (matches(slot)) {
                 hits[count++] = slot;
             }
         }
         found = java.util.Arrays.copyOf(hits, count);
+    }
+
+    private boolean matches(int slot) {
+        ItemStack stack = held.getStackInSlot(slot);
+        return !stack.isEmpty() && stack.getHoverName().getString()
+                .toLowerCase(java.util.Locale.ROOT).contains(wanted);
+    }
+
+    /**
+     * Puts one slot of the chest back where it belongs in the results.
+     *
+     * <p><b>The results are a claim about the chest, and the chest moves.</b> Taking the
+     * last iron ingot out of a slot the search turned up leaves a number in {@link #found}
+     * pointing at nothing, and sorting rewrites every slot underneath every number at
+     * once — so the list has to be maintained rather than written once and trusted.
+     *
+     * <p><b>One slot at a time, because rebuilding is not affordable.</b> A Cella Max is
+     * 221,184 slots and a hopper can touch one every tick; asking the whole chest again
+     * each time is a fifth of a million name comparisons a tick. Asking it of the one slot
+     * that moved is a binary search into a list the length of the answer.
+     *
+     * <p><b>The order is never broken.</b> {@link #found} is built ascending and stays
+     * ascending: a slot that stops matching is taken out and the rest close up, and one
+     * that starts matching goes in at its own place rather than at the end. What is on
+     * screen shifts by a square, which is the same thing a page of a chest does.
+     *
+     * @return whether the results moved, and so whether what the client was told is stale
+     */
+    public boolean changed(int slot) {
+        if (found == null || slot < 0 || slot >= held.getSlots()) {
+            return false;
+        }
+        int at = java.util.Arrays.binarySearch(found, slot);
+        boolean listed = at >= 0;
+        if (listed == matches(slot)) {
+            return false;
+        }
+        found = listed ? dropped(at) : added(-at - 1, slot);
+        clamp();
+        return true;
+    }
+
+    /**
+     * Asks the whole chest again, keeping the page rather than going back to the first.
+     *
+     * <p>For when too much moved at once to follow slot by slot — a sort, or a menu that
+     * fell behind. Unlike {@link #search} this is not the player asking a new question, so
+     * the page they were reading is kept if it still exists.
+     */
+    public boolean again() {
+        if (found == null) {
+            return false;
+        }
+        rebuild();
+        clamp();
+        return true;
+    }
+
+    private int[] dropped(int at) {
+        int[] out = new int[found.length - 1];
+        System.arraycopy(found, 0, out, 0, at);
+        System.arraycopy(found, at + 1, out, at, out.length - at);
+        return out;
+    }
+
+    private int[] added(int at, int slot) {
+        int[] out = new int[found.length + 1];
+        System.arraycopy(found, 0, out, 0, at);
+        out[at] = slot;
+        System.arraycopy(found, at, out, at + 1, found.length - at);
+        return out;
+    }
+
+    /**
+     * Back onto a page that exists.
+     *
+     * <p>Results can shrink under a reader — nine hundred hits become four hundred and the
+     * third page stops being there. A blank grid would be read as items that cannot be
+     * seen rather than as a page that is gone, so the reader is moved to the last page
+     * there is instead.
+     */
+    private void clamp() {
+        page = Math.min(page, pages() - 1);
     }
 
     /** Whether it is showing results rather than the chest. */

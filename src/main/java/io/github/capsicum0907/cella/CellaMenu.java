@@ -348,7 +348,76 @@ public class CellaMenu extends AbstractContainerMenu {
             return;
         }
         window.search(looking);
+        seen = revision();
         sendAllDataToRemote();
+    }
+
+    /**
+     * How much of the chest's history this menu has accounted for.
+     *
+     * <p>Only meaningful while searching, and set whenever the whole chest has just been
+     * read: a fresh answer is already up to date with everything written before it.
+     */
+    private long seen;
+
+    private long revision() {
+        return access.evaluate((level, pos) ->
+                level.getBlockEntity(pos) instanceof CellaBlockEntity chest
+                        ? chest.revision()
+                        : 0L).orElse(0L);
+    }
+
+    /**
+     * Catches the results up with the chest, once a tick, before anything is sent.
+     *
+     * <p><b>The chest does not push and the menus do not register.</b> Two players can
+     * have the same Cella open on different words, so one change has to become a different
+     * answer in each of them — and a list of live menus kept on the block entity is a list
+     * that has to be right about disconnects, broken blocks and dimension changes. This is
+     * the other direction: the chest keeps a record, and each menu reads what it has
+     * missed at the moment it was already going to talk to its client.
+     *
+     * <p><b>The cost of that is one tick.</b> A slot emptied now leaves the results on the
+     * next broadcast rather than within the same instruction, which is fifty milliseconds
+     * of a square that is about to go.
+     *
+     * <p>⚠ <b>Telling the client the difference is not sound here.</b> The game works out
+     * what to send by comparing each slot against what that slot last held, which holds
+     * only while nothing moves underneath a slot — and a result leaving the list moves
+     * every square after it. So a menu whose results moved says all of it again, exactly
+     * as {@link #turnTo} and {@link #look} do.
+     */
+    @Override
+    public void broadcastChanges() {
+        if (server && window.searching()) {
+            follow();
+        }
+        super.broadcastChanges();
+    }
+
+    private void follow() {
+        access.execute((level, pos) -> {
+            if (!(level.getBlockEntity(pos) instanceof CellaBlockEntity chest)) {
+                return;
+            }
+            long now = chest.revision();
+            if (now == seen) {
+                return;
+            }
+            int[] since = chest.since(seen);
+            seen = now;
+            boolean moved = false;
+            if (since == null) {
+                moved = window.again();
+            } else {
+                for (int slot : since) {
+                    moved |= window.changed(slot);
+                }
+            }
+            if (moved) {
+                sendAllDataToRemote();
+            }
+        });
     }
 
     /**

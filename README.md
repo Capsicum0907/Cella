@@ -404,6 +404,41 @@ squares of this one are real, both of which fit and neither of which is the coun
 from. And the query is walked against every non-empty slot on the server, so the box waits
 four ticks after the last key rather than asking once per keystroke.
 
+### Results are kept up with the chest, not photographed
+
+A search writes down which slots answered. **That is a claim about the chest, and the
+chest goes on moving** — a hopper fills a slot, a sort rewrites all of them, the reader
+takes the last ingot out of one. Written once and trusted, the list rots in two visible
+ways: a square of results holding nothing, because the slot it names was emptied, and a
+square holding something that never matched, because a sort moved a different item
+underneath the same number.
+
+**Neither is fixed by asking the whole chest again.** A Cella Max is 221,184 slots and a
+hopper can touch one every tick, so rebuilding on change is a fifth of a million name
+comparisons a tick for as long as somebody leaves a search open.
+
+So the list is maintained. One slot moving is a binary search into a list the length of
+the answer: out if it stopped matching, in at its own place if it started. **The order is
+never broken** — what is on screen shifts by a square, which is what a page of a chest
+does anyway. Anything that moves more slots than are worth naming one at a time, a sort
+being the case it was written for, asks the whole question again instead, at the cost the
+writer had already paid.
+
+**The chest does not tell anyone; it keeps a record.** Two players can have the same Cella
+open on different words, so one change has to become a different answer in each of them,
+and a register of live menus kept on the block entity is a register that has to be right
+about disconnects, broken blocks and dimension changes. Instead the block entity counts
+its writes and remembers the last few hundred, and each menu reads what it has missed at
+the moment it was already going to talk to its client. The cost is one tick: a square that
+is about to go stays for fifty milliseconds.
+
+**A reader whose page stops existing is moved onto one that does.** Nine hundred hits
+become four hundred while somebody is on page three of three. Drawing that page as nothing
+at all reads as items that cannot be seen rather than as a page that is gone, so they land
+on the last page there is. This is not the reset a new search does: asking a different
+question puts you at the start of the answer, but the answer changing under you moves you
+no further than it has to.
+
 ### A bigger screen shows more of the chest
 
 **How a chest is cut into pages is a fact about looking at it** — the chest is a flat run

@@ -1912,6 +1912,97 @@ public final class CellaTests {
     }
 
     /**
+     * Results are maintained against the chest rather than written once and trusted.
+     *
+     * <p><b>A result list is a claim, and the chest can falsify it.</b> Emptying a slot the
+     * search turned up used to leave its number in the list pointing at nothing — a square
+     * of results showing nothing at all — and sorting rewrote every slot underneath every
+     * number at once, so the same squares came back holding items that had never matched.
+     *
+     * <p><b>One slot at a time where one slot moved, the whole question where more did.</b>
+     * Following a hopper by rebuilding is a fifth of a million name comparisons a tick on a
+     * Cella Max; following a sort slot by slot is the same work done badly. Both are here.
+     */
+    @GameTest(template = TestStructures.FLOOR)
+    public static void resultsFollowTheChest(GameTestHelper helper) {
+        int size = 4;
+        ItemStackHandler chest = new ItemStackHandler(200);
+        chest.setStackInSlot(3, new ItemStack(Items.DIAMOND, 1));
+        chest.setStackInSlot(60, new ItemStack(Items.DIAMOND_SWORD, 1));
+        chest.setStackInSlot(150, new ItemStack(Items.DIAMOND_BLOCK, 1));
+
+        Window window = Window.onto(chest, size);
+        window.search("diamond");
+        check(window.onThisPage() == 3, "three hits to begin with: " + window.onThisPage());
+
+        // The middle one is taken out from underneath.
+        chest.setStackInSlot(60, ItemStack.EMPTY);
+        check(window.changed(60), "emptying a result moves the results");
+        check(window.onThisPage() == 2, "the square goes rather than going blank: "
+                + window.onThisPage());
+        check(window.getStackInSlot(1).is(Items.DIAMOND_BLOCK), "and the rest close up");
+
+        // One arrives between two that are already there.
+        chest.setStackInSlot(20, new ItemStack(Items.DIAMOND_AXE, 1));
+        check(window.changed(20), "a new match moves them too");
+        check(window.getStackInSlot(0).is(Items.DIAMOND), "the chest's order is kept");
+        check(window.getStackInSlot(1).is(Items.DIAMOND_AXE), "the new one at its own place");
+        check(window.getStackInSlot(2).is(Items.DIAMOND_BLOCK), "and not at the end");
+
+        // Something that was never an answer is not one now.
+        chest.setStackInSlot(70, new ItemStack(Items.EMERALD, 1));
+        check(!window.changed(70), "what does not match does not move the results");
+        check(window.onThisPage() == 3, "still three: " + window.onThisPage());
+
+        // A sort rewrites every slot at once, which is asked again rather than followed.
+        Tidy.everything(chest);
+        check(window.again(), "a sort is answered by asking the whole chest again");
+        check(window.onThisPage() == 3, "the same three survive it: " + window.onThisPage());
+        for (int square = 0; square < 3; square++) {
+            check(!window.getStackInSlot(square).isEmpty(),
+                    "and no square of a result page is empty: " + square);
+        }
+        helper.succeed();
+    }
+
+    /**
+     * A reader whose page stops existing is moved onto one that does.
+     *
+     * <p>Results shrink under whoever is reading them — a hopper empties what they were
+     * looking at and page three of three stops being there. The grid would draw as nothing
+     * at all, and a blank page reads as items that cannot be seen rather than as a page
+     * that is gone. So the reader lands on the last page there is.
+     *
+     * <p>⚠ <b>This is not the reset a new search does.</b> Asking a different question puts
+     * you at the start of the answer; the answer changing under you moves you no further
+     * than it has to.
+     */
+    @GameTest(template = TestStructures.FLOOR)
+    public static void aPageThatStopsExistingLetsGoOfItsReader(GameTestHelper helper) {
+        int size = 4;
+        ItemStackHandler chest = new ItemStackHandler(200);
+        for (int hit = 0; hit < 9; hit++) {
+            chest.setStackInSlot(hit * 10, new ItemStack(Items.DIAMOND, 1));
+        }
+
+        Window window = Window.onto(chest, size);
+        window.search("diamond");
+        check(window.pages() == 3, "nine hits over three pages: " + window.pages());
+        window.openAt(2);
+        check(window.page() == 2, "reading the last of them");
+
+        for (int hit = 0; hit < 5; hit++) {
+            chest.setStackInSlot(hit * 10, ItemStack.EMPTY);
+            window.changed(hit * 10);
+        }
+        check(window.pages() == 1, "four left on one page: " + window.pages());
+        check(window.page() == 0, "and the reader came with them: " + window.page());
+        check(window.onThisPage() == 4, "onto a page that is full: " + window.onThisPage());
+        check(!window.getStackInSlot(0).isEmpty(), "and holds something");
+        helper.succeed();
+    }
+
+    /**
      * The ladder only ever adds, except in the one place it was decided that it takes away.
      *
      * <p><b>This is what makes the table safe to write the way it is written.</b> Each

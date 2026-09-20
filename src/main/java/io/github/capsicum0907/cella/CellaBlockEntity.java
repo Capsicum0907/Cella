@@ -87,6 +87,8 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
             @Override
             protected void onContentsChanged(int slot) {
                 setChanged();
+                touched[(int) (revision % TOUCHED)] = slot;
+                revision++;
                 told();
             }
         };
@@ -98,6 +100,52 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
 
     /** Set while a whole-chest operation is running; see {@link #inOneGo}. */
     private boolean bulk;
+
+    /**
+     * Which slots have been written, and how many writes there have been in all.
+     *
+     * <p><b>A menu showing search results holds a claim about the chest that the chest can
+     * falsify</b>, and it is the only thing that can: the chest is one object and the menus
+     * are one per player, each answering a different word. So the chest does not tell them
+     * anything — it keeps a record, and each menu reads what has happened since it last
+     * looked. See {@code CellaMenu#broadcastChanges}.
+     *
+     * <p><b>A ring, and falling out of it is not an error.</b> Anything that writes more
+     * than {@link #TOUCHED} slots between two ticks has moved more than is worth following
+     * one at a time, and {@link #since} says so by answering null — which asks for the
+     * whole question again, at the same cost the writer already paid.
+     */
+    private static final int TOUCHED = 256;
+
+    private final int[] touched = new int[TOUCHED];
+
+    private long revision;
+
+    private static final int[] NOTHING = new int[0];
+
+    public long revision() {
+        return revision;
+    }
+
+    /**
+     * The slots written since that revision, oldest first.
+     *
+     * @return nothing at all when none have been, or null when too many have to say which
+     */
+    public int[] since(long mark) {
+        long behind = revision - mark;
+        if (behind <= 0) {
+            return NOTHING;
+        }
+        if (behind > TOUCHED) {
+            return null;
+        }
+        int[] out = new int[(int) behind];
+        for (int index = 0; index < out.length; index++) {
+            out[index] = touched[(int) ((mark + index) % TOUCHED)];
+        }
+        return out;
+    }
 
     /**
      * Runs something that writes many slots, and tells the neighbours once at the end.
@@ -112,11 +160,13 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
      * a flag rather than work.
      */
     public void inOneGo(Runnable work) {
+        // Nested, the inner one must not let go of the outer one's silence.
+        boolean was = bulk;
         bulk = true;
         try {
             work.run();
         } finally {
-            bulk = false;
+            bulk = was;
         }
         told();
     }
@@ -340,29 +390,33 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
     public java.util.List<ItemStack> pour(HolderLookup.Provider registries,
             java.util.List<Kept.Chest> filed) {
         java.util.List<ItemStack> over = new java.util.ArrayList<>();
-        int cursor = 0;
-        // ⚠ What was in them comes across; what they had been fed does not. A Cella that
-        // changes form starts again at nothing, and being made out of eight of something
-        // is still changing form. See Fusing.
-        for (Kept.Chest one : filed) {
-            ItemStackHandler from = new ItemStackHandler();
-            from.deserializeNBT(registries, one.contents());
-            for (int slot = 0; slot < from.getSlots(); slot++) {
-                ItemStack stack = from.getStackInSlot(slot);
-                if (stack.isEmpty()) {
-                    continue;
-                }
-                while (cursor < contents.getSlots()
-                        && !contents.getStackInSlot(cursor).isEmpty()) {
-                    cursor++;
-                }
-                if (cursor >= contents.getSlots()) {
-                    over.add(stack);
-                } else {
-                    contents.setStackInSlot(cursor++, stack);
+        // Eight full Super Perfects into a Max is two hundred thousand writes, and a
+        // comparator does not need to hear about each one. See inOneGo.
+        inOneGo(() -> {
+            int cursor = 0;
+            // ⚠ What was in them comes across; what they had been fed does not. A Cella that
+            // changes form starts again at nothing, and being made out of eight of something
+            // is still changing form. See Fusing.
+            for (Kept.Chest one : filed) {
+                ItemStackHandler from = new ItemStackHandler();
+                from.deserializeNBT(registries, one.contents());
+                for (int slot = 0; slot < from.getSlots(); slot++) {
+                    ItemStack stack = from.getStackInSlot(slot);
+                    if (stack.isEmpty()) {
+                        continue;
+                    }
+                    while (cursor < contents.getSlots()
+                            && !contents.getStackInSlot(cursor).isEmpty()) {
+                        cursor++;
+                    }
+                    if (cursor >= contents.getSlots()) {
+                        over.add(stack);
+                    } else {
+                        contents.setStackInSlot(cursor++, stack);
+                    }
                 }
             }
-        }
+        });
         setChanged();
         return over;
     }
