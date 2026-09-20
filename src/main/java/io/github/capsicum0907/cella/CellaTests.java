@@ -108,23 +108,30 @@ public final class CellaTests {
         CellaBlockEntity chest = place(helper);
         Player player = helper.makeMockPlayer(GameType.SURVIVAL);
         int page = KIND.pageSize();
-        chest.contents().setStackInSlot(4, new ItemStack(Items.DIAMOND, 5));
-        chest.contents().setStackInSlot(LATER * page + 4, new ItemStack(Items.EMERALD, 7));
+        // One kind, three slots further than a page goes, so there is a second page with a
+        // known end to it. The chest packs to the front, so a gap cannot be arranged.
+        for (int slot = 0; slot < page + 3; slot++) {
+            chest.contents().setStackInSlot(slot, new ItemStack(Items.DIAMOND, 64));
+        }
 
         CellaMenu menu = CellaMenu.at(1, player.getInventory(), helper.absolutePos(WHERE),
                 chest.contents().getSlots(),
                 CellaConfig.rows(KIND), CellaConfig.columns(KIND));
 
         check(menu.slots.get(4).getItem().is(Items.DIAMOND), "page one holds the diamonds");
-        menu.turnTo(LATER);
-        check(menu.slots.get(4).getItem().getCount() == 7,
-                "and the same slot holds the emeralds once the page has turned");
+        menu.turnTo(1);
+        check(menu.slots.get(2).getItem().getCount() == 64,
+                "and the page after it holds the last of them once the page has turned");
+        check(menu.slots.get(3).getItem().isEmpty(), "with the rest of that page empty");
 
-        // Writing through the slot has to land on the page being shown, not the first.
-        menu.slots.get(5).set(new ItemStack(Items.COAL, 3));
-        check(chest.contents().getStackInSlot(LATER * page + 5).is(Items.COAL),
-                "and what is put in should land on the page that is open");
-        check(chest.contents().getStackInSlot(5).isEmpty(), "not on the one that is not");
+        // ⚠ Writing through a slot no longer leaves anything at that slot. The chest keeps
+        // itself in order, so a square takes what is put on it and the kind decides where
+        // it goes; the screen is a list to take from, not a grid to arrange. See Sorted.
+        menu.slots.get(2).set(new ItemStack(Items.COAL, 3));
+        check(chest.contents().getStackInSlot(0).is(Items.COAL),
+                "what is put in goes where its kind belongs, coal sorting before diamond");
+        check(chest.contents().getStackInSlot(1).is(Items.DIAMOND),
+                "and the diamonds move along to make room for it");
         helper.succeed();
     }
 
@@ -289,8 +296,13 @@ public final class CellaTests {
 
         // Reaching past the first page has to work, not merely be counted.
         int far = KIND.pageSize() * (KIND.pages() - 1);
-        offered.insertItem(far, new ItemStack(Items.REDSTONE, 7), false);
-        check(offered.getStackInSlot(far).getCount() == 7, "and the last page should take items");
+        check(offered.insertItem(far, new ItemStack(Items.REDSTONE, 7), false).isEmpty(),
+                "and an offer made past the first page is taken whole");
+        // ⚠ Not at the slot it was offered to. The chest keeps itself in order, so what it
+        // takes goes where its kind belongs; see Sorted.
+        check(offered.getStackInSlot(0).is(Items.REDSTONE)
+                        && offered.getStackInSlot(0).getCount() == 7,
+                "and is in the chest, where redstone goes");
         helper.succeed();
     }
 
@@ -381,8 +393,9 @@ public final class CellaTests {
         CellaRegistry.block(KIND).get().setPlacedBy(helper.getLevel(),
                 helper.absolutePos(WHERE), chest.getBlockState(), null, stack);
 
-        check(chest.contents().getStackInSlot(LATER * KIND.pageSize()).getCount() == 11,
-                "the gold should be back, on the page it was on");
+        check(chest.contents().getStackInSlot(0).getCount() == 11
+                        && chest.contents().getStackInSlot(0).is(Items.GOLD_INGOT),
+                "the gold should be back, wherever gold sorts to");
         check(kept.take(name).isEmpty(), "and the name should have been spent");
         helper.succeed();
     }
@@ -448,7 +461,9 @@ public final class CellaTests {
         for (int slot = 0; slot < 300; slot++) {
             chest.contents().setStackInSlot(slot, new ItemStack(Items.STONE, 1));
         }
-        check(chest.used() == 300, "three hundred slots should be spoken for");
+        // ⚠ Five, not three hundred: a chest that keeps itself in order keeps itself
+        // merged, so three hundred loose stone are four full stacks and a remainder.
+        check(chest.used() == 5, "three hundred stone pour into five slots: " + chest.used());
 
         helper.destroyBlock(WHERE);
 
@@ -459,7 +474,7 @@ public final class CellaTests {
                     .filter(java.util.Objects::nonNull)
                     .findFirst()
                     .orElseThrow(() -> new GameTestAssertException("no chest with a name"));
-            check(held.used() == 300, "the item should say three hundred: " + held.used());
+            check(held.used() == 5, "the item should say five: " + held.used());
             check(held.slots() == KIND.slots(),
                     "and how many there were altogether: " + held.slots());
             check(held.counted(), "which is enough to draw a bar from");
@@ -595,11 +610,16 @@ public final class CellaTests {
         }
 
         check(chest.pour(registries, filed).isEmpty(), "all of it should fit");
-        check(chest.contents().getStackInSlot(0).is(Items.GOLD_INGOT), "first in, first slot");
-        check(chest.contents().getStackInSlot(1).is(Items.DIAMOND), "then the rest of it");
-        check(chest.contents().getStackInSlot(2).getCount() == 2, "then the second chest's");
-        check(chest.contents().getStackInSlot(4).isEmpty(), "and nothing after them");
-        check(chest.used() == 4, "four slots spoken for: " + chest.used());
+        // Both chests' gold is one stack of gold and both chests' diamonds one of diamonds,
+        // in the chest's order rather than in the order they arrived.
+        check(chest.contents().getStackInSlot(0).is(Items.DIAMOND)
+                        && chest.contents().getStackInSlot(0).getCount() == 3,
+                "the diamonds of both, poured together");
+        check(chest.contents().getStackInSlot(1).is(Items.GOLD_INGOT)
+                        && chest.contents().getStackInSlot(1).getCount() == 3,
+                "and then the gold, diamond sorting before gold");
+        check(chest.contents().getStackInSlot(2).isEmpty(), "and nothing after them");
+        check(chest.used() == 2, "two slots spoken for: " + chest.used());
         helper.succeed();
     }
 
@@ -675,8 +695,9 @@ public final class CellaTests {
         menu.quickMoveStack(player, hand);
 
         check(menu.slots.get(hand).getItem().isEmpty(), "the coal should have left the player");
-        check(chest.contents().getStackInSlot(page).getCount() == 32,
-                "and landed on the first slot with room, which is on page two");
+        check(chest.contents().getStackInSlot(0).is(Items.COAL)
+                        && chest.contents().getStackInSlot(0).getCount() == 32,
+                "and went into the chest, ahead of the stone that filled the page");
         helper.succeed();
     }
 
@@ -720,6 +741,96 @@ public final class CellaTests {
     }
 
     /**
+     * The chest is in order at all times, with nobody having pressed anything.
+     *
+     * <p>Arrivals go where their kind belongs and pour into the one open stack of it; a
+     * kind that was not there yet takes a slot of its own and everything after it moves
+     * along. ⚠ <b>No button is pressed anywhere in this test</b> — that is the whole claim.
+     */
+    @GameTest(template = TestStructures.FLOOR)
+    public static void theChestKeepsItselfInOrder(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper);
+        Sorted contents = chest.contents();
+
+        // Out of order, and in pieces that have to pour together.
+        contents.insertItem(0, new ItemStack(Items.STONE, 40), false);
+        contents.insertItem(0, new ItemStack(Items.DIAMOND, 5), false);
+        contents.insertItem(0, new ItemStack(Items.STONE, 40), false);
+        contents.insertItem(0, new ItemStack(Items.COAL, 2), false);
+        contents.insertItem(0, new ItemStack(Items.DIAMOND, 3), false);
+
+        check(contents.getStackInSlot(0).is(Items.COAL) && contents.getStackInSlot(0).getCount() == 2,
+                "coal first: " + contents.getStackInSlot(0));
+        check(contents.getStackInSlot(1).is(Items.DIAMOND) && contents.getStackInSlot(1).getCount() == 8,
+                "then the diamonds, poured together: " + contents.getStackInSlot(1));
+        check(contents.getStackInSlot(2).is(Items.STONE) && contents.getStackInSlot(2).getCount() == 64,
+                "then a full stack of stone: " + contents.getStackInSlot(2));
+        check(contents.getStackInSlot(3).is(Items.STONE) && contents.getStackInSlot(3).getCount() == 16,
+                "and the remainder of it last: " + contents.getStackInSlot(3));
+        check(contents.used() == 4, "four slots spoken for: " + contents.used());
+        check(contents.getStackInSlot(4).isEmpty(), "and nothing behind them");
+        helper.succeed();
+    }
+
+    /**
+     * Taking comes out of the remainder, so a kind stays a run with one partial behind it.
+     *
+     * <p>Out of the slot it was asked of, the first full stack of a kind would become a
+     * second partial and the order would be wrong within its own run. What comes back is
+     * the same item either way, so the only thing decided here is which of them is left
+     * looking untidy — and the answer is neither.
+     */
+    @GameTest(template = TestStructures.FLOOR)
+    public static void takingComesOutOfTheRemainder(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper);
+        Sorted contents = chest.contents();
+        contents.insertItem(0, new ItemStack(Items.STONE, 140), false);
+
+        check(contents.used() == 3, "sixty-four, sixty-four and twelve: " + contents.used());
+
+        ItemStack out = contents.extractItem(0, 5, false);
+        check(out.is(Items.STONE) && out.getCount() == 5, "asked at the front, five come back");
+        check(contents.getStackInSlot(0).getCount() == 64, "the full stacks are untouched");
+        check(contents.getStackInSlot(1).getCount() == 64, "both of them");
+        check(contents.getStackInSlot(2).getCount() == 7, "and it came out of the remainder");
+
+        // Emptying the remainder closes the run up rather than leaving a hole in it.
+        contents.extractItem(0, 7, false);
+        check(contents.used() == 2, "the empty remainder goes: " + contents.used());
+        check(contents.getStackInSlot(2).isEmpty(), "with nothing left behind it");
+        helper.succeed();
+    }
+
+    /**
+     * A full chest says so, and says it before taking anything it cannot hold.
+     *
+     * <p>⚠ Asked to simulate, it has to answer with what it would refuse. A store that
+     * says yes and then drops the difference is how contents go missing.
+     */
+    @GameTest(template = TestStructures.FLOOR)
+    public static void afullChestRefusesWhatWillNotFit(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper, Kind.LARAVEL);
+        Sorted contents = chest.contents();
+        int slots = Kind.LARAVEL.slots();
+
+        contents.insertItem(0, new ItemStack(Items.STONE, 64 * slots), false);
+        check(contents.used() == slots, "every slot of a Laravel is spoken for: " + contents.used());
+
+        ItemStack asked = new ItemStack(Items.DIAMOND, 4);
+        check(contents.insertItem(0, asked, true).getCount() == 4,
+                "a simulated offer of a new kind comes back whole");
+        check(contents.insertItem(0, asked, false).getCount() == 4,
+                "and so does the real one");
+        check(contents.used() == slots, "with nothing having moved: " + contents.used());
+
+        // There is still room in the kind that is already there, and that is taken.
+        contents.extractItem(0, 10, false);
+        check(contents.insertItem(0, new ItemStack(Items.STONE, 10), false).isEmpty(),
+                "the room that is left is room for more of what is in it");
+        helper.succeed();
+    }
+
+    /**
      * Stowing empties the player into the chest, past the page on screen.
      *
      * <p>Page one is filled first so the only room is out of sight — the case a sorting
@@ -751,9 +862,10 @@ public final class CellaTests {
                 "the pickaxe in hand should have been left alone");
         check(player.getInventory().getItem(1).isEmpty() && player.getInventory().getItem(20).isEmpty(),
                 "everything else should have gone in");
-        check(chest.contents().getStackInSlot(page).is(Items.APPLE)
-                        && chest.contents().getStackInSlot(page + 1).is(Items.BONE),
-                "and landed on page two, which is where the room was");
+        // The room was off the page, and where they landed is where their kinds belong.
+        check(chest.contents().getStackInSlot(0).is(Items.APPLE)
+                        && chest.contents().getStackInSlot(1).is(Items.BONE),
+                "and went in, ahead of the stone that filled the page on screen");
         helper.succeed();
     }
 
@@ -808,9 +920,10 @@ public final class CellaTests {
                 CellaConfig.rows(KIND), CellaConfig.columns(KIND));
         menu.clickMenuButton(player, CellaMenu.TAKING);
 
-        check(chest.contents().getStackInSlot(page * 2).isEmpty(),
+        check(chest.used() == 1,
                 "the cobblestone matches what is in hand and should have come out");
-        check(chest.contents().getStackInSlot(page * 2 + 1).getCount() == 3,
+        check(chest.contents().getStackInSlot(0).is(Items.DIAMOND)
+                        && chest.contents().getStackInSlot(0).getCount() == 3,
                 "the diamonds match nothing the player has and should have stayed");
         helper.succeed();
     }

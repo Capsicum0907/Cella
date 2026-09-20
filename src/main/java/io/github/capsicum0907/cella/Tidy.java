@@ -40,6 +40,13 @@ public final class Tidy {
      * together, which is close to what sorting by name would give anyway.
      */
     public static void everything(IItemHandlerModifiable contents) {
+        // ⚠ A chest that keeps itself in order closes the gap behind every slot this
+        // empties, so the loop below would read some slots twice and miss others. Asking
+        // it to stand still first is the whole of the difference; see Sorted#rearranging.
+        if (contents instanceof Sorted sorted && !sorted.rearranging()) {
+            sorted.settle();
+            return;
+        }
         List<ItemStack> gathered = new ArrayList<>();
         for (int slot = 0; slot < contents.getSlots(); slot++) {
             ItemStack stack = contents.getStackInSlot(slot);
@@ -50,16 +57,31 @@ public final class Tidy {
         }
 
         List<ItemStack> merged = merge(gathered);
-        merged.sort(Comparator
-                .comparing((ItemStack stack) -> BuiltInRegistries.ITEM.getKey(stack.getItem()))
-                // Full stacks first, so the odd remainder of each kind ends up last and a
-                // second sort has nothing left to do.
-                .thenComparing(Comparator.comparingInt(ItemStack::getCount).reversed()));
+        merged.sort(ORDER);
 
         for (int slot = 0; slot < merged.size() && slot < contents.getSlots(); slot++) {
             contents.setStackInSlot(slot, merged.get(slot));
         }
     }
+
+    /**
+     * The order the chest is kept in.
+     *
+     * <p>Registry name, and then the full stacks of each kind before its odd remainder.
+     * <b>Both halves are load-bearing now that the chest is kept in this order rather than
+     * put into it on request</b> — see {@link Sorted}. Full stacks first means a kind is a
+     * run of full stacks with at most one partial at the end of it, so an item arriving
+     * tops up that one partial and an item leaving comes out of it, and neither disturbs
+     * anything before it.
+     *
+     * <p>⚠ <b>Nothing here changes when a count changes, except within its own kind.</b> An
+     * order keyed on anything that moves with the contents — how many there are, how full
+     * the chest is — would have items swapping places as they arrive, which is both
+     * expensive and unreadable.
+     */
+    public static final Comparator<ItemStack> ORDER = Comparator
+            .comparing((ItemStack stack) -> BuiltInRegistries.ITEM.getKey(stack.getItem()))
+            .thenComparing(Comparator.comparingInt(ItemStack::getCount).reversed());
 
     /**
      * Pours partial stacks of the same thing together.

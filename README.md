@@ -150,6 +150,34 @@ Sorting is ordered by registry name, not display name: a display name needs a
 language, and a chest that came out differently depending on who pressed the button
 would not be a sort.
 
+### It is in order all the time, not when asked
+
+**A Cella has too many squares for a square to mean anything.** Perfect is 13,824 of them
+and Max is 221,184. Nobody remembers that the coal lives at 9,310, and nobody can put it
+back there after taking some out — a place carries meaning only while you can hold the
+whole of it in your head, and these passed that a long way back. So the arrangement is the
+chest's job, not yours, and what you decide moves up a layer: which chest a thing goes in,
+rather than which square of it.
+
+Contents are packed to the front in that order at all times. A kind is a run of full
+stacks with at most one partial at the end of it; an item arriving pours into that
+partial, and an item leaving comes out of it. Nothing before it moves. A kind that was not
+there yet takes a slot of its own and everything after it shifts along.
+
+⚠ **Putting something into a square does not leave it at that square.** There is nowhere
+to leave it — the slot a stack belongs at is decided by what the stack is. The screen
+stops being a grid you arrange and becomes a list you take from. A collection you want to
+lay out by hand is a different thing from a store, and wants a different mod.
+
+⚠ **How full it says it is changed with this.** Three hundred loose stone used to be three
+hundred slots spoken for and are now five, because staying in order means staying merged.
+The bar is reporting the chest rather than the history of how things went into it.
+
+The sort button remains, and is now a repair rather than the only time it happens: it also
+runs when a chest is loaded from a save written before this, and after anything that
+rewrites most of the slots at once — a fusion pouring eight chests in, the two moving
+buttons, breaking one open.
+
 Where those two buttons sit is the one thing that looks at what else is installed:
 right-hand end like everything else here, or after the "Inventory" label when IPN is
 present, because IPN's own player-side buttons are in that corner. Two mods in one
@@ -650,6 +678,7 @@ gradlew runData           # regenerate models, recipes and language
 - [x] **7** — a chest of 221,184 slots can be searched
 - [ ] **8** — the numbers played with rather than reasoned about; every threshold is
       a first pass
+- [x] **10** — the chest keeps itself in order, and a search keeps up with the chest
 - [x] **9** — the one sweep that is safe: an orphan whose item is *seen* to burn
 
 ## Related

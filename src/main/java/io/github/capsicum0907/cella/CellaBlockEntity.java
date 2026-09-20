@@ -30,7 +30,7 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
     private static final String CONTENTS = "Contents";
     private static final String EXPERIENCE = "Experience";
 
-    private final ItemStackHandler contents;
+    private final Sorted contents;
 
     /**
      * What it has been fed, in points.
@@ -83,7 +83,7 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
 
     public CellaBlockEntity(BlockPos pos, BlockState state) {
         super(CellaRegistry.BLOCK_ENTITY.get(), pos, state);
-        this.contents = new ItemStackHandler(kindOf(state).slots()) {
+        this.contents = new Sorted(kindOf(state).slots()) {
             @Override
             protected void onContentsChanged(int slot) {
                 setChanged();
@@ -91,10 +91,16 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
                 revision++;
                 told();
             }
+
+            @Override
+            protected void moved(int from) {
+                super.moved(from);
+                settled = revision;
+            }
         };
     }
 
-    public ItemStackHandler contents() {
+    public Sorted contents() {
         return contents;
     }
 
@@ -121,6 +127,16 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
 
     private long revision;
 
+    /**
+     * The revision at the last wholesale rearrangement.
+     *
+     * <p>A kind arriving or leaving moves every slot after it, and saying so slot by slot
+     * would be two hundred thousand announcements. One is sent, and anyone who had not
+     * caught up by then is told to ask the whole question again rather than being handed a
+     * list that does not describe what happened.
+     */
+    private long settled;
+
     private static final int[] NOTHING = new int[0];
 
     public long revision() {
@@ -133,6 +149,9 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
      * @return nothing at all when none have been, or null when too many have to say which
      */
     public int[] since(long mark) {
+        if (mark < settled) {
+            return null;
+        }
         long behind = revision - mark;
         if (behind <= 0) {
             return NOTHING;
@@ -164,7 +183,7 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
         boolean was = bulk;
         bulk = true;
         try {
-            work.run();
+            contents.straight(work);
         } finally {
             bulk = was;
         }
@@ -285,13 +304,7 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
      * shown there; see {@link Held}.
      */
     public int used() {
-        int used = 0;
-        for (int slot = 0; slot < contents.getSlots(); slot++) {
-            if (!contents.getStackInSlot(slot).isEmpty()) {
-                used++;
-            }
-        }
-        return used;
+        return contents.used();
     }
 
     /** Nothing in any slot. Says what its name says, and nothing about experience. */
