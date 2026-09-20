@@ -224,6 +224,20 @@ public class CellaMenu extends AbstractContainerMenu {
             }
         });
 
+        // Which order it is being kept in, so the button can say what pressing it will
+        // change from. An ordinal, because there are three of them and it is a short.
+        addDataSlot(new DataSlot() {
+            @Override
+            public int get() {
+                return contents instanceof Sorted sorted ? sorted.order().ordinal() : 0;
+            }
+
+            @Override
+            public void set(int value) {
+                kept = value;
+            }
+        });
+
         // How grown it is, as a percentage, because that is what is shown and a percentage
         // fits in a short with room to spare. The screen decides whether there is space to
         // write it; this only carries it.
@@ -241,6 +255,18 @@ public class CellaMenu extends AbstractContainerMenu {
                 grown = value;
             }
         });
+    }
+
+    /** Which of the orders, as an ordinal. The client's copy; the server reads the chest. */
+    private int kept;
+
+    /** The order the chest is being kept in. */
+    public Order order() {
+        if (contents instanceof Sorted sorted) {
+            return sorted.order();
+        }
+        Order[] all = Order.values();
+        return all[Math.floorMod(kept, all.length)];
     }
 
     /** Nought to a hundred. Nought for a form that does not grow, which never shows it. */
@@ -455,7 +481,15 @@ public class CellaMenu extends AbstractContainerMenu {
             // once at the end rather than once per slot. See CellaBlockEntity#inOneGo.
             inOneGo(() -> {
                 switch (id) {
-                    case SORT -> Tidy.everything(contents);
+                    // ⚠ Not "sort now": the chest is already sorted. What is left for
+                    // the button to mean is which order, and there is more than one.
+                    case SORT -> {
+                        if (contents instanceof Sorted sorted) {
+                            sorted.order(sorted.order().next());
+                        } else {
+                            Tidy.everything(contents);
+                        }
+                    }
                     case STOW -> stow(player, false);
                     case MATCHING -> stow(player, true);
                     case TAKE -> take(player, false);

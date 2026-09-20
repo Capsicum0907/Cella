@@ -221,7 +221,10 @@ public final class CellaDataGen {
             }
             add("itemGroup." + Cella.MODID, "Cella");
             add("tooltip.cella.filled", "%s of %s slots used (%s%%)");
-            add("gui.cella.sort", "Sort every page");
+            add("gui.cella.sort", "Kept in order of %s — press to change");
+            add("gui.cella.sort.registry", "item id");
+            add("gui.cella.sort.display", "name");
+            add("gui.cella.sort.source", "mod");
             add("gui.cella.stow", "Put in what this chest already keeps");
             add("gui.cella.stow.shift", "Shift: your whole inventory");
             add("gui.cella.take", "Take more of what you are carrying");

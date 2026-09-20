@@ -1,6 +1,7 @@
 package io.github.capsicum0907.cella.client;
 
 import io.github.capsicum0907.cella.Cella;
+import io.github.capsicum0907.cella.Order;
 import io.github.capsicum0907.cella.Look;
 import io.github.capsicum0907.cella.CellaMenu;
 import io.github.capsicum0907.cella.Mods;
@@ -226,9 +227,11 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
         // the left so that the page number, which is the only thing here that changes
         // width, grows into the space beside them instead of pushing them about.
         int sort = imageWidth - TITLE_X - BUTTON;
-        addRenderableWidget(new IconButton(leftPos + sort, topPos + BUTTON_Y,
-                icon("sort"), Component.translatable("gui.cella.sort"),
-                () -> send(CellaMenu.SORT)));
+        // ⚠ The tooltip names the order, so it is rewritten when the order changes rather
+        // than written once at opening. See containerTick.
+        ordering = addRenderableWidget(new IconButton(leftPos + sort, topPos + BUTTON_Y,
+                icon("sort"), sorting(), () -> send(CellaMenu.SORT)));
+        kept = menu.order();
 
         // The two arrows next to each other. They were either side of the number, which
         // put fifty pixels between them - a long way to travel to press one twice.
@@ -326,10 +329,24 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
         on.visible = many;
     }
 
+    /** The sort button, kept because what it says changes. */
+    private IconButton ordering;
+
+    /** What the tooltip was last written for, so it is not rebuilt every tick. */
+    private Order kept;
+
+    private Component sorting() {
+        return Component.translatable("gui.cella.sort", menu.order().label());
+    }
+
     @Override
     protected void containerTick() {
         super.containerTick();
         paging();
+        if (ordering != null && kept != menu.order()) {
+            kept = menu.order();
+            ordering.setTooltip(net.minecraft.client.gui.components.Tooltip.create(sorting()));
+        }
         if (grabbing) {
             setFocused(looking);
             looking.setFocused(true);

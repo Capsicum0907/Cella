@@ -1,9 +1,7 @@
 package io.github.capsicum0907.cella;
 
 import net.minecraft.core.HolderLookup;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.items.ItemStackHandler;
 
@@ -59,6 +57,27 @@ public class Sorted extends ItemStackHandler {
     /** Set while a whole-chest operation is writing; see {@link #straight}. */
     private boolean raw;
 
+    /**
+     * Which order it is being kept in. Saved with the chest, because it is a fact about
+     * the chest and not about whoever is looking at it: a hopper and a comparator read the
+     * same slots everyone else does.
+     */
+    private Order order = Order.REGISTRY;
+
+    public Order order() {
+        return order;
+    }
+
+    /** Changes the order and puts the contents into it. */
+    public void order(Order wanted) {
+        order = wanted;
+        // Inside a whole-chest run the trailing settle does it; doing it here as well
+        // would sort a Cella Max twice for one press.
+        if (!raw) {
+            settle();
+        }
+    }
+
     public Sorted(int size) {
         super(size);
     }
@@ -91,7 +110,7 @@ public class Sorted extends ItemStackHandler {
         boolean was = raw;
         raw = true;
         try {
-            Tidy.everything(this);
+            Tidy.everything(this, order);
         } finally {
             raw = was;
         }
@@ -126,9 +145,21 @@ public class Sorted extends ItemStackHandler {
         used = 0;
     }
 
+    private static final String ORDER = "Order";
+
+    @Override
+    public CompoundTag serializeNBT(HolderLookup.Provider registries) {
+        CompoundTag tag = super.serializeNBT(registries);
+        tag.putString(ORDER, order.id());
+        return tag;
+    }
+
     @Override
     public void deserializeNBT(HolderLookup.Provider registries, CompoundTag tag) {
         super.deserializeNBT(registries, tag);
+        // ⚠ Before the order, and before the chest kept itself in one. Registry name is
+        // what such a chest was last tidied into, if it ever was, and settle puts it there.
+        order = Order.of(tag.getString(ORDER));
         settle();
     }
 
@@ -274,7 +305,7 @@ public class Sorted extends ItemStackHandler {
         int high = used;
         while (low < high) {
             int middle = (low + high) >>> 1;
-            if (Tidy.ORDER.compare(stacks.get(middle), stack) <= 0) {
+            if (order.full().compare(stacks.get(middle), stack) <= 0) {
                 low = middle + 1;
             } else {
                 high = middle;
@@ -283,14 +314,13 @@ public class Sorted extends ItemStackHandler {
         return low;
     }
 
-    /** The first slot holding the same registry name as that stack. */
+    /** The first slot of the run this stack belongs to, under the order in force. */
     private int start(ItemStack stack) {
-        ResourceLocation wanted = key(stack);
         int low = 0;
         int high = used;
         while (low < high) {
             int middle = (low + high) >>> 1;
-            if (key(stacks.get(middle)).compareTo(wanted) < 0) {
+            if (order.grouping().compare(stacks.get(middle), stack) < 0) {
                 low = middle + 1;
             } else {
                 high = middle;
@@ -299,11 +329,11 @@ public class Sorted extends ItemStackHandler {
         return low;
     }
 
-    /** One past the last slot sharing that slot's registry name. */
+    /** One past the last slot in the same run as that one. */
     private int endOf(int slot) {
-        ResourceLocation wanted = key(stacks.get(slot));
+        ItemStack like = stacks.get(slot);
         int at = slot + 1;
-        while (at < used && key(stacks.get(at)).equals(wanted)) {
+        while (at < used && order.grouping().compare(stacks.get(at), like) == 0) {
             at++;
         }
         return at;
@@ -344,10 +374,6 @@ public class Sorted extends ItemStackHandler {
 
     private static boolean same(ItemStack one, ItemStack other) {
         return ItemStack.isSameItemSameComponents(one, other);
-    }
-
-    private static ResourceLocation key(ItemStack stack) {
-        return BuiltInRegistries.ITEM.getKey(stack.getItem());
     }
 
     private static ItemStack copyWith(ItemStack stack, int count) {

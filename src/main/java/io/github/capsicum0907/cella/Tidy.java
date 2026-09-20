@@ -1,13 +1,11 @@
 package io.github.capsicum0907.cella;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenCustomHashMap;
 
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.ItemStackLinkedSet;
 import net.neoforged.neoforge.items.IItemHandlerModifiable;
@@ -33,13 +31,14 @@ public final class Tidy {
     /**
      * Merges what can be merged, orders the rest, and packs it to the front.
      *
-     * <p>Ordered by registry name rather than by the name on screen. A display name
-     * needs a language, and there is no language on a server — sorting that came out
-     * differently for a French player and an English one would also mean the chest
-     * changed when somebody else pressed the button. Registry name groups a mod's items
-     * together, which is close to what sorting by name would give anyway.
+     * <p>Which order, and what each of them costs, is in {@link Order}.
      */
     public static void everything(IItemHandlerModifiable contents) {
+        everything(contents, contents instanceof Sorted sorted ? sorted.order() : Order.REGISTRY);
+    }
+
+    /** The same, in a given order. */
+    public static void everything(IItemHandlerModifiable contents, Order order) {
         // ⚠ A chest that keeps itself in order closes the gap behind every slot this
         // empties, so the loop below would read some slots twice and miss others. Asking
         // it to stand still first is the whole of the difference; see Sorted#rearranging.
@@ -57,31 +56,14 @@ public final class Tidy {
         }
 
         List<ItemStack> merged = merge(gathered);
-        merged.sort(ORDER);
+        merged.sort(order.full());
 
         for (int slot = 0; slot < merged.size() && slot < contents.getSlots(); slot++) {
             contents.setStackInSlot(slot, merged.get(slot));
         }
     }
 
-    /**
-     * The order the chest is kept in.
-     *
-     * <p>Registry name, and then the full stacks of each kind before its odd remainder.
-     * <b>Both halves are load-bearing now that the chest is kept in this order rather than
-     * put into it on request</b> — see {@link Sorted}. Full stacks first means a kind is a
-     * run of full stacks with at most one partial at the end of it, so an item arriving
-     * tops up that one partial and an item leaving comes out of it, and neither disturbs
-     * anything before it.
-     *
-     * <p>⚠ <b>Nothing here changes when a count changes, except within its own kind.</b> An
-     * order keyed on anything that moves with the contents — how many there are, how full
-     * the chest is — would have items swapping places as they arrive, which is both
-     * expensive and unreadable.
-     */
-    public static final Comparator<ItemStack> ORDER = Comparator
-            .comparing((ItemStack stack) -> BuiltInRegistries.ITEM.getKey(stack.getItem()))
-            .thenComparing(Comparator.comparingInt(ItemStack::getCount).reversed());
+
 
     /**
      * Pours partial stacks of the same thing together.

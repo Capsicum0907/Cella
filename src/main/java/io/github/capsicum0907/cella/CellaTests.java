@@ -773,6 +773,48 @@ public final class CellaTests {
     }
 
     /**
+     * There is more than one order, and the chest is kept in whichever it was told.
+     *
+     * <p>⚠ <b>Registry name is not readable.</b> {@code andesite_wall} is followed by
+     * {@code baked_potato}, and what the player sees is Andesite Wall followed by whatever
+     * their pack calls a baked potato — two things with nothing between them. Ordering by
+     * the name on screen is the answer to that, and it is why more than one exists.
+     */
+    @GameTest(template = TestStructures.FLOOR)
+    public static void theChestIsKeptInWhicheverOrderItWasTold(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper);
+        Sorted contents = chest.contents();
+
+        // ⚠ A pair the two orders genuinely disagree about. A block of coal is
+        // minecraft:coal_block, which sorts after minecraft:bone - and is called "Block of
+        // Coal", which sorts before "Bone". Neither of these depends on the server having
+        // a language: without one the names come back as translation keys, and
+        // block.minecraft.coal_block still sorts before item.minecraft.bone.
+        contents.insertItem(0, new ItemStack(Items.BONE, 1), false);
+        contents.insertItem(0, new ItemStack(Items.COAL_BLOCK, 1), false);
+        contents.insertItem(0, new ItemStack(Items.APPLE, 1), false);
+
+        check(contents.order() == Order.REGISTRY, "a chest starts in registry name order");
+        check(contents.getStackInSlot(0).is(Items.APPLE), "apple first");
+        check(contents.getStackInSlot(1).is(Items.BONE), "then bone");
+        check(contents.getStackInSlot(2).is(Items.COAL_BLOCK), "then coal_block");
+
+        contents.order(Order.DISPLAY);
+        check(contents.getStackInSlot(0).is(Items.APPLE), "Apple first either way");
+        check(contents.getStackInSlot(1).is(Items.COAL_BLOCK),
+                "but a Block of Coal comes before a Bone on screen");
+        check(contents.getStackInSlot(2).is(Items.BONE), "and the bone goes last");
+
+        // Cycling reaches every one of them and comes back round.
+        Order at = contents.order();
+        for (int step = 0; step < Order.values().length; step++) {
+            at = at.next();
+        }
+        check(at == contents.order(), "the cycle closes");
+        helper.succeed();
+    }
+
+    /**
      * Taking comes out of the remainder, so a kind stays a run with one partial behind it.
      *
      * <p>Out of the slot it was asked of, the first full stack of a kind would become a

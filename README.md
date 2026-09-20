@@ -146,9 +146,31 @@ already means "the same thing, done the other way".
 armour and the off hand are separate compartments, and whatever Curios keeps is not in
 `Inventory` at all. That is structural, not careful.
 
-Sorting is ordered by registry name, not display name: a display name needs a
-language, and a chest that came out differently depending on who pressed the button
-would not be a sort.
+**The sort button chooses the order rather than applying it.** The chest is already in
+order — what is left to decide is which one, and pressing cycles them. The tooltip names
+the one in force.
+
+| Order | Groups by | Needs |
+|---|---|---|
+| item id | registry name — `andesite_wall`, then `baked_potato` | nothing |
+| name | what it is called on screen | a language, see below |
+| mod | namespace first, registry name within it | nothing |
+
+Registry name is where a chest starts, because it is the one that is always available and
+always the same. ⚠ **It is also the one that is not readable**: `andesite_wall` is followed
+by `baked_potato`, so the screen shows Andesite Wall followed by whatever the pack calls a
+baked potato, with nothing connecting them. That is what ordering by the name on screen is
+for.
+
+⚠ **Ordering by name needs a language, and the chest is sorted on the server.** An
+integrated server — single player, or a world opened to LAN — is the player's own game and
+has their language, so it is exactly right there. A dedicated server has only what it
+loaded: vanilla items come out in English, modded ones come out as translation keys. It
+stays deterministic and identical for everyone on that server; it is simply not in
+anybody's language. Leave a dedicated server's chests in item id order.
+
+The order is saved with the chest, not with whoever is looking: a hopper and a comparator
+read the same slots as everybody else.
 
 ### It is in order all the time, not when asked
 
