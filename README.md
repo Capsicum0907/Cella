@@ -432,6 +432,13 @@ squares of this one are real, both of which fit and neither of which is the coun
 from. And the query is walked against every non-empty slot on the server, so the box waits
 four ticks after the last key rather than asking once per keystroke.
 
+⚠ **The word is matched against the registry name as well as the name on screen.** The
+search runs on the server and a dedicated server has no language — asked for the name of a
+modded item it hands back the translation key — so a search matched only against the
+screen name worked in single player and came back empty exactly where a chest this size is
+most likely to be. The registry name is always there, and is what the chest is ordered by
+anyway. Underscores read as spaces, because *diamond sword* is how it is typed.
+
 ### Results are kept up with the chest, not photographed
 
 A search writes down which slots answered. **That is a claim about the chest, and the

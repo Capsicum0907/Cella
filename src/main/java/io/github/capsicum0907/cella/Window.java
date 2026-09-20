@@ -113,9 +113,10 @@ public final class Window implements IItemHandlerModifiable {
      * search over eighteen pages of mostly nothing comes back as the handful that matched.
      * An empty query puts the chest back.
      *
-     * <p>Matched against what the item is called on screen rather than its registry name,
-     * because that is the word the player has in mind, and folded to lower case on both
-     * sides so that neither has to guess at the other's capitals.
+     * <p>Matched against the registry name and against the name on screen, folded to lower
+     * case on both sides so that neither has to guess at the other's capitals. Which of
+     * the two carries it, and why it cannot be the screen name alone, is in
+     * {@link #matches}.
      */
     public void search(String looking) {
         page = 0;
@@ -147,10 +148,35 @@ public final class Window implements IItemHandlerModifiable {
         found = java.util.Arrays.copyOf(hits, count);
     }
 
+    /**
+     * Whether that slot answers the word being looked for.
+     *
+     * <p><b>Registry name first, and the name on screen after it.</b> The search runs on
+     * the server, and ⚠ <b>a dedicated server has no language</b> — it never loaded a
+     * resource pack, so {@code getHoverName} on a modded item hands back the translation
+     * key rather than a name. Asked only that way, a search that worked in single player
+     * came back empty on a server, which is where a chest this size is most likely to be.
+     *
+     * <p>The registry name is always there and is what the chest is already ordered by, so
+     * it is the one that has to work. The name on screen is kept as well rather than
+     * dropped: where there is a language it is the word the player has in mind, and where
+     * there is not it is the key, which contains the registry path anyway and so costs
+     * nothing to ask.
+     *
+     * <p>Underscores read as spaces, because <em>diamond sword</em> is how it is typed and
+     * {@code diamond_sword} is how it is spelled.
+     */
     private boolean matches(int slot) {
         ItemStack stack = held.getStackInSlot(slot);
-        return !stack.isEmpty() && stack.getHoverName().getString()
-                .toLowerCase(java.util.Locale.ROOT).contains(wanted);
+        if (stack.isEmpty()) {
+            return false;
+        }
+        String path = net.minecraft.core.registries.BuiltInRegistries.ITEM
+                .getKey(stack.getItem()).getPath();
+        return path.contains(wanted)
+                || path.replace('_', ' ').contains(wanted)
+                || stack.getHoverName().getString()
+                        .toLowerCase(java.util.Locale.ROOT).contains(wanted);
     }
 
     /**

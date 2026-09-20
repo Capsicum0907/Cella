@@ -2025,6 +2025,43 @@ public final class CellaTests {
     }
 
     /**
+     * A search does not need the server to have a language.
+     *
+     * <p>⚠ <b>A dedicated server never loaded a resource pack.</b> Asked for the name of a
+     * modded item it hands back the translation key, so a search matched only against the
+     * name on screen works in single player and comes back empty on the server — which is
+     * where a chest of this size is most likely to be. The registry name is always there,
+     * and is what the chest is already ordered by.
+     *
+     * <p>The name on screen is still matched, for where there is one. Neither is dropped.
+     */
+    @GameTest(template = TestStructures.FLOOR)
+    public static void searchingDoesNotNeedALanguage(GameTestHelper helper) {
+        int size = 4;
+        ItemStackHandler chest = new ItemStackHandler(200);
+        chest.setStackInSlot(0, new ItemStack(Items.DIAMOND_SWORD, 1));
+        chest.setStackInSlot(1, new ItemStack(Items.GOLD_INGOT, 1));
+        chest.setStackInSlot(2, new ItemStack(Items.STONE, 1));
+
+        Window window = Window.onto(chest, size);
+
+        // The registry path, exactly as it is spelled.
+        window.search("gold_ingot");
+        check(window.onThisPage() == 1, "the registry path finds it: " + window.onThisPage());
+        check(window.getStackInSlot(0).is(Items.GOLD_INGOT), "and it is the gold");
+
+        // And as it is typed, with the underscore read as the space it stands for.
+        window.search("diamond sword");
+        check(window.onThisPage() == 1, "an underscore reads as a space: " + window.onThisPage());
+        check(window.getStackInSlot(0).is(Items.DIAMOND_SWORD), "and it is the sword");
+
+        // A word that is in neither name finds nothing rather than everything.
+        window.search("netherite");
+        check(window.onThisPage() == 0, "and a word for nothing finds nothing");
+        helper.succeed();
+    }
+
+    /**
      * Results are maintained against the chest rather than written once and trusted.
      *
      * <p><b>A result list is a claim, and the chest can falsify it.</b> Emptying a slot the
