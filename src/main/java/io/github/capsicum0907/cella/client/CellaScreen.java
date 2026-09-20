@@ -563,11 +563,27 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
         graphics.drawString(font, playerInventoryTitle, inventoryLabelX, inventoryLabelY,
                 LABEL, false);
 
-        if (menu.pages() > 1) {
+        if (menu.pages() > 1 || finding) {
             // One-based, because the first page is the first page and not the noughth.
             // Right-aligned against the arrows, so it grows leftwards into empty lid
             // rather than moving them when it goes from "9 / 32" to "10 / 32".
+            //
+            // ⚠ Shown while searching even at one page, because then it is not a control
+            // saying where you are but the answer saying how big it is. A search that
+            // came back is worth a number; a chest that has one page is not.
             graphics.drawString(font, page, controls - BESIDE - font.width(page), TEXT_Y,
+                    LABEL, false);
+        }
+
+        if (menu.nothingShown()) {
+            // ⚠ Written across the bare panel rather than left blank. Empty is what a
+            // chest with nothing in it also looks like, and the difference between "your
+            // word found nothing" and "this chest is empty" is the whole of what the
+            // player wants to know. See CellaMenu#nothingShown.
+            Component none = Component.translatable("gui.cella.find.none");
+            int top = menu.slots.getFirst().y;
+            int middle = top + (menu.rows() * CellaMenu.SLOT - font.lineHeight) / 2;
+            graphics.drawString(font, none, (imageWidth - font.width(none)) / 2, middle,
                     LABEL, false);
         }
     }

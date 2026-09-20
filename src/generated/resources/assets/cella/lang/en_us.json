@@ -30,6 +30,7 @@
   "death.attack.cella.annihilated": "%1$s was annihilated by Cella",
   "gui.cella.find": "Search this chest",
   "gui.cella.find.hint": "Search",
+  "gui.cella.find.none": "Nothing here answers to that",
   "gui.cella.next": "Next page",
   "gui.cella.prev": "Previous page",
   "gui.cella.sort": "Sort every page",

@@ -307,6 +307,18 @@ public class CellaMenu extends AbstractContainerMenu {
     }
 
     /**
+     * Whether the page being shown has no squares on it at all.
+     *
+     * <p><b>Which only a search can do.</b> A chest always has a first slot, and the page a
+     * reader is on is always one that exists — so a page with nothing on it is a search
+     * that answered nothing. The client can tell without being told anything new: how many
+     * squares are real is already a number it is sent, and none is the answer here.
+     */
+    public boolean nothingShown() {
+        return !window.holds(0);
+    }
+
+    /**
      * Turns to a page, ignoring one that is not there. <b>The server's, only.</b>
      *
      * <p>The client asks and waits. It could turn at once and be corrected, and that was

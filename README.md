@@ -432,6 +432,12 @@ squares of this one are real, both of which fit and neither of which is the coun
 from. And the query is walked against every non-empty slot on the server, so the box waits
 four ticks after the last key rather than asking once per keystroke.
 
+**A search that answers nothing says so**, across the bare panel where the squares would
+be. Empty is also what a chest with nothing in it looks like, and the difference between
+*your word found nothing* and *this chest is empty* is the whole of what the player is
+asking. The page count is shown while searching even when the answer fits on one page:
+then it is not a control saying where you are, it is the answer saying how big it is.
+
 ⚠ **The word is matched against the registry name as well as the name on screen.** The
 search runs on the server and a dedicated server has no language — asked for the name of a
 modded item it hands back the translation key — so a search matched only against the
