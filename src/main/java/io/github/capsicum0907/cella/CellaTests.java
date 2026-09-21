@@ -800,6 +800,35 @@ public final class CellaTests {
     }
 
     @GameTest(template = TestStructures.FLOOR)
+    public static void carvingAnUndividedChestKeepsWhatIsInIt(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper);
+        Sorted contents = chest.contents();
+
+        contents.insertItem(0, new ItemStack(Items.STONE, 100), false);
+        contents.insertItem(0, new ItemStack(Items.APPLE, 7), false);
+        int had = items(contents);
+        check(had == 107, "what went in: " + had);
+
+        check(chest.divide(new Plan.Partition("new", DyeColor.RED, 0, 0)),
+                "an empty partition on a chest that was never divided");
+        check(items(contents) == had, "leaves every item where it was: " + items(contents));
+
+        check(chest.undivide(0), "and it can be taken away again");
+        check(items(contents) == had, "with nothing lost either way: " + items(contents));
+        check(contents.getStackInSlot(0).is(Items.APPLE), "the chest back in one piece");
+        check(contents.used() == 3, "packed to the front: " + contents.used());
+        helper.succeed();
+    }
+
+    private static int items(Sorted contents) {
+        int all = 0;
+        for (int slot = 0; slot < contents.getSlots(); slot++) {
+            all += contents.getStackInSlot(slot).getCount();
+        }
+        return all;
+    }
+
+    @GameTest(template = TestStructures.FLOOR)
     public static void aPartitionWillNotShrinkOntoItsContents(GameTestHelper helper) {
         CellaBlockEntity chest = place(helper);
         Sorted contents = chest.contents();

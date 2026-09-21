@@ -58,20 +58,25 @@ public class Sorted extends ItemStackHandler {
     public void carve(Carve wanted) {
         Carve next = wanted == null ? whole() : wanted;
         java.util.List<ItemStack> stray = new java.util.ArrayList<>();
+        it.unimi.dsi.fastutil.ints.IntArrayList from =
+                new it.unimi.dsi.fastutil.ints.IntArrayList();
         for (int slot = 0; slot < getSlots(); slot++) {
             ItemStack stack = stacks.get(slot);
             if (stack.isEmpty() || covered(next, slot)) {
                 continue;
             }
             stray.add(stack.copy());
+            from.add(slot);
             stacks.set(slot, ItemStack.EMPTY);
         }
         carve = next;
         settle();
-        for (ItemStack one : stray) {
+        for (int at = 0; at < stray.size(); at++) {
+            ItemStack one = stray.get(at);
             for (int part = 0; part < carve.count() && !one.isEmpty(); part++) {
                 one = put(one, part);
             }
+            stacks.set(from.getInt(at), one);
         }
     }
 
