@@ -184,6 +184,12 @@ public final class CellaDataGen {
             add("gui.cella.partition.whole", "The whole chest");
             add("gui.cella.partition.none", "Pick one to see what is in it");
             add("gui.cella.partition.share", "%s%% of the chest");
+            add("gui.cella.partition.edit", "Edit partitions");
+            add("gui.cella.edit.name", "Name");
+            add("gui.cella.edit.share", "Share");
+            add("gui.cella.edit.size", "LC");
+            add("gui.cella.edit.used", "Used");
+            add("gui.cella.edit.full", "Empty it before deleting it");
             add("gui.cella.prev", "Previous page");
             add("gui.cella.next", "Next page");
 

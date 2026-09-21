@@ -286,6 +286,25 @@ public class CellaMenu extends AbstractContainerMenu {
         });
     }
 
+    public void edit(Edit edit) {
+        if (!server) {
+            return;
+        }
+        access.execute((level, pos) -> {
+            if (!(level.getBlockEntity(pos) instanceof CellaBlockEntity chest)) {
+                return;
+            }
+            if (edit.drop()) {
+                chest.undivide(edit.index());
+            } else if (edit.index() == Edit.ADDING) {
+                chest.divide(edit.wanted());
+            } else {
+                chest.resize(edit.index(), edit.wanted());
+            }
+            view(Peek.LIST);
+        });
+    }
+
     public Shelf shelf(int shown) {
         return access.evaluate((level, pos) ->
                 level.getBlockEntity(pos) instanceof CellaBlockEntity chest

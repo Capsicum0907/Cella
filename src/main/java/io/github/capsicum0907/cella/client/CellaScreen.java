@@ -2,7 +2,9 @@ package io.github.capsicum0907.cella.client;
 
 import io.github.capsicum0907.cella.Cella;
 import io.github.capsicum0907.cella.Order;
+import io.github.capsicum0907.cella.Edit;
 import io.github.capsicum0907.cella.Peek;
+import io.github.capsicum0907.cella.Shelf;
 import io.github.capsicum0907.cella.ShelfHolder;
 import io.github.capsicum0907.cella.Look;
 import io.github.capsicum0907.cella.CellaMenu;
@@ -121,6 +123,9 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
                 icon("sort"), sorting(), () -> send(CellaMenu.SORT)));
         kept = menu.order();
         peek(Peek.LIST, false);
+        cell = new net.minecraft.client.gui.components.EditBox(font, 0, 0, 10, 12,
+                Component.empty());
+        cell.visible = false;
 
         int next = sort - APART - BUTTON;
         controls = next - SPACE - BUTTON;
@@ -231,6 +236,14 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
 
     @Override
     public boolean mouseClicked(double x, double y, int button) {
+        if (modal.open()) {
+            return inModal(x, y, button);
+        }
+        if (overGear(x, y)) {
+            modal.open(true);
+            peek(Peek.LIST, false);
+            return true;
+        }
         if (listing()) {
             int at = pane.hit(ShelfHolder.latest(), x, y, paneLeft(), paneTop(),
                     paneWide(), paneTall());
@@ -252,8 +265,88 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
         return handled;
     }
 
+    private boolean inModal(double x, double y, int button) {
+        Shelf shelf = ShelfHolder.latest();
+        if (modal.picking()) {
+            net.minecraft.world.item.DyeColor picked =
+                    modal.dyeAt(x, y, modalLeft(), modalTop(), modalWide());
+            if (picked != null) {
+                Shelf.Slice slice = shelf.slices().get(modal.palette());
+                net.neoforged.neoforge.network.PacketDistributor.sendToServer(
+                        Edit.setting(modal.palette(), slice.name(), picked, slice.start(),
+                                slice.length()));
+                modal.pick(modal.palette());
+                return true;
+            }
+        }
+        if (modal.overClose(x, y, modalLeft(), modalTop())) {
+            commit();
+            modal.open(false);
+            return true;
+        }
+        if (!modal.inside(x, y, modalLeft(), modalTop(), modalWide(), modalTall())) {
+            if (cell != null && cell.visible) {
+                commit();
+                return true;
+            }
+            modal.open(false);
+            return true;
+        }
+        if (cell != null && cell.visible && cell.isMouseOver(x, y)) {
+            return cell.mouseClicked(x, y, button);
+        }
+        commit();
+
+        int row = modal.rowAt(shelf, y, modalTop(), modalTall());
+        if (row < 0) {
+            return true;
+        }
+        if (modal.adding(shelf, row)) {
+            net.neoforged.neoforge.network.PacketDistributor.sendToServer(Edit.adding(
+                    "Partition " + (shelf.slices().size() + 1),
+                    net.minecraft.world.item.DyeColor.byId(shelf.slices().size() % 16),
+                    nextGap(shelf), 1));
+            return true;
+        }
+        int column = modal.columnOf(shelf, x, modalLeft(), modalWide());
+        if (column == -2) {
+            modal.pick(row);
+        } else if (column == -3) {
+            if (shelf.slices().get(row).used() == 0) {
+                net.neoforged.neoforge.network.PacketDistributor.sendToServer(
+                        Edit.removing(row));
+            }
+        } else if (column >= 0) {
+            modal.edit(row, column);
+            modal.place(cell, shelf, modalLeft(), modalTop(), modalWide());
+        }
+        return true;
+    }
+
+    private static int nextGap(Shelf shelf) {
+        int at = 0;
+        for (Shelf.Slice slice : shelf.slices()) {
+            if (slice.start() > at) {
+                return at;
+            }
+            at = Math.max(at, slice.start() + slice.length());
+        }
+        return at;
+    }
+
     @Override
     public boolean keyPressed(int key, int scan, int modifiers) {
+        if (modal.open() && cell != null && cell.visible) {
+            if (key == org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER
+                    || key == org.lwjgl.glfw.GLFW.GLFW_KEY_KP_ENTER) {
+                commit();
+                return true;
+            }
+            if (key != org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE
+                    && cell.keyPressed(key, scan, modifiers)) {
+                return true;
+            }
+        }
         if (finding && key == org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE) {
             toggle();
             return true;
@@ -273,6 +366,10 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        if (modal.open() && scrollY != 0
+                && modal.scrolled(ShelfHolder.latest(), scrollY, modalTall())) {
+            return true;
+        }
         if (listing() && scrollY != 0
                 && pane.scrolled(ShelfHolder.latest(), scrollY, paneTall())) {
             return true;
@@ -294,6 +391,79 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     }
 
     private final ShelfPane pane = new ShelfPane();
+
+    private final EditModal modal = new EditModal();
+
+    private net.minecraft.client.gui.components.EditBox cell;
+
+    private int modalLeft() {
+        return leftPos + 6;
+    }
+
+    private int modalTop() {
+        return topPos + 6;
+    }
+
+    private int modalWide() {
+        return imageWidth - 12;
+    }
+
+    private int modalTall() {
+        return menu.rows() * CellaMenu.SLOT + 24;
+    }
+
+    private int gearX() {
+        return leftPos + imageWidth - TITLE_X - BUTTON;
+    }
+
+    private int gearY() {
+        return topPos + BUTTON_Y;
+    }
+
+    private boolean overGear(double x, double y) {
+        return listing() && x >= gearX() && x < gearX() + BUTTON
+                && y >= gearY() && y < gearY() + BUTTON;
+    }
+
+    private void commit() {
+        if (cell == null || !cell.visible) {
+            return;
+        }
+        Edit done = modal.committed(cell, ShelfHolder.latest());
+        modal.stop();
+        cell.visible = false;
+        cell.setFocused(false);
+        if (done != null) {
+            net.neoforged.neoforge.network.PacketDistributor.sendToServer(done);
+        }
+    }
+
+    private void overlay(GuiGraphics graphics, int mouseX, int mouseY, float partial) {
+        if (!modal.open()) {
+            return;
+        }
+        Shelf shelf = ShelfHolder.latest();
+        modal.draw(graphics, font, shelf, modalLeft(), modalTop(),
+                modalWide(), modalTall(), mouseX, mouseY);
+        if (cell != null && cell.visible) {
+            cell.render(graphics, mouseX, mouseY, partial);
+        }
+        int row = modal.rowAt(shelf, mouseY, modalTop(), modalTall());
+        if (row >= 0 && row < shelf.slices().size()
+                && modal.columnOf(shelf, mouseX, modalLeft(), modalWide()) == -3
+                && shelf.slices().get(row).used() > 0) {
+            graphics.renderTooltip(font, Component.translatable("gui.cella.edit.full"),
+                    mouseX, mouseY);
+        }
+    }
+
+    @Override
+    public boolean charTyped(char typed, int modifiers) {
+        if (modal.open() && cell != null && cell.visible) {
+            return cell.charTyped(typed, modifiers);
+        }
+        return super.charTyped(typed, modifiers);
+    }
 
     @Override
     protected void renderTooltip(GuiGraphics graphics, int mouseX, int mouseY) {
@@ -346,6 +516,10 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
         if (listing()) {
             pane.draw(graphics, font, ShelfHolder.latest(), paneLeft(), paneTop(),
                     paneWide(), paneTall(), mouseX, mouseY);
+            graphics.fill(gearX(), gearY(), gearX() + BUTTON, gearY() + BUTTON, 0xFF373737);
+            graphics.fill(gearX() + 1, gearY() + 1, gearX() + BUTTON - 1, gearY() + BUTTON - 1,
+                    0xFF8B8B8B);
+            graphics.drawString(font, "\u2261", gearX() + 3, gearY() + 2, LABEL, false);
         }
         for (net.minecraft.world.inventory.Slot slot : menu.slots) {
             if (slot.isActive()) {
@@ -428,5 +602,6 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partial) {
         super.render(graphics, mouseX, mouseY, partial);
         renderTooltip(graphics, mouseX, mouseY);
+        overlay(graphics, mouseX, mouseY, partial);
     }
 }

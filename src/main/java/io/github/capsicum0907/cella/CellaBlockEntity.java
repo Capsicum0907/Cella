@@ -148,6 +148,22 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
         return done[0];
     }
 
+    public int firstGap() {
+        int slots = contents.getSlots();
+        if (!plan.divided()) {
+            return 0;
+        }
+        java.util.List<Plan.Partition> carved = plan.over(slots);
+        int at = 0;
+        for (Plan.Partition one : carved) {
+            if (one.start() > at) {
+                return at;
+            }
+            at = Math.max(at, one.start() + one.length());
+        }
+        return at * Plan.LC < slots ? at : Plan.NONE;
+    }
+
     public boolean divide(Plan.Partition wanted) {
         int slots = contents.getSlots();
         boolean[] done = new boolean[1];
