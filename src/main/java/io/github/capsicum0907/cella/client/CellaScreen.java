@@ -66,6 +66,8 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
 
     private static final int LABEL = 0x404040;
 
+    private static final int TYPED = 0xFFFFFF;
+
     private static final String ELLIPSIS = "...";
 
     private static final int[] PLAIN = { CellaMenu.MATCHING, CellaMenu.TAKING };
@@ -157,7 +159,7 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
         looking.setMaxLength(Look.LONGEST);
 
         looking.setBordered(false);
-        looking.setTextColor(LABEL);
+        looking.setTextColor(TYPED);
         looking.setHint(Component.translatable("gui.cella.find.hint"));
         looking.setResponder(typed -> settles = SETTLES);
         looking.setVisible(false);
