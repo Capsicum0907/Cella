@@ -32,13 +32,13 @@ public enum Kind {
      * than sitting between two of the others: it is stronger than the second form by a
      * long way, which is why it is not where its size would otherwise put it.
      *
-     * <p><b>Two of them are not crafted.</b> A Laravel that has been fed enough becomes an
+     * <p><b>Two of them are not crafted.</b> A Larval that has been fed enough becomes an
      * Imperfect, and a Perfect that has been fed enough and is then ended comes back a
      * Super Perfect. That is why a formula is allowed to be absent rather than every kind
      * having to have one — and why the test asks whether every form can be <em>reached</em>
      * rather than whether every form has a recipe.
      *
-     * <p><b>Capacity is what went into it.</b> A large chest is fifty-four slots. Laravel
+     * <p><b>Capacity is what went into it.</b> A large chest is fifty-four slots. Larval
      * is one, Imperfect is four, and each step after multiplies by what its recipe eats —
      * eight, eight, four, four — so the chain runs 1, 4, 32, 256, 1024, 4096 large chests,
      * with Junior a quarter of the Perfect it came off.
@@ -93,7 +93,7 @@ public enum Kind {
      * <p>Junior is off the ramp because it is off the chain, and Max is red-brown because
      * it is barely the same creature.
      */
-    LARAVEL("laravel", "Laravel Cella", 0xB89A5E, 6, 9, 54, false, 1395, "imperfect", true, Trait.LARVA, () -> Formula
+    LARVAL("larval", "Larval Cella", 0xB89A5E, 6, 9, 54, false, 1395, "imperfect", true, Trait.LARVA, () -> Formula
             .shaped("BPM",
                     "HCR",
                     "OSF")
@@ -328,7 +328,7 @@ public enum Kind {
     /**
      * Whether breaking one keeps what is inside it.
      *
-     * <p><b>Everything but Laravel.</b> The larva has what the others have and cannot use
+     * <p><b>Everything but Larval.</b> The larva has what the others have and cannot use
      * any of it yet, so it is the one that spills — and the arithmetic agrees, which is
      * why the line is here and not one step further up. What spills has to be pickable
      * up: a player carries thirty-six stacks and an item on the ground lasts five
@@ -445,7 +445,7 @@ public enum Kind {
     /**
      * How this one is made, or empty for the one that is not made.
      *
-     * <p>Imperfect has none: a Laravel that has been fed enough becomes one, and a form
+     * <p>Imperfect has none: a Larval that has been fed enough becomes one, and a form
      * you grow into is not a form you lay out on a bench.
      */
     public java.util.Optional<Formula> formula() {

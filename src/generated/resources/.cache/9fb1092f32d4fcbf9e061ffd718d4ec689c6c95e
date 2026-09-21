@@ -1,11 +1,11 @@
-// 1.21.1	2026-09-06T10:59:02.1764226	Recipes
+// 1.21.1	2026-09-21T09:18:12.6290824	Recipes
 bad2fdd18aa7e5f7637302626ba9a05c9bdc233c data/cella/advancement/recipes/decorations/junior.json
-26194c44fa2330ca65792f98ad885e4973cdf278 data/cella/advancement/recipes/decorations/laravel.json
+6233f259739f564a8d2b4c5430e077a2d933b6f6 data/cella/advancement/recipes/decorations/larval.json
 7811a1117ded2cf19ad53da07c70ec0b74ca01e9 data/cella/advancement/recipes/decorations/max.json
 37c87182699c3a1bca3225a6dd762b5f450f097c data/cella/advancement/recipes/decorations/perfect.json
 90f8b8f70b341e978437ca4522053a51ae9a28a0 data/cella/advancement/recipes/decorations/semi_perfect.json
 0d719ed44202c9571f79009c277a6678dc70626d data/cella/recipe/junior.json
-d2a5df0cfb60785491c8e58c2a2fb99f0b112e7d data/cella/recipe/laravel.json
+cae919c14fa843eca4ea730b72ef1901fd63bc09 data/cella/recipe/larval.json
 e774a09f183d69a0040ad6fb99af16707432112b data/cella/recipe/max.json
 2d84f82340a3c330e0bee1813a9dee8481d17d49 data/cella/recipe/perfect.json
 001bd3b471cc62411448b2b17d15beab9b22f5c2 data/cella/recipe/semi_perfect.json

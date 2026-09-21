@@ -340,7 +340,7 @@ public final class CellaTests {
     }
 
     /**
-     * Laravel spills, because Laravel is the one whose contents can be picked back up.
+     * Larval spills, because Larval is the one whose contents can be picked back up.
      *
      * <p>Fifty-four slots is a stack and a half of trips for a player with thirty-six of
      * them, against a five-minute despawn. Semi-Perfect's 1,728 would be forty-eight,
@@ -349,8 +349,8 @@ public final class CellaTests {
      */
     @GameTest(template = TestStructures.FLOOR)
     public static void theLarvaSpillsBecauseItCanBePickedUp(GameTestHelper helper) {
-        check(!Kind.LARAVEL.keeps(), "this test is about the one that does not keep");
-        CellaBlockEntity chest = place(helper, Kind.LARAVEL);
+        check(!Kind.LARVAL.keeps(), "this test is about the one that does not keep");
+        CellaBlockEntity chest = place(helper, Kind.LARVAL);
         chest.contents().setStackInSlot(3, new ItemStack(Items.GOLD_INGOT, 11));
 
         helper.destroyBlock(WHERE);
@@ -360,7 +360,7 @@ public final class CellaTests {
             long gold = dropped.stream().filter(stack -> stack.is(Items.GOLD_INGOT))
                     .mapToLong(ItemStack::getCount).sum();
             check(gold == 11, "the eleven gold should be on the floor, not " + gold);
-            check(dropped.stream().filter(stack -> stack.is(CellaRegistry.item(Kind.LARAVEL).get()))
+            check(dropped.stream().filter(stack -> stack.is(CellaRegistry.item(Kind.LARVAL).get()))
                             .noneMatch(stack -> stack.has(CellaRegistry.KEPT.get())),
                     "and the chest should not be carrying a name it never filed");
         });
@@ -403,7 +403,7 @@ public final class CellaTests {
     /**
      * What a screen can show only ever cuts a page down, never stretches it.
      *
-     * <p>The page shape is the kind's - Laravel is six by nine because a Laravel should
+     * <p>The page shape is the kind's - Larval is six by nine because a Larval should
      * look like a chest - and {@link Room} is a ceiling on it. A player with a wall for a
      * monitor gets what the chest was designed to show; a player with the window this
      * game opens in gets fewer rows of it and more pages.
@@ -418,7 +418,7 @@ public final class CellaTests {
         check(wall.rowsFor(KIND) == CellaConfig.rows(KIND),
                 "a big screen should get the kind's own shape");
         check(wall.columnsFor(KIND) == CellaConfig.columns(KIND), "in both directions");
-        check(wall.rowsFor(Kind.LARAVEL) == CellaConfig.rows(Kind.LARAVEL),
+        check(wall.rowsFor(Kind.LARVAL) == CellaConfig.rows(Kind.LARVAL),
                 "and a small chest should not be stretched to fill it");
 
         Player nobody = helper.makeMockPlayer(GameType.SURVIVAL);
@@ -915,12 +915,12 @@ public final class CellaTests {
      */
     @GameTest(template = TestStructures.FLOOR)
     public static void afullChestRefusesWhatWillNotFit(GameTestHelper helper) {
-        CellaBlockEntity chest = place(helper, Kind.LARAVEL);
+        CellaBlockEntity chest = place(helper, Kind.LARVAL);
         Sorted contents = chest.contents();
-        int slots = Kind.LARAVEL.slots();
+        int slots = Kind.LARVAL.slots();
 
         contents.insertItem(0, new ItemStack(Items.STONE, 64 * slots), false);
-        check(contents.used() == slots, "every slot of a Laravel is spoken for: " + contents.used());
+        check(contents.used() == slots, "every slot of a Larval is spoken for: " + contents.used());
 
         ItemStack asked = new ItemStack(Items.DIAMOND, 4);
         check(contents.insertItem(0, asked, true).getCount() == 4,
@@ -1440,7 +1440,7 @@ public final class CellaTests {
     /**
      * The wave goes round the top of the ladder and through everything under it.
      *
-     * <p>⚠ <b>Both, because the rule used to be "any Cella".</b> Sparing a Laravel for
+     * <p>⚠ <b>Both, because the rule used to be "any Cella".</b> Sparing a Larval for
      * being a Cella is a chest surviving annihilation for being a chest, which is not a
      * reason; what earns it is being as hard as the world's floor, and only the top two
      * forms are.
@@ -1599,9 +1599,9 @@ public final class CellaTests {
      */
     @GameTest(template = TestStructures.FLOOR)
     public static void anOrphanWithNoFormGetsOneThatWouldHoldIt(GameTestHelper helper) {
-        check(Kind.fitting(1) == Kind.LARAVEL, "one slot fits in the smallest there is");
-        check(Kind.fitting(Kind.LARAVEL.slots()) == Kind.LARAVEL, "and so does exactly a Laravel");
-        check(Kind.fitting(Kind.LARAVEL.slots() + 1) == Kind.IMPERFECT, "one more does not");
+        check(Kind.fitting(1) == Kind.LARVAL, "one slot fits in the smallest there is");
+        check(Kind.fitting(Kind.LARVAL.slots()) == Kind.LARVAL, "and so does exactly a Larval");
+        check(Kind.fitting(Kind.LARVAL.slots() + 1) == Kind.IMPERFECT, "one more does not");
         check(Kind.fitting(Kind.SEMI_PERFECT.slots() + 1) == Kind.JUNIOR,
                 "and above Semi-Perfect it is Junior, which is not the next one written down");
         check(Kind.biggest() == Kind.MAX, "the biggest form is Max");
@@ -1713,7 +1713,7 @@ public final class CellaTests {
      *
      * <p>Max is named rather than taken as whichever form happens not to grow, for the
      * same reason {@link #KIND} is: a change to the ladder should fail this out loud
-     * instead of quietly testing a different thing. It was Laravel until Laravel grew and
+     * instead of quietly testing a different thing. It was Larval until Larval grew and
      * Semi-Perfect until every ingredient had to be full — Max is the last one, having
      * nothing above it to grow into.
      */
@@ -1852,7 +1852,7 @@ public final class CellaTests {
         check(!chest.light(), "and lighting it twice should do nothing");
 
         // A form with nowhere to go never lights, however full it is.
-        CellaBlockEntity larva = place(helper, Kind.LARAVEL);
+        CellaBlockEntity larva = place(helper, Kind.LARVAL);
         check(!larva.light(), "a form with nowhere to go should refuse");
         helper.succeed();
     }
@@ -1934,7 +1934,7 @@ public final class CellaTests {
      * Every form can be reached from somewhere.
      *
      * <p><b>This is the test that should have existed already.</b> Imperfect has no recipe
-     * on purpose — a Laravel that has eaten enough becomes one — but nothing implemented
+     * on purpose — a Larval that has eaten enough becomes one — but nothing implemented
      * that, so for a long while there was no way to obtain an Imperfect at all, and since
      * every form above it is fused out of Imperfects, the whole ladder above the first rung
      * was unreachable outside creative. Nothing failed and nothing said so: the recipes
@@ -1968,11 +1968,11 @@ public final class CellaTests {
      */
     @GameTest(template = TestStructures.FLOOR)
     public static void aFedLarvaGrowsUp(GameTestHelper helper) {
-        check(Kind.LARAVEL.ripens(), "a larva grows up on its own");
-        check(Kind.LARAVEL.becomes().orElse(null) == Kind.IMPERFECT, "into an Imperfect");
+        check(Kind.LARVAL.ripens(), "a larva grows up on its own");
+        check(Kind.LARVAL.becomes().orElse(null) == Kind.IMPERFECT, "into an Imperfect");
         check(!Kind.PERFECT.ripens(), "and a Perfect does not - it has to be ended");
 
-        CellaBlockEntity larva = place(helper, Kind.LARAVEL);
+        CellaBlockEntity larva = place(helper, Kind.LARVAL);
         larva.contents().setStackInSlot(3, new ItemStack(Items.GOLD_INGOT, 9));
         Player player = helper.makeMockPlayer(GameType.SURVIVAL);
         player.giveExperienceLevels(30);
@@ -2007,8 +2007,8 @@ public final class CellaTests {
      */
     @GameTest(template = TestStructures.FLOOR)
     public static void aBrokenLarvaGivesBackWhatItAte(GameTestHelper helper) {
-        check(!Kind.LARAVEL.keeps(), "the larva is the one that spills");
-        CellaBlockEntity larva = place(helper, Kind.LARAVEL);
+        check(!Kind.LARVAL.keeps(), "the larva is the one that spills");
+        CellaBlockEntity larva = place(helper, Kind.LARVAL);
         Player player = helper.makeMockPlayer(GameType.SURVIVAL);
         player.giveExperienceLevels(10);
         int fed = larva.absorb(player);
@@ -2340,7 +2340,7 @@ public final class CellaTests {
                 "and the second is the bigger of the two, which is why");
 
         // And the forms are wired to rungs in order, so the chain above describes them.
-        check(Kind.LARAVEL.trait() == Trait.LARVA, "the larva is the larva");
+        check(Kind.LARVAL.trait() == Trait.LARVA, "the larva is the larva");
         check(Kind.JUNIOR.trait() == Kind.PERFECT.trait(), "Junior is a Perfect");
         // ⚠ A rule and not a gap: nothing may have a property Super Perfect lacks, because
         // a Perfect Cell is stronger than a Cell Max and a ladder whose last rung outdid it

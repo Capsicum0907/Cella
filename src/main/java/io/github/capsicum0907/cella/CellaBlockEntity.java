@@ -484,7 +484,7 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
     /**
      * Everything inside, onto the floor.
      *
-     * <p>What Laravel does, and only Laravel — see {@link Kind#keeps}. It is the one whose
+     * <p>What Larval does, and only Larval — see {@link Kind#keeps}. It is the one whose
      * contents a player can actually pick back up.
      */
     public void spill(Level level, BlockPos pos) {
@@ -502,7 +502,7 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
         // than for items, because experience is one way and there is no picking it back
         // up off the ground unless something puts it there.
         //
-        // It does sit oddly beside "one way": a Laravel can be broken to get its feeding
+        // It does sit oddly beside "one way": a Larval can be broken to get its feeding
         // back. But a chest that has to be destroyed to open it is not a bank, and nothing
         // comes out that did not go in, so what it costs is the chest and not the rule.
         if (experience > 0 && level instanceof net.minecraft.server.level.ServerLevel server) {

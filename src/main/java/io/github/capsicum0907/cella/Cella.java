@@ -77,7 +77,7 @@ public class Cella {
      * cannot be implemented by giving Imperfect anything: only blocks handed to
      * {@code FireBlock#setFlammable} burn at all, and no Cella was ever handed to it, so
      * every form was already fireproof and the step meant nothing. What makes it true is
-     * registering Laravel — the larva catches, and everything above it is simply what a
+     * registering Larval — the larva catches, and everything above it is simply what a
      * block is when left alone.
      *
      * <p>The two numbers are the ones a wooden chest has: how readily it catches and how

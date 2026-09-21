@@ -207,7 +207,7 @@
     }
   ],
   "textures": {
-    "all": "cella:block/laravel",
-    "particle": "cella:block/laravel"
+    "all": "cella:block/larval",
+    "particle": "cella:block/larval"
   }
 }

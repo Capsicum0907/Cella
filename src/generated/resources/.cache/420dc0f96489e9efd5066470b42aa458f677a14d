@@ -1,21 +1,21 @@
-// 1.21.1	2026-08-17T09:29:01.5098546	Block States: cella
+// 1.21.1	2026-09-21T09:18:12.6312221	Block States: cella
 db7f37b721e6f351a8c7134d11edfab6758a35e2 assets/cella/blockstates/imperfect.json
 f55d25c8a7a840862f7f4846c0edaba799a6d7d7 assets/cella/blockstates/junior.json
-841f01a2867f8fda1ab59a62b168f45e50e781c1 assets/cella/blockstates/laravel.json
+f6afafc4eaab60fcfe0fd62ebdaae6dfd2af7266 assets/cella/blockstates/larval.json
 35941bb7dcb2aec9e8c353b1a147495fe9d44a52 assets/cella/blockstates/max.json
 3f18e97588d40b54ce3fff2478b56e5c06f1e5c1 assets/cella/blockstates/perfect.json
 17d665cf519e06e8ef80e92620f13be2272ddaf4 assets/cella/blockstates/semi_perfect.json
 db865e59b558c0935497eed2f113a0c8a8de6b44 assets/cella/blockstates/super_perfect.json
 7e37462a3414c80834f8e0f7843597defe647ab6 assets/cella/models/block/imperfect.json
 01c738f98e0d9f8224595bf993cd61d46e9849a1 assets/cella/models/block/junior.json
-ef53c8626238a6e73be2bc43bd073df5cb0dc308 assets/cella/models/block/laravel.json
+dfe3523a079bed1b5c509f0dfb8eb957da0b3439 assets/cella/models/block/larval.json
 59ffdae23d53c3a686b9fbe56f4c5fb3148b7e52 assets/cella/models/block/max.json
 c25f4b1702e80502a4b3e138b56655d0ad2d0f9a assets/cella/models/block/perfect.json
 0b3136ba7bf56c6fa8d775819d7b197ba2964e02 assets/cella/models/block/semi_perfect.json
 bc642eb321c9e898135b1b85b8eb34c868a0aef5 assets/cella/models/block/super_perfect.json
 45bb9d483c289e2fcb0e37e4950f26a34226bf62 assets/cella/models/item/imperfect.json
 d997abac622c9643f73ade005545ff6eb10d41f1 assets/cella/models/item/junior.json
-9280b31e9fdf98fe0d08701cb1089f544a5b8d48 assets/cella/models/item/laravel.json
+7435688cc87963b86450204d8008d7e00ceb4f7b assets/cella/models/item/larval.json
 018a988ea8f070a10368a76a6146cb9eb7280496 assets/cella/models/item/max.json
 fac08dac80b0c29252f0165ef7986729ebb6152d assets/cella/models/item/perfect.json
 ee554ae801f6efb7f47775edaac2b3a7985ba69f assets/cella/models/item/semi_perfect.json

@@ -248,7 +248,7 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
                 icon("next"), Component.translatable("gui.cella.next"), () -> turn(1)));
 
         // ⚠ Only where searching is one of the things this form can do. It was on every
-        // screen, including a Laravel's one page, which is a control answering a question
+        // screen, including a Larval's one page, which is a control answering a question
         // nobody had - and it made a property of the ladder into scenery.
         if (!menu.kind().trait().finds()) {
             paging();

@@ -284,7 +284,7 @@ public class CellaBlock extends BaseEntityBlock {
     /**
      * Broken: the contents either fall out or come with it.
      *
-     * <p>Which one is {@link Kind#keeps}, and it is Laravel against everything else. The
+     * <p>Which one is {@link Kind#keeps}, and it is Larval against everything else. The
      * larva spills, because 54 slots is a pile a player can pick up; the rest hand the
      * contents to {@link Kept} and drop an item that names them. Neither of them puts
      * the contents <em>on</em> the item — see that class for the three ceilings that stop

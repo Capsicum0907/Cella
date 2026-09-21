@@ -29,7 +29,7 @@ import net.minecraft.world.entity.player.Player;
  * was never anything to reconcile.
  *
  * <p><b>It is a ceiling, not a shape.</b> What a kind's page looks like is still the
- * kind's business - Laravel is six by nine because a Laravel should look like a chest -
+ * kind's business - Larval is six by nine because a Larval should look like a chest -
  * and this only ever cuts that down. A big screen gets what the chest was designed to
  * show and no more; a small one gets fewer rows of it and more pages.
  */

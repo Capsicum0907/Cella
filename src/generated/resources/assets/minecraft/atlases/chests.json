@@ -1,9 +1,9 @@
 {
-  "__comment": "Adds laravel, imperfect, semi_perfect, perfect, junior, super_perfect, max to the chest atlas.",
+  "__comment": "Adds larval, imperfect, semi_perfect, perfect, junior, super_perfect, max to the chest atlas.",
   "sources": [
     {
       "type": "minecraft:single",
-      "resource": "cella:entity/chest/laravel"
+      "resource": "cella:entity/chest/larval"
     },
     {
       "type": "minecraft:single",

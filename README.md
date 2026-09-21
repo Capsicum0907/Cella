@@ -236,7 +236,7 @@ server refuses and then sit waiting for an answer that is not coming.
 
 ### There is a list of kinds, and it is the only one
 
-Seven of them: Laravel, Imperfect, Semi-Perfect, Perfect, Super Perfect, Cella Max,
+Seven of them: Larval, Imperfect, Semi-Perfect, Perfect, Super Perfect, Cella Max,
 and Cella Jr. off the side of Perfect. Capacity climbs with the form, and the page gets
 both wider and taller once past Semi-Perfect.
 
@@ -245,7 +245,7 @@ four of them, and each step multiplies by what its recipe eats.
 
 | | large chests | slots | page | pages | experience |
 |---|---|---|---|---|---|
-| Laravel | 1 | 54 | 6×9 | 1 | 30 levels |
+| Larval | 1 | 54 | 6×9 | 1 | 30 levels |
 | Imperfect | 4 | 216 | 6×9 | 4 | 30 levels |
 | Semi-Perfect | 32 | 1,728 | 6×16 | 18 | 50 levels |
 | Perfect | 256 | 13,824 | 12×16 | 72 | 100 levels |
@@ -304,7 +304,7 @@ question.
 
 ### Two of them are not made, they are grown into
 
-**A Laravel that has eaten enough becomes an Imperfect**, there and then. **A Perfect that
+**A Larval that has eaten enough becomes an Imperfect**, there and then. **A Perfect that
 has eaten enough and is then ended comes back a Super Perfect.** Neither has a recipe, and
 the test asks whether every form can be *reached* rather than whether every form has one.
 
@@ -349,7 +349,7 @@ whatever happens to be lying about.
 Two of these are not the mechanism their name suggests, and both had to be looked up.
 **Fire resistance is the absence of an entry** - only blocks handed to `setFlammable` burn,
 and no Cella ever was, so every form was already fireproof and what makes "Imperfect gains
-it" true is *registering Laravel*. And **the wither does not read blast resistance**;
+it" true is *registering Larval*. And **the wither does not read blast resistance**;
 `canDestroy` asks only whether the block is in `WITHER_IMMUNE`, so obsidian-tough with no
 tag is exactly what obsidian is, and being safe from one is the tag and nothing else.
 
@@ -519,7 +519,7 @@ against that player. Two people can read one chest cut two different ways at the
 time, and nothing has to reconcile them, because there was never anything to reconcile.
 
 **What arrives is a ceiling, not a shape.** The page a kind has is still the kind's
-business — Laravel is six by nine because a Laravel should look like a chest — and the
+business — Larval is six by nine because a Larval should look like a chest — and the
 screen only ever cuts that down. A wall-sized monitor gets what the chest was designed to
 show and no more; the window this game opens in gets fewer rows of it and more pages.
 
@@ -556,7 +556,7 @@ still standing there, which is what happened. That is a property of the one reci
 not of the block: a Perfect that came back every time it was crafted with — the bucket
 rule — would make Super Perfect free, since that one eats four.
 
-**Imperfect is not crafted.** A Laravel that has been fed enough becomes one, so a kind
+**Imperfect is not crafted.** A Larval that has been fed enough becomes one, so a kind
 is allowed to have no recipe at all. The rest carry theirs as data — the pattern and
 what the letters mean — because no two of the shapes are alike: nine animals for the
 first, eight of the form before round a block of gold, four of the form before and four
@@ -639,7 +639,7 @@ having a chest open without saying so: dying, a portal, a lost connection.
 
 ### Broken, it keeps what is inside — except the larva
 
-Laravel spills onto the floor the way a chest does. Everything from Imperfect up hands
+Larval spills onto the floor the way a chest does. Everything from Imperfect up hands
 its contents to the world and drops an item that **names** them.
 
 The line is where it is because **what spills has to be pickable up**. A player carries

@@ -40,7 +40,7 @@ import net.neoforged.neoforge.common.Tags;
  * <p><b>Fire resistance is the absence of an entry, not the presence of one.</b> Only
  * blocks handed to {@code FireBlock#setFlammable} burn, and no Cella was ever handed to it
  * — so every form was already fireproof and "Imperfect gains fire resistance" could not be
- * implemented by giving Imperfect anything. What makes it true is <b>registering Laravel as
+ * implemented by giving Imperfect anything. What makes it true is <b>registering Larval as
  * flammable</b>: the larva burns, and everything above it is what a block is by default.
  *
  * <p><b>The wither does not read blast resistance.</b> {@code WitherBoss#canDestroy} asks
@@ -124,7 +124,7 @@ public enum Trait {
      * @param finds whether its screen has a search box. ⚠ <b>It arrives where turning
      *              pages stops working</b>, not where that becomes unbearable: 1,728 slots
      *              is eighteen pages, and making somebody climb to 144 before offering
-     *              relief is charging them for having got that far. A Laravel is one page
+     *              relief is charging them for having got that far. A Larval is one page
      *              and an Imperfect four, and a box over those is a control that answers a
      *              question nobody had
      * @param keptOnDeath whether it gets up again with whoever was carrying it. ⚠ <b>Not a
