@@ -575,6 +575,33 @@ public final class CellaTests {
     }
 
     @GameTest(template = TestStructures.FLOOR)
+    public static void onlyOnePartitionIsOpenToTheOutside(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper);
+        int lc = Plan.LC;
+
+        check(chest.outlet().getSlots() == chest.contents().getSlots(),
+                "undivided, the whole chest is offered");
+
+        check(chest.divide(new Plan.Partition("front", DyeColor.RED, 0, 1)), "carve one");
+        check(chest.divide(new Plan.Partition("back", DyeColor.BLUE, 1, 1)), "carve two");
+
+        check(chest.outlet().getSlots() == 0, "divided, nothing is offered until it is assigned");
+        check(chest.outlet().insertItem(0, new ItemStack(Items.STONE, 1), false).getCount() == 1,
+                "and an offer comes back whole");
+
+        chest.replan(() -> chest.plan().assign(1));
+        check(chest.outlet().getSlots() == lc, "assigned, one partition is offered: "
+                + chest.outlet().getSlots());
+        check(chest.outlet().insertItem(0, new ItemStack(Items.STONE, 5), false).isEmpty(),
+                "and it takes what it is given");
+        check(chest.contents().used(1) == 1, "into the assigned one: " + chest.contents().used(1));
+        check(chest.contents().used(0) == 0, "and not the other: " + chest.contents().used(0));
+
+        check(chest.outlet().getStackInSlot(0).is(Items.STONE), "which is what it reads back");
+        helper.succeed();
+    }
+
+    @GameTest(template = TestStructures.FLOOR)
     public static void eachPartitionIsItsOwnStore(GameTestHelper helper) {
         CellaBlockEntity chest = place(helper);
         Sorted contents = chest.contents();

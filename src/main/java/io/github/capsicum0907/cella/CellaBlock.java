@@ -293,12 +293,16 @@ public class CellaBlock extends BaseEntityBlock {
         if (!(level.getBlockEntity(pos) instanceof CellaBlockEntity chest)) {
             return 0;
         }
+        net.neoforged.neoforge.items.IItemHandlerModifiable read = chest.outlet();
+        int slots = read.getSlots();
+        if (slots <= 0) {
+            return 0;
+        }
         float filled = 0.0F;
-        int slots = chest.contents().getSlots();
         for (int slot = 0; slot < slots; slot++) {
-            ItemStack stack = chest.contents().getStackInSlot(slot);
+            ItemStack stack = read.getStackInSlot(slot);
             if (!stack.isEmpty()) {
-                filled += (float) stack.getCount() / Math.min(chest.contents().getSlotLimit(slot),
+                filled += (float) stack.getCount() / Math.min(read.getSlotLimit(slot),
                         stack.getMaxStackSize());
             }
         }

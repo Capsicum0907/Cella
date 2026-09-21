@@ -80,7 +80,7 @@ public class Cella {
 
     private static void capabilities(RegisterCapabilitiesEvent event) {
         event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, CellaRegistry.BLOCK_ENTITY.get(),
-                (chest, side) -> chest.contents());
+                (chest, side) -> chest.outlet());
     }
 
     private static void payloads(RegisterPayloadHandlersEvent event) {

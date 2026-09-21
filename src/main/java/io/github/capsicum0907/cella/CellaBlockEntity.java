@@ -119,6 +119,23 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
         change.run();
         contents.carve(carving());
         setChanged();
+        if (level != null) {
+            invalidateCapabilities();
+            level.updateNeighbourForOutputSignal(worldPosition, getBlockState().getBlock());
+        }
+    }
+
+    public net.neoforged.neoforge.items.IItemHandlerModifiable outlet() {
+        if (!plan.divided()) {
+            return contents;
+        }
+        int at = plan.assigned();
+        if (at == Plan.NONE) {
+            return Outlet.NOTHING;
+        }
+        int slots = contents.getSlots();
+        Plan.Partition one = plan.at(at, slots);
+        return new Outlet(contents, one.first(), Math.min(slots, one.past()) - one.first());
     }
 
     public boolean resize(int index, Plan.Partition wanted) {
