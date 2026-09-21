@@ -478,6 +478,9 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        if (modal.open() && cell != null && cell.visible) {
+            return true;
+        }
         if (modal.open() && scrollY != 0
                 && modal.scrolled(ShelfHolder.latest(), scrollY, modalTall())) {
             return true;
