@@ -10,38 +10,15 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.ItemStackLinkedSet;
 import net.neoforged.neoforge.items.IItemHandlerModifiable;
 
-/**
- * Sorting, over every page at once.
- *
- * <p><b>Why this exists when a sorting mod is already installed.</b> A sorting mod
- * works on the slots the open screen has, and this screen has one page of them. That
- * is the right answer for a chest and the wrong one for this: the pages are one chest,
- * and half-empty stacks of the same thing sitting on pages three and six is exactly
- * what wants tidying. Nothing outside can do it, because nothing outside can see past
- * the window.
- *
- * <p>Done to the contents rather than to the window, like everything else here that is
- * not about looking: the hopper, shift-click, and the comparator all go the same way
- * round.
- */
 public final class Tidy {
     private Tidy() {
     }
 
-    /**
-     * Merges what can be merged, orders the rest, and packs it to the front.
-     *
-     * <p>Which order, and what each of them costs, is in {@link Order}.
-     */
     public static void everything(IItemHandlerModifiable contents) {
         everything(contents, contents instanceof Sorted sorted ? sorted.order() : Order.REGISTRY);
     }
 
-    /** The same, in a given order. */
     public static void everything(IItemHandlerModifiable contents, Order order) {
-        // ⚠ A chest that keeps itself in order closes the gap behind every slot this
-        // empties, so the loop below would read some slots twice and miss others. Asking
-        // it to stand still first is the whole of the difference; see Sorted#rearranging.
         if (contents instanceof Sorted sorted && !sorted.rearranging()) {
             sorted.settle();
             return;
@@ -63,23 +40,6 @@ public final class Tidy {
         }
     }
 
-
-
-    /**
-     * Pours partial stacks of the same thing together.
-     *
-     * <p><b>Looked up, not searched for.</b> The obvious way is to scan what has been
-     * gathered so far for something this will go into, which is fine for a chest holding
-     * three kinds and quadratic for one holding a thousand. A chest of eighteen hundred
-     * slots full of distinct things is about a million and a half comparisons; ten
-     * thousand slots would be fifty million, and that is the wall this design walks into
-     * as chests get bigger.
-     *
-     * <p>So the open stack of each kind is kept in a map keyed on item <em>and</em>
-     * components - {@code ItemStackLinkedSet.TYPE_AND_TAG} is the game's own hash for
-     * exactly that question, so an enchanted pickaxe still does not pour into the plain
-     * ones. One lookup per stack, and the whole thing is linear.
-     */
     private static List<ItemStack> merge(List<ItemStack> gathered) {
         List<ItemStack> merged = new ArrayList<>();
         Map<ItemStack, ItemStack> open =
@@ -93,7 +53,6 @@ public final class Tidy {
                 into.grow(moved);
                 stack.shrink(moved);
                 if (into.getCount() >= into.getMaxStackSize()) {
-                    // Full: it can take no more, so it stops being the one to look up.
                     open.remove(into);
                 }
             }

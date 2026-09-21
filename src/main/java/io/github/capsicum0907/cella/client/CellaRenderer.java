@@ -22,24 +22,7 @@ import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
 import net.minecraft.client.resources.model.Material;
 import net.minecraft.resources.ResourceLocation;
 
-/**
- * Draws the chest.
- *
- * <p><b>Vanilla's model, our pixels.</b> The three parts — bottom, lid and lock — are
- * baked from {@code ModelLayers.CHEST}, which the game already registers, so the shape
- * and its unwrap come free and correct. What is ours is the sheet they are drawn with,
- * added to the chest atlas by {@code assets/minecraft/atlases/chests.json}: every pack
- * contributing that path is merged rather than overriding it, so vanilla's own chests
- * are untouched.
- *
- * <p>The transform is vanilla's too — turn about the middle of the block by the facing,
- * then put the origin back — because the parts are built in the coordinates that expects.
- *
- * <p>How far the lid has swung comes from the block entity, which is told by a block
- * event and counts openers rather than holding a flag - see {@code CellaBlockEntity}.
- */
 public class CellaRenderer implements BlockEntityRenderer<CellaBlockEntity> {
-    /** One sheet per kind, looked up once rather than built on every frame. */
     private static final Map<Kind, Material> SHEETS = new EnumMap<>(Kind.class);
 
     static {
@@ -70,8 +53,6 @@ public class CellaRenderer implements BlockEntityRenderer<CellaBlockEntity> {
                 -chest.getBlockState().getValue(CellaBlock.FACING).toYRot()));
         pose.translate(-0.5F, -0.5F, -0.5F);
 
-        // Vanilla's easing: the lid leaves fast and settles slowly, which is what makes
-        // it look hinged rather than driven.
         float swung = chest.getOpenNess(partial);
         swung = 1.0F - swung;
         swung = 1.0F - swung * swung * swung;

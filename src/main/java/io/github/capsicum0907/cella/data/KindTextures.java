@@ -23,85 +23,16 @@ import net.minecraft.data.DataProvider;
 import net.minecraft.data.PackOutput;
 import net.minecraft.resources.ResourceLocation;
 
-/**
- * Every picture that depends on which kind of chest it is, drawn from that kind's one
- * colour: the sheet the block is rendered with, and the flat texture its item is built
- * from.
- *
- * <p><b>Why this is Java and not a script in {@code tools/}.</b> Everything else that
- * differs between kinds is in the enum; a script would have put their colours in another
- * language and left two lists to keep in step. Here the list is asked for its colour and
- * a picture comes out, which is the same rule as every other generated file in the
- * repository — nothing under {@code src/generated} is written by hand.
- *
- * <p><b>The arrangement is vanilla's and was read off its own file.</b> Three parts on a
- * 64 by 64 sheet, laid out by the standard box unwrap, from
- * {@code ChestRenderer.createSingleBodyLayer}:
- *
- * <pre>
- *     bottom  texOffs(0, 19)  14 x 10 x 14
- *     lid     texOffs(0,  0)  14 x  5 x 14
- *     lock    texOffs(0,  0)   2 x  4 x  1
- * </pre>
- *
- * <p>and for a box {@code w x h x d} at {@code (u, v)} the six faces land at
- *
- * <pre>
- *     down  (u+d,     v)    w x d      up    (u+d+w,   v)    w x d
- *     east  (u,       v+d)  d x h      north (u+d,     v+d)  w x h
- *     west  (u+d+w,   v+d)  d x h      south (u+d+w+d, v+d)  w x h
- * </pre>
- *
- * <p><b>What is inside a face is theirs too, counted rather than assumed.</b> There are
- * no bands and no tidy lines: a face is a wash of half a dozen shades a step apart,
- * scattered pixel by pixel, with every fourth row leaning darker where one board meets
- * the next, and a one-pixel near-black edge all the way round. The first version of this
- * drew even bands — which is what a person assumes wood looks like, and beside a real
- * chest read as a striped box.
- *
- * <p>The shades are worked out from the kind's colour, so the arrangement is theirs and
- * every pixel is ours. Reading how a texture is built is not the same as shipping it.
- */
 public class KindTextures implements DataProvider {
     private static final int SHEET = 64;
 
-    /**
-     * The shades a face is washed with, as weights on the kind's own colour.
-     *
-     * <p><b>No line among them.</b> There was one every fourth row, on the reading that
-     * vanilla's faces have a periodic row - which they do. What they do not have is a
-     * <em>darker</em> one: the row that repeats is #A76E1F against a body of #8F691D,
-     * lighter rather than darker, and a shade a step sideways does not draw a line. Mine
-     * was a fifth to a third darker and drew seven of them per face.
-     *
-     * <p>So there is one range and every pixel comes out of it. If a board edge is ever
-     * wanted back, it belongs inside this range and not below it.
-     */
     private static final float[] BODY = { 1.16F, 1.09F, 1.03F, 0.98F, 0.92F, 0.86F };
     private static final float EDGE = 0.30F;
 
-    /**
-     * The two faces you only see with the lid up, and they are built the same way.
-     *
-     * <p>Counted off vanilla, whose underside-of-lid and inside-floor share one frame:
-     *
-     * <pre>
-     *     :-------------      the outer ring, dark
-     *     -***##*##**#*-      then a bright ring - the lit lip of the opening
-     *     -#::::::::::#-      then ten by ten of centre
-     * </pre>
-     *
-     * <p><b>The bright ring is what makes it look recessed</b>, and it is the part that
-     * was missing here. Dimming the whole face instead gave a flat dark panel: darker,
-     * and no deeper. The centre is the only thing that differs between the two - dark
-     * boards under the lid, and nothing at all on the floor, which is #000000 for a
-     * hundred of vanilla's hundred and ninety-six pixels.
-     */
     private static final float LIP = 1.15F;
     private static final float CAVITY = 0.35F;
     private static final int HOLLOW = 0xFF000000;
 
-    /** Which of the six {@link #faces} is which: the lid's down, the body's up. */
     private static final int DOWN = 0;
     private static final int UP = 1;
 
@@ -111,7 +42,6 @@ public class KindTextures implements DataProvider {
 
     private static final int CLEAR = 0x00000000;
 
-    /** How big the flat one is, which is the size every block texture in the game is. */
     private static final int TILE = 16;
 
     private final PackOutput.PathProvider sheets;
@@ -152,31 +82,22 @@ public class KindTextures implements DataProvider {
         for (int[] row : sheet) {
             java.util.Arrays.fill(row, CLEAR);
         }
-        // The lid, then the bottom. The faces you look down at have their boards running
-        // the length of the box; the ones you look at have them stacked.
+
         board(sheet, stain, 0, 0, 14, 5, 14, DOWN);
         board(sheet, stain, 0, 19, 14, 10, 14, UP);
-        // The lock last, in the corner of the sheet the lid's faces leave empty.
+
         for (int[] face : faces(0, 0, 2, 4, 1)) {
             metal(sheet, face[0], face[1], face[2], face[3]);
         }
         return sheet;
     }
 
-    /**
-     * The flat one: a single face of the same boards, sixteen square.
-     *
-     * <p>What the item is built from, and what flies off when the block breaks. It exists
-     * because otherwise every kind's item is the same picture — the block was told apart
-     * by colour at a glance and the thing in your hand was not.
-     */
     private static int[][] tile(int stain) {
         int[][] tile = new int[TILE][TILE];
         face(tile, stain, 0, 0, TILE, TILE);
         return tile;
     }
 
-    /** @return each face as {@code x, y, width, height} */
     private static int[][] faces(int u, int v, int w, int h, int d) {
         return new int[][] {
                 { u + d, v, w, d },
@@ -201,13 +122,6 @@ public class KindTextures implements DataProvider {
         }
     }
 
-    /**
-     * A dark ring, a bright lip inside it, and a centre that is either dark boards or
-     * nothing. See {@link #LIP}.
-     *
-     * @param empty whether the middle is a hole rather than boards - true for the floor,
-     *              which is what you look down into, and false for the lid over it
-     */
     private static void inward(int[][] sheet, int stain, int x, int y, int w, int h,
             boolean empty) {
         for (int dy = 0; dy < h; dy++) {
@@ -223,7 +137,6 @@ public class KindTextures implements DataProvider {
         }
     }
 
-    /** Near-black all the way round, a wash inside. */
     private static void face(int[][] sheet, int stain, int x, int y, int w, int h) {
         for (int dy = 0; dy < h; dy++) {
             for (int dx = 0; dx < w; dx++) {
@@ -243,13 +156,6 @@ public class KindTextures implements DataProvider {
         }
     }
 
-    /**
-     * Which shade this pixel takes — the same one every time.
-     *
-     * <p>Deliberately not random: the file has to come out identical from one run to the
-     * next or every regeneration is a diff nobody asked for. A hash of the position gives
-     * the disorder without the irreproducibility.
-     */
     private static int scatter(int x, int y, int of) {
         int mixed = x * 73_856_093 ^ y * 19_349_663;
         mixed ^= mixed >>> 13;
@@ -267,9 +173,7 @@ public class KindTextures implements DataProvider {
         return Math.max(0, Math.min(255, Math.round(value)));
     }
 
-    // --- png ---------------------------------------------------------------
-
-    @SuppressWarnings("deprecation") // Hashing.sha1 is what CachedOutput expects
+    @SuppressWarnings("deprecation")
     private static void write(CachedOutput output, int[][] sheet, Path target) {
         try {
             byte[] bytes = png(sheet);
@@ -279,7 +183,6 @@ public class KindTextures implements DataProvider {
         }
     }
 
-    /** Eight-bit RGBA, one filter byte of nought per row, which is all this needs. */
     private static byte[] png(int[][] sheet) throws IOException {
         ByteBuffer raw = ByteBuffer.allocate(sheet.length * (sheet.length * 4 + 1));
         for (int[] row : sheet) {

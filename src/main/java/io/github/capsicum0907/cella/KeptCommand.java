@@ -23,54 +23,19 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 
-/**
- * {@code /cella kept} — what to do about contents nobody is holding the name of.
- *
- * <p><b>A tool for a person to look with, and not a sweep.</b> {@link Kept} says why
- * there is no automatic one: a name is unreachable only if no item anywhere in the world
- * holds it, and no count of "anywhere" is trustworthy while a chunk can be unloaded. A
- * sweep that is wrong deletes contents somebody still owns, so the wrongness has to be a
- * person's, deliberately, one entry at a time.
- *
- * <p>⚠ <b>Which is not the same as nothing being tidied.</b> A name that is <em>seen</em>
- * to be destroyed is reported by whatever destroyed it, and a chest whose last name goes
- * that way goes with it — see {@link Kept#lost}. What is left for this tool is everything
- * nothing reports: an item deleted in creative, dropped into the void, or eaten by some
- * other mod.
- *
- * <p><b>Handing back comes before deleting.</b> Contents with a lost name are not damaged
- * — a name is all that reaches them — so the first thing this offers is a new item that
- * names one. Deleting is there too, and it is the one that has to be typed at.
- *
- * <p>The listing writes the commands for you: every row carries the click that fills in
- * its own name, because a UUID is not something to read off a screen and type.
- */
 public final class KeptCommand {
     private static final String KEPT = "kept";
     private static final String ID = "id";
     private static final String FORM = "form";
 
-    /**
-     * How many rows one listing prints, and the reason it says how many it did not.
-     *
-     * <p>A store with three hundred orphans in it would otherwise scroll the useful part
-     * of the chat away, and a listing that quietly stopped would read as a complete one.
-     */
     private static final int SHOWN = 20;
 
-    /** A Minecraft day, and an hour of one, in ticks. What game time is counted in. */
     private static final long TICKS_A_DAY = 24000L;
     private static final long TICKS_AN_HOUR = 1000L;
 
     private KeptCommand() {
     }
 
-    /**
-     * Names already in the store, so that nobody types a UUID.
-     *
-     * <p>Read at completion time rather than held, because the store changes underneath a
-     * player who is using these — every {@code forget} takes one out of it.
-     */
     private static final SuggestionProvider<CommandSourceStack> FILED = (context, builder) ->
             SharedSuggestionProvider.suggest(Kept.of(context.getSource().getLevel())
                     .map(kept -> kept.list().stream().map(trace -> trace.id().toString()).toList())
@@ -80,12 +45,6 @@ public final class KeptCommand {
             SharedSuggestionProvider.suggest(
                     Arrays.stream(Kind.values()).map(Kind::id).toList(), builder);
 
-    /**
-     * All of it behind the gamemaster level, including the listing.
-     *
-     * <p>Two of these change the world and the third says what is in every chest anybody
-     * on the server ever picked up, which is not a thing to read over somebody's shoulder.
-     */
     public static void register(RegisterCommandsEvent event) {
         event.getDispatcher().register(Commands.literal(Cella.MODID)
                 .requires(source -> source.hasPermission(Commands.LEVEL_GAMEMASTERS))
@@ -105,7 +64,6 @@ public final class KeptCommand {
                                         .executes(KeptCommand::forget)))));
     }
 
-    /** Oldest first, since those are the ones worth deciding about. */
     private static int list(CommandContext<CommandSourceStack> context) {
         CommandSourceStack source = context.getSource();
         Kept kept = store(source);
@@ -115,8 +73,6 @@ public final class KeptCommand {
             return 0;
         }
 
-        // A long, because ten thousand orphaned Cella Maxes is more than an int holds and
-        // the number that overflows would be the reassuring one.
         long slots = traces.stream().mapToLong(Kept.Trace::used).sum();
         source.sendSuccess(() -> traces.size() == 1
                 ? Component.translatable("commands.cella.kept.header.one", Held.count(slots))
@@ -127,8 +83,7 @@ public final class KeptCommand {
         for (Kept.Trace trace : traces.subList(0, Math.min(SHOWN, traces.size()))) {
             source.sendSuccess(() -> row(trace, now), false);
         }
-        // Said rather than left to be noticed. A listing that stops without saying so is a
-        // listing that reads as the whole of it.
+
         if (traces.size() > SHOWN) {
             source.sendSuccess(() -> Component.translatable("commands.cella.kept.more",
                     traces.size() - SHOWN), false);
@@ -136,23 +91,6 @@ public final class KeptCommand {
         return traces.size();
     }
 
-    /**
-     * Hands out an item naming a filed chest, <b>without taking it</b>.
-     *
-     * <p>The contents stay where they are until something is placed, which is the one rule
-     * that keeps any of this safe: they come out of the store exactly once, by
-     * {@link Kept#take}, whoever asked and however often. Two items naming one chest is
-     * already a shape this mod tolerates — the first of them to be placed is the one
-     * looking at anything — so running this twice makes a spare item and not a spare
-     * chest.
-     *
-     * <p>⚠ <b>It is a name going out, and the store counts it as one.</b> Every filed chest
-     * already has one — the item it was filed with — so the first of these makes two, and
-     * the chest will not be forgotten until both have been seen destroyed. That is the
-     * price of the rescue and it is the right way round: an operator asking for a name is
-     * usually saying the first one is gone, and the store believing them would be the store
-     * guessing.
-     */
     private static int give(CommandContext<CommandSourceStack> context, Optional<Kind> asked)
             throws CommandSyntaxException {
         CommandSourceStack source = context.getSource();
@@ -166,16 +104,12 @@ public final class KeptCommand {
         }
 
         Kept.Trace trace = found.get();
-        // Counted before the item is in a hand, because after that it looks like any other.
+
         int before = store(source).hand(id);
-        // What was asked for, else what it was, else what would hold it. The last is a
-        // derivation from the size and is not pretending to be the history: see
-        // Kind.fitting.
+
         Kind kind = asked.or(trace::kind).orElseGet(() -> Kind.fitting(trace.slots()));
         ItemStack stack = new ItemStack(CellaRegistry.item(kind).get());
-        // Against the form it is being handed back as, not the one it came from: the bar
-        // has to mean something to whoever is now holding it. Held.grown clamps the case
-        // where it was fed more than this form can use.
+
         stack.set(CellaRegistry.KEPT.get(), new Held(List.of(id), trace.used(), trace.slots(),
                 trace.experience(), kind.growth()));
         player.getInventory().placeItemBackInInventory(stack);
@@ -183,11 +117,7 @@ public final class KeptCommand {
         source.sendSuccess(() -> Component.translatable("commands.cella.kept.gave",
                 Component.literal(kind.displayName()),
                 Held.count(trace.used()), Held.count(trace.slots())), true);
-        // ⚠ The second item for one chest carries a tooltip it cannot honour: the figures
-        // were true when they were written and the contents leave the store once, so
-        // whichever is placed second goes down empty while still describing what it is not
-        // carrying. Nothing on the item can say so - it is on a client, and the client is
-        // never told what the store holds - so the only place left to say it is here.
+
         if (before > 1) {
             source.sendSuccess(() -> Component.translatable("commands.cella.kept.again",
                     before).withStyle(net.minecraft.ChatFormatting.YELLOW), false);
@@ -195,7 +125,6 @@ public final class KeptCommand {
         return 1;
     }
 
-    /** The same, with the form named — and an unknown name is a refusal, not a fallback. */
     private static int giveAs(CommandContext<CommandSourceStack> context)
             throws CommandSyntaxException {
         String named = StringArgumentType.getString(context, FORM);
@@ -208,13 +137,6 @@ public final class KeptCommand {
         return give(context, kind);
     }
 
-    /**
-     * Destroys one, and says what it was.
-     *
-     * <p>What was in it is read before it goes, so that the answer is a description of
-     * what was destroyed rather than an acknowledgement that something was. There is no
-     * undoing it and nothing asks twice: the name typed in is the confirmation.
-     */
     private static int forget(CommandContext<CommandSourceStack> context) {
         CommandSourceStack source = context.getSource();
         UUID id = UuidArgument.getUuid(context, ID);
@@ -229,11 +151,7 @@ public final class KeptCommand {
         Kept.Trace trace = found.get();
         source.sendSuccess(() -> Component.translatable("commands.cella.kept.forgot",
                 form(trace), Held.count(trace.used()), Held.count(trace.slots())), true);
-        // ⚠ Louder here than for a repeat give, because this one cannot be walked back.
-        // Somebody is carrying an item that still says what this held; destroying it turns
-        // that item into one naming nothing, and its tooltip will go on describing what it
-        // no longer points at. The item cannot be told - it is on a client - so the person
-        // doing the destroying is the only one who can be.
+
         if (trace.claimed()) {
             source.sendSuccess(() -> Component.translatable("commands.cella.kept.forgot.claimed",
                     trace.names()).withStyle(net.minecraft.ChatFormatting.YELLOW), false);
@@ -241,10 +159,7 @@ public final class KeptCommand {
         return 1;
     }
 
-    /** One entry, with the click that writes its own name into the next command. */
     private static Component row(Kept.Trace trace, long now) {
-        // A row somebody is already holding a name for is a row whose contents may be gone
-        // by the time anybody acts on it.
         String key = trace.claimed()
                 ? "commands.cella.kept.row.claimed"
                 : "commands.cella.kept.row";
@@ -263,13 +178,6 @@ public final class KeptCommand {
                                         trace.id().toString()))));
     }
 
-    /**
-     * Which form it was, in the three answers there are.
-     *
-     * <p>An id this version does not have is told apart from no id at all, because they
-     * mean different things to whoever is reading: the first says the world has met
-     * another version of this mod, and the second only says the entry is old.
-     */
     private static Component form(Kept.Trace trace) {
         return trace.kind()
                 .map(kind -> Component.literal(kind.displayName()))
@@ -278,14 +186,6 @@ public final class KeptCommand {
                         : Component.translatable("commands.cella.kept.unformed"));
     }
 
-    /**
-     * How long ago, in the days and hours this world has had rather than in ticks.
-     *
-     * <p>Game time is what was filed and it counts up from nought, so the difference is
-     * the answer — but it is only the answer while the world it is measured in is the one
-     * it was written in. A world put back from a backup can be younger than its own store,
-     * which is why the caller floors it rather than printing a negative age.
-     */
     private static Component elapsed(long ticks) {
         long days = ticks / TICKS_A_DAY;
         long hours = ticks % TICKS_A_DAY / TICKS_AN_HOUR;
@@ -297,9 +197,6 @@ public final class KeptCommand {
                 : Component.translatable("commands.cella.kept.recent");
     }
 
-    /**
-     * The store. A command source is a server, so there is always one.
-     */
     private static Kept store(CommandSourceStack source) {
         return Kept.of(source.getLevel()).orElseThrow();
     }

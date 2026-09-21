@@ -15,17 +15,6 @@ import net.minecraft.data.DataProvider;
 import net.minecraft.data.PackOutput;
 import net.minecraft.resources.ResourceLocation;
 
-/**
- * Puts every kind's sheet on the atlas the chest renderer draws from.
- *
- * <p>Written here rather than by hand because it has to list the kinds, and a list of
- * kinds kept anywhere but {@link Kind} is a list that will fall behind.
- *
- * <p><b>It goes in the {@code minecraft} namespace on purpose.</b> The atlas is
- * {@code minecraft:chests}, and its definition is gathered from <em>every</em> pack that
- * has a file at that path — they are added together, not overridden. So this contributes
- * to vanilla's atlas without taking it over.
- */
 public class ChestAtlas implements DataProvider {
     private static final String ATLAS = "chests";
 

@@ -12,25 +12,8 @@ import java.util.function.Supplier;
 
 import net.minecraft.world.level.ItemLike;
 
-/**
- * How one kind of chest is made, as data.
- *
- * <p>There was a column for "the ingredient in the middle" and one for "the form before
- * this one", which was enough while every recipe was the same shape. They are not: one is
- * nine different animals, one is eight of the last form round a block of gold, one is four
- * of the last form and four nether stars round a dragon egg, and one does not exist at all
- * because that form is not crafted.
- *
- * <p>So a kind carries its pattern and what the letters in it mean, and the recipe
- * provider walks that instead of knowing the shapes itself.
- *
- * <p>The ingredients are suppliers because a kind is built before the registries are, and
- * because several of them are other kinds of this same chest — which cannot be looked up
- * until they exist.
- */
 public record Formula(List<String> pattern, Map<Character, List<Supplier<ItemLike>>> of,
         int count, boolean spawns, boolean fuses) {
-    /** A builder, because a map literal of nine entries is not a thing Java says nicely. */
     public static class Builder {
         private final List<String> pattern;
         private final Map<Character, List<Supplier<ItemLike>>> of = new LinkedHashMap<>();
@@ -47,30 +30,6 @@ public record Formula(List<String> pattern, Map<Character, List<Supplier<ItemLik
             return this;
         }
 
-        /**
-         * The letter stands for another of these chests.
-         *
-         * <p>Which is also how a recipe knows it is a fusion: something that eats a Cella
-         * has contents to carry into what it makes. Said by using this rather than by a
-         * second flag, so the two cannot disagree.
-         *
-         * <p><b>Further kinds mean any one of them will do</b>, in that one square. That
-         * is one recipe with a choice in it rather than two recipes that happen to make
-         * the same thing: the bench has one entry, a recipe viewer shows one page, and
-         * nothing has to be kept in step between two copies of the same layout.
-         *
-         * <p>⚠ <b>The others are named by id and not by constant</b>, and that is the
-         * language rather than a preference: a kind's own argument list cannot name a kind
-         * declared below it, whether the name is qualified or not, and a lambda does not
-         * get round it either. {@link Kind#becomes} is a string for the same reason.
-         * {@link Kind#named} turns it back, and it is looked up when the formula is asked
-         * for rather than here, so a wrong id is a loud failure in data generation and in
-         * {@code CellaTests.everyFormCanBeReached} instead of a quiet nothing.
-         *
-         * <p>⚠ Which one was laid down is not recorded anywhere, and does not need to be.
-         * {@code Spawning} hands back whatever Cella it finds in the grid, so the chest
-         * that comes back is the one that went in — see {@code Spawning#getRemainingItems}.
-         */
         public Builder key(char letter, Kind kind, String... orNamed) {
             eatsAChest = true;
             List<Supplier<ItemLike>> any = new ArrayList<>();
@@ -88,28 +47,11 @@ public record Formula(List<String> pattern, Map<Character, List<Supplier<ItemLik
             return this;
         }
 
-        /**
-         * The parent is not spent: it is still there afterwards.
-         *
-         * <p>A property of this recipe rather than of the block. The block coming back
-         * every time it was crafted with - the way a bucket does - would make the form
-         * above it free, since that one eats four.
-         */
         public Builder spawning() {
             this.spawns = true;
             return this;
         }
 
-        /**
-         * <b>The order the letters were given in is kept.</b>
-         *
-         * <p>Not tidiness. {@code Map.copyOf} hands back an immutable map whose iteration
-         * order is randomised once per JVM run, so the first entry out of it is not the
-         * first entry in — and data generation reads exactly that to decide what unlocks
-         * the recipe. It was picking a different ingredient every time it ran: noise in
-         * every diff, and an advancement that said "has obsidian" where it meant "has an
-         * Imperfect Cella". A generator has to be a function of its input.
-         */
         public Formula done() {
             return new Formula(pattern,
                     java.util.Collections.unmodifiableMap(new LinkedHashMap<>(of)),
@@ -121,30 +63,6 @@ public record Formula(List<String> pattern, Map<Character, List<Supplier<ItemLik
         return new Builder(top, middle, bottom);
     }
 
-    /**
-     * Whether every Cella laid out has finished growing.
-     *
-     * <p><b>A recipe will not take one that has not.</b> Nothing here is put together out
-     * of parts that were not ready — a form is what it ate, and half of what it ate is not
-     * half a form, it is a form that is not done. So the check is on the ingredients rather
-     * than on the result.
-     *
-     * <p><b>Here rather than in either recipe class</b>, because both want it and they are
-     * different classes: {@code Fusing} eats what it is given and {@code Spawning} hands it
-     * back, which is a difference about the ingredients afterwards and not about whether
-     * they qualify.
-     *
-     * <p><b>Asked against the threshold written on the item</b>, not the one this version
-     * declares. The bar the player watched fill to the end was drawn from the figure on the
-     * item, and a bench that then refuses it would be calling that bar a liar. ⚠ Which also
-     * means a Cella from before any of this could be fed carries no threshold at all, and
-     * is refused: it never filled anything, and there is no way to tell whether it would
-     * have.
-     *
-     * <p>Nothing explains the refusal, in keeping with the fit check above — a recipe that
-     * does not hold simply is not a recipe, and the bench shows nothing. What tells the
-     * player which one is short is the percentage on each item.
-     */
     public static boolean grown(CraftingInput input) {
         for (int at = 0; at < input.size(); at++) {
             ItemStack laid = input.getItem(at);

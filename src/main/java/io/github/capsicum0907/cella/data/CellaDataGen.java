@@ -43,13 +43,6 @@ import net.neoforged.neoforge.common.data.ExistingFileHelper;
 import net.neoforged.neoforge.common.data.LanguageProvider;
 import net.neoforged.neoforge.data.event.GatherDataEvent;
 
-/**
- * Everything under {@code src/generated/resources} comes from here, so nothing in
- * that directory is written by hand.
- *
- * <p>No loot table: {@link io.github.capsicum0907.cella.CellaBlock#getDrops} answers
- * that in code, and the contents are already on the floor by then.
- */
 @EventBusSubscriber(modid = Cella.MODID, value = { Dist.CLIENT, Dist.DEDICATED_SERVER })
 public final class CellaDataGen {
     private CellaDataGen() {
@@ -60,10 +53,6 @@ public final class CellaDataGen {
         DataGenerator generator = event.getGenerator();
         PackOutput output = generator.getPackOutput();
 
-        // The model provider refuses a texture it cannot find, and these are made by the
-        // provider two lines further down - in this same run, and not yet. Saying so is
-        // what stops it stopping the build: "does not exist in any known resource pack"
-        // is true and beside the point.
         ExistingFileHelper helper = event.getExistingFileHelper();
         ExistingFileHelper.ResourceType texture = new ExistingFileHelper.ResourceType(
                 PackType.CLIENT_RESOURCES, ".png", "textures");
@@ -82,10 +71,6 @@ public final class CellaDataGen {
         generator.addProvider(event.includeServer(),
                 new Tags(output, event.getLookupProvider(), event.getExistingFileHelper()));
 
-        // The damage type is datapack contents, and its tags name it - so the tag provider
-        // has to look it up in a world that already has it. getRegistryProvider() is that
-        // world; handing it event.getLookupProvider() instead would be asking about a type
-        // that has not been written yet.
         DatapackBuiltinEntriesProvider damage = new DatapackBuiltinEntriesProvider(output,
                 event.getLookupProvider(),
                 new RegistrySetBuilder().add(Registries.DAMAGE_TYPE,
@@ -96,13 +81,6 @@ public final class CellaDataGen {
                 new Bypasses(output, damage.getRegistryProvider(), event.getExistingFileHelper()));
     }
 
-    /**
-     * Everything that would otherwise let something live through the wave, turned off.
-     *
-     * <p>The list is {@link Annihilation#BYPASSES} and is not repeated here: the type and
-     * the tags saying what it ignores are one decision, and two copies of a decision are
-     * two things to keep in step.
-     */
     private static class Bypasses extends net.minecraft.data.tags.TagsProvider<
             net.minecraft.world.damagesource.DamageType> {
         Bypasses(PackOutput output, CompletableFuture<HolderLookup.Provider> registries,
@@ -119,14 +97,6 @@ public final class CellaDataGen {
         }
     }
 
-    /**
-     * What opens a Cella, how good it has to be, and what a wither cannot get through.
-     *
-     * <p>All of it read off {@link io.github.capsicum0907.cella.Trait}, so the ladder is
-     * described in one place and generated from there. ⚠ Including the wither, which reads
-     * nothing but its tag — blast resistance does not enter into it, so obsidian-tough and
-     * wither-proof are separate claims and only the second one is here.
-     */
     private static class Tags extends BlockTagsProvider {
         Tags(PackOutput output, CompletableFuture<HolderLookup.Provider> registries,
                 ExistingFileHelper existingFileHelper) {
@@ -151,27 +121,6 @@ public final class CellaDataGen {
             super(output, Cella.MODID, existingFileHelper);
         }
 
-        /**
-         * The block's model has no geometry at all - only a particle, for the dust when
-         * it breaks and the crack overlay while it is being mined. What is seen is
-         * {@code CellaRenderer}. Leaving a cube here would draw one inside the chest.
-         *
-         * <p>{@code horizontalBlock} makes the four turned variants, so the state matches
-         * the way the renderer reads FACING.
-         *
-         * <p>The item is an ordinary model, built to the same proportions the renderer
-         * uses: a body and a lid with the join showing. An item cannot be drawn by a
-         * block entity renderer without a whole other client hook, and it does not need
-         * to be - nobody turns a chest over in their hand.
-         */
-        /**
-         * The block's model has no geometry at all - only a particle, for the dust when
-         * it breaks and the crack overlay while it is being mined. What is seen is
-         * {@code CellaRenderer}. Leaving a cube here would draw one inside the chest.
-         *
-         * <p>Per kind, and named per kind: one builder reused under one name would leave
-         * every chest looking like whichever was generated last.
-         */
         @Override
         protected void registerStatesAndModels() {
             for (Kind kind : Kind.values()) {
@@ -179,9 +128,6 @@ public final class CellaDataGen {
                 horizontalBlock(CellaRegistry.block(kind).get(),
                         models().getBuilder(name).texture("particle", modLoc("block/" + name)));
 
-                // block/block for the parent, which carries the display transforms a
-                // block is held and dropped with. item/generated is for a flat sprite and
-                // would lay this on its side in the hand.
                 itemModels().getBuilder(name)
                         .parent(new ModelFile.UncheckedModelFile("block/block"))
                         .texture("all", modLoc("block/" + name))
@@ -195,15 +141,6 @@ public final class CellaDataGen {
             }
         }
 
-        /**
-         * The whole texture on the face, edge included.
-         *
-         * <p>Without this the coordinates are worked out from where the element is, and
-         * an element from one to fifteen samples one to fifteen - which crops off exactly
-         * the near-black ring the texture is drawn with. The block had its edges and the
-         * thing in your hand did not, which is a strange thing to notice and an obvious
-         * one once noticed.
-         */
         private static void whole(ModelBuilder<?>.ElementBuilder.FaceBuilder builder) {
             builder.texture("#all").uvs(0, 0, 16, 16);
         }
@@ -235,8 +172,6 @@ public final class CellaDataGen {
             add("gui.cella.prev", "Previous page");
             add("gui.cella.next", "Next page");
 
-            // Experience. A percent everywhere rather than points: a player knows how many
-            // levels they handed over and has no feel at all for what those were worth.
             add("container.cella.grown", "%s (%s%%)");
             add("tooltip.cella.grown", "%s%% grown");
             add("message.cella.fed", "Absorbed. %s%% grown.");
@@ -244,12 +179,6 @@ public final class CellaDataGen {
             add("message.cella.grown", "It has already taken in all it can use.");
             add("message.cella.nothing", "You have no experience to give it.");
 
-            // Ending itself. Three refusals rather than one, because there are three
-            // different things to go and do about it.
-            // ⚠ No article before the name. Which one it wants depends on the word that
-            // lands there - "a Perfect Cella" against "an Imperfect Cella" - and a format
-            // string cannot choose. Any message that inserts a name has this in it, so the
-            // rule is to write around the article rather than guess at one.
             add("message.cella.ripened", "It has eaten enough. It is now %s.");
             add("death.attack." + Annihilation.MESSAGE, "%1$s was annihilated by Cella");
             add("message.cella.lighting", "It begins to shake.");
@@ -257,25 +186,14 @@ public final class CellaDataGen {
             add("message.cella.notyet", "It has not taken in enough to survive that.");
             add("message.cella.elsewhere", "Not here. Somewhere the world can be spared.");
 
-            // /cella kept — see KeptCommand. Three answers about a form rather than two,
-            // because "names one this version does not have" is not "names none".
             add("commands.cella.kept.none", "No chest contents are kept.");
-            // ⚠ Cella takes no article and no plural. It is a name rather than a kind of
-            // box - the chest is the creature - so it is "annihilated by Cella" and never
-            // "a Cella", the way you would not write "a Steve". That is narrower than it
-            // sounds: counts of chests and hours below are ordinary English and still
-            // inflect. What is exempt is the name.
-            //
-            // Two keys rather than an "s" added in Java: which words change with a count
-            // is a fact about the language, so it belongs on this side of the file.
+
             add("commands.cella.kept.header",
                     "%s chests kept, %s slots spoken for between them:");
             add("commands.cella.kept.header.one", "One chest kept, %s slots spoken for:");
             add("commands.cella.kept.row", "%s - %s of %s slots, %s");
             add("commands.cella.kept.row.claimed", "%s - %s of %s slots, %s, already given out");
-            // ⚠ Names and not hand-outs, because that is what the store counts and what
-            // the reader needs: a chest filed has one already, so the number here is never
-            // one and this line is never printed for a first rescue. See Kept#hand.
+
             add("commands.cella.kept.again",
                     "There are already %s names for it out in the world. Only the first one "
                             + "placed gets the contents; the others go down empty, and "
@@ -284,10 +202,7 @@ public final class CellaDataGen {
             add("commands.cella.kept.foreign", "%s, which this version does not have");
             add("commands.cella.kept.age", "filed %s ago");
             add("commands.cella.kept.undated", "filed before that was recorded");
-            // ⚠ Abbreviated, and not for brevity: "1 hours" is wrong and "%s hour(s)" is
-            // worse, and the days line carries two numbers either of which can be one, so
-            // singular keys would come to four strings for one duration. A unit that does
-            // not inflect has none of that. Same rule as the article in message.cella.ripened.
+
             add("commands.cella.kept.days", "%sd %sh");
             add("commands.cella.kept.hours", "%sh");
             add("commands.cella.kept.recent", "under an hour");
@@ -307,35 +222,11 @@ public final class CellaDataGen {
         }
     }
 
-    /**
-     * Four chests around an iron core.
-     *
-     * <p>Priced as what it replaces rather than as what it is worth: several chests in
-     * the space of one is the whole of it, so several chests is what it costs.
-     */
     private static class Recipes extends RecipeProvider {
         Recipes(PackOutput output, CompletableFuture<HolderLookup.Provider> registries) {
             super(output, registries);
         }
 
-        /**
-         * Whatever each kind says it is made of, and nothing where one says nothing.
-         *
-         * <p>The shapes have no two alike - nine animals, eight of the last form round a
-         * gold block, four of the last and four nether stars round a dragon egg - so this
-         * walks the pattern rather than knowing any of them.
-         */
-        /**
-         * Swaps the shaped recipe for the kind of recipe it actually is.
-         *
-         * <p>{@code ShapedRecipeBuilder} only ever makes a plain {@code ShapedRecipe}, so
-         * this catches it on the way out and rebuilds it as a {@link Spawning} or a
-         * {@link Fusing} - a recipe that eats a Cella carries its contents, unless it is
-         * the one that spawns rather than fuses. The
-         * result is put together here rather than read off the recipe, because a shaped
-         * recipe will not tell anyone outside its package what it makes without being
-         * handed the registries.
-         */
         private RecipeOutput rebuilt(RecipeOutput output, Kind kind, Formula formula) {
             if (!formula.spawns() && !formula.fuses()) {
                 return output;
@@ -376,8 +267,6 @@ public final class CellaDataGen {
                             Ingredient.of(any.stream().map(java.util.function.Supplier::get)
                                     .toArray(ItemLike[]::new))));
 
-                    // Unlocked by the first thing it asks for, which for everything past
-                    // the first form is the form before it.
                     ItemLike first = formula.of().values().iterator().next().getFirst().get();
                     shaped.unlockedBy("has_" + BuiltInRegistries.ITEM.getKey(first.asItem())
                             .getPath(), has(first));

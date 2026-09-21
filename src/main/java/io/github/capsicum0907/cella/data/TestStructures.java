@@ -21,16 +21,7 @@ import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.resources.ResourceLocation;
 
-/**
- * The stage the game tests run on: a flat floor with clear air above it.
- *
- * <p>A game test needs a structure to be placed in, and there is no empty one to
- * borrow. Writing the NBT here rather than checking a binary into the repository
- * keeps the rule that generated files are generated, and the data version comes
- * from the game itself so it cannot drift out of date silently.
- */
 public class TestStructures implements DataProvider {
-    /** Referenced by {@code @GameTest(template = ...)}. */
     public static final String FLOOR = "floor";
 
     private static final int SIZE = 5;
@@ -64,8 +55,6 @@ public class TestStructures implements DataProvider {
         palette.add(named(FLOOR_BLOCK));
         tag.put("palette", palette);
 
-        // Every cell is listed, air included: an omitted cell is left as whatever was
-        // already there, which would let one test leave something behind for the next.
         ListTag blocks = new ListTag();
         for (int x = 0; x < SIZE; x++) {
             for (int y = 0; y < SIZE; y++) {
@@ -96,7 +85,7 @@ public class TestStructures implements DataProvider {
         return tag;
     }
 
-    @SuppressWarnings("deprecation") // Hashing.sha1 is what CachedOutput expects
+    @SuppressWarnings("deprecation")
     private static void write(CachedOutput output, CompoundTag tag, Path target) {
         try {
             ByteArrayOutputStream buffer = new ByteArrayOutputStream();

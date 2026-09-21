@@ -19,70 +19,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.saveddata.SavedData;
 
-/**
- * The contents of chests that have been picked up, kept in the world rather than on the
- * item.
- *
- * <p><b>The item holds a name, not a chest.</b> Everything from Imperfect up survives
- * being broken — see {@link Kind#keeps} — and the obvious way to do that is the shulker
- * box's: put the contents in a component on the item. It does not reach. Three separate
- * ceilings say so:
- *
- * <ul>
- *   <li>Vanilla's own {@code ItemContainerContents} stops at <b>256 slots</b>. Perfect is
- *       13,824.
- *   <li>A full Cella Max is somewhere between one and four megabytes of stacks, against a
- *       packet frame limit of <b>2,097,151 bytes</b> — a three-byte length prefix. Over
- *       that is not a slow chest, it is a dropped connection.
- *   <li>Whatever that came to would be re-sent every time the inventory holding it
- *       changed.
- * </ul>
- *
- * <p><b>And it removes the duplication family rather than managing it.</b> A component
- * belongs to the {@code ItemStack}, so two of them in a stack are one set of contents
- * with a count of two — which is the shape of both bugs Acervus had. There is nothing
- * here to copy: copying the stack copies a name, and two items naming one chest are two
- * views of one chest rather than two chests. The item still refuses to stack while it
- * holds a name, because two views of one chest is not something to hand a player by
- * accident; see {@code CellaItem}.
- *
- * <p><b>One store for every dimension</b>, on the overworld. A chest broken in the Nether
- * and put down at home is the same chest, so it cannot be filed under where it was dug up.
- *
- * <h2>Orphans</h2>
- *
- * <p>An item that goes into lava leaves its contents here with nothing left to ask for
- * them. That is the cost of the name, and it is paid in kilobytes rather than in anything
- * a player can see — but it is untidy, and after fusions it happens eight at a time.
- *
- * <p><b>Nothing goes looking for them, and that is the decision rather than the
- * omission.</b> Knowing a name has gone by searching would mean counting every item in
- * the world that could be holding one, and a Cella item is anywhere: a hand, a chest, an
- * ender chest, an item on the floor, some other mod's warehouse, <em>another Cella</em>.
- * Any sweep that misses one — an unloaded chunk is enough — deletes contents that were
- * still spoken for. The failure points the wrong way, so it is not done.
- *
- * <p><b>What is done is the other direction, which needs no search at all: whatever
- * destroys an item says so.</b> An item that burns, is blown up, is caught by a wave or
- * simply runs out of time is gone from the one place it was, and the thing that removed
- * it knows without anybody being counted. See {@link #lost} and {@link #destroyed}.
- *
- * <p>⚠ <b>Which is why this counts names rather than hand-outs.</b> A filed chest begins
- * with exactly one name — the item {@link CellaBlockEntity#handOver} dropped — {@code
- * /cella kept give} mints another, and every one seen destroyed takes one off. The
- * contents go when the last of them does. ⚠ <b>The count can only ever be too high</b>: a
- * name lost in a way nothing reports — the void, a creative-mode click, some other mod
- * eating it — leaves a chest filed with nobody left to ask for it. That is the direction
- * to be wrong in, and it is the direction this is wrong in.
- *
- * <p>So {@link Trace} stays, for everything the reports do not reach: enough about each
- * filed chest that a person can look at the list and decide. See {@code KeptCommand}. And
- * because deciding is the expensive part, the tool's first job is <b>handing contents
- * back</b> rather than deleting them — a name is all it takes to put an orphan on a new
- * item.
- */
 public class Kept extends SavedData {
-    /** The file this ends up in, under the overworld's data folder. */
     private static final String NAME = Cella.MODID + "_kept";
 
     private static final String CHESTS = "Chests";
@@ -93,129 +30,39 @@ public class Kept extends SavedData {
     private static final String EXPERIENCE = "Experience";
     private static final String NAMES = "Names";
 
-    /**
-     * What {@link #NAMES} was written as before the store counted names.
-     *
-     * <p>Read and never written. It held the number of hand-outs, which is the same
-     * count without the item the chest was filed with, so an entry from then loads as
-     * one more than it says. ⚠ One key or the other decides an entry, never both
-     * added together.
-     */
     private static final String HANDED = "Handed";
 
-    /**
-     * {@code ItemStackHandler}'s own two keys, read here and never written.
-     *
-     * <p>Its {@code Items} list holds the slots that have something in them and no others,
-     * and {@code Size} is how many slots there were altogether — so how full a filed chest
-     * is can be had from the tag as it lies, without turning a Cella Max back into two
-     * hundred thousand {@code ItemStack}s to count them.
-     */
     private static final String SIZE = "Size";
     private static final String ITEMS = "Items";
 
-    /** Game time counts up from nought, so nothing that was recorded is negative. */
     private static final long UNDATED = -1L;
 
-    /**
-     * What is known about one filed chest, beyond the contents themselves.
-     *
-     * <p><b>Only what cannot be worked out again.</b> How full it is and how big it is are
-     * in the contents tag already and are read from there; which form it was and when it
-     * was filed are not written anywhere else, so they are written here. A field that
-     * duplicates a fact is a field that can disagree with it.
-     *
-     * <p><b>The form is kept as the id that was written</b>, not as a resolved
-     * {@link Kind}, so that a version of this mod which does not have that form still
-     * writes back what it read. Resolving on the way in and saving the resolution would
-     * turn "names a form I do not know" into "names nothing" the first time such a world
-     * was opened, and that is not recoverable.
-     *
-     * @param kind the form's id, or empty for an entry filed before this was recorded
-     * @param when game time, or {@link #UNDATED}
-     * @param experience points it had been fed, which is nought for most entries and for
-     *              every entry written before a Cella could be fed at all
-     * @param names how many items naming it are believed to be out in the world: one when
-     *              it is filed, one more for every {@code /cella kept give}, one fewer for
-     *              every one seen destroyed. There is no entry at nought. See {@link #hand}
-     *              and {@link #lost}.
-     */
     private record Filed(CompoundTag contents, String kind, long when, int experience,
             int names) {
     }
 
-    /**
-     * A chest coming back out: what was in it, and what it had been fed.
-     *
-     * <p>Two things rather than one because they are stored in two places for a reason -
-     * the contents are the handler's own tag and the experience is a number beside it -
-     * and putting the number inside that tag would mean writing a foreign key into a
-     * format vanilla owns. A pair at the door is cheaper than a lie about the format.
-     */
     public record Chest(CompoundTag contents, int experience) {
     }
 
-    /**
-     * One filed chest as something a person can judge.
-     *
-     * <p>A list of UUIDs is not material for a decision. Which form it was, how long ago
-     * it was put here and how much is in it are — and with those, an entry that turns out
-     * to matter can be handed back rather than thrown away.
-     *
-     * <p><b>Not knowing is one of the answers.</b> Chests filed before any of this was
-     * recorded load with no form and no date, and they say so. Guessing the form from the
-     * size would be wrong often enough to matter: a chest built when the ladder had
-     * different numbers keeps the size it was built at, which is the whole reason
-     * {@link CellaBlockEntity#restore} puts the size back too.
-     *
-     * <p><b>And there is a third answer, which is not the same as the first.</b> An entry
-     * can name a form this version of the mod does not have. That is worth telling apart
-     * from an entry that names nothing — one says the world has been opened by a different
-     * version and the other says the entry is simply old — so {@link #named} is what was
-     * written and {@link #kind} is what that turned out to be, if anything.
-     *
-     * @param when game time when it was filed, or negative if it was filed before that was
-     *             recorded — ask {@link #dated()} rather than comparing
-     */
     public record Trace(UUID id, String named, Optional<Kind> kind, long when,
             int used, int slots, int experience, int names) {
-        /** Whether it knows when it was filed at all. */
         public boolean dated() {
             return when >= 0;
         }
 
-        /** Whether it names a form at all, whether or not this version has that form. */
         public boolean formed() {
             return !named.isEmpty();
         }
 
-        /** Whether it had been fed anything. One way, so this only ever went up. */
         public boolean grown() {
             return experience > 0;
         }
 
-        /**
-         * Whether more than one name for this is believed to be out there.
-         *
-         * <p>⚠ <b>Not "whether anybody has one".</b> Every filed chest has a name by
-         * definition — that is what filing it produced — and whether that item still
-         * exists is the one thing nothing here can know. What this marks is the state the
-         * store made itself: two names, one set of contents, and whichever is placed
-         * second going down empty.
-         */
         public boolean claimed() {
             return names > 1;
         }
     }
 
-    /**
-     * Serialised rather than live handlers.
-     *
-     * <p>Saved data is all loaded at once and stays loaded. A Cella Max is 221,184 slots,
-     * and holding that as {@code ItemStack}s for every chest anybody has ever picked up
-     * would be a lot of nothing in memory. A tag is what came off the disk and what goes
-     * back to it; it is only turned into a chest when one is put down.
-     */
     private final Map<UUID, Filed> chests;
 
     private Kept() {
@@ -226,9 +73,6 @@ public class Kept extends SavedData {
         this.chests = chests;
     }
 
-    /**
-     * The one store, or empty if there is no server — which is every client-side caller.
-     */
     public static Optional<Kept> of(Level level) {
         MinecraftServer server = level.getServer();
         return server == null
@@ -237,30 +81,14 @@ public class Kept extends SavedData {
                         new SavedData.Factory<>(Kept::new, Kept::load), NAME));
     }
 
-    /**
-     * Files a chest's contents away and answers with the name to put on the item.
-     *
-     * @param kind which form it was, which nothing else records once the block is gone
-     * @param when game time now; see {@link Trace}
-     * @param experience what it had been fed, which is lost with the block if it is not
-     *              filed here - and being one way, lost for good
-     */
     public UUID put(CompoundTag contents, Kind kind, long when, int experience) {
         UUID id = UUID.randomUUID();
-        // One name, because filing one is what drops the item that carries it.
+
         chests.put(id, new Filed(contents, kind.id(), when, experience, 1));
         setDirty();
         return id;
     }
 
-    /**
-     * Hands back what was filed under that name, and forgets it.
-     *
-     * <p><b>Taking, not reading.</b> The contents exist in one place at a time — in a
-     * chest in the world, or here — and a name that has been spent is a name that answers
-     * with nothing. An item duplicated by some other mod's doing then puts down one full
-     * chest and one empty one, rather than two full ones.
-     */
     public Optional<Chest> take(UUID id) {
         Filed filed = chests.remove(id);
         if (filed != null) {
@@ -270,23 +98,6 @@ public class Kept extends SavedData {
                 .map(one -> new Chest(one.contents(), one.experience()));
     }
 
-    /**
-     * Records that another name for it is going out, and says how many there already were.
-     *
-     * <p><b>Not a lock.</b> An operator who loses the item they were just given still has
-     * to be able to ask for another, so this refuses nothing — but two items naming one
-     * chest is a state where one of them carries a tooltip it cannot honour, and this mod
-     * mints that state on request now rather than only meeting it. What can be done about
-     * a state that cannot be prevented is to stop making it quietly.
-     *
-     * <p>⚠ <b>It answers one, not nought, for a chest nobody has asked about before</b> —
-     * the item that was dropped when it was filed. Whether that item still exists is
-     * exactly what nothing here knows, and its being gone is the usual reason for running
-     * the command at all, so a first hand-out is not the state worth warning about. The
-     * second is: by then the store has certainly made two.
-     *
-     * @return how many names for it there were before this one
-     */
     public int hand(UUID id) {
         Filed filed = chests.get(id);
         if (filed == null) {
@@ -298,22 +109,6 @@ public class Kept extends SavedData {
         return filed.names();
     }
 
-    /**
-     * One of the names for a chest has been destroyed, and the contents go with the last
-     * of them.
-     *
-     * <p><b>This is the one thing about a name that can be known rather than searched
-     * for.</b> Whatever destroyed the item knew it was destroying it — see
-     * {@link #destroyed} for the three that call this — so nothing has to be counted and
-     * nothing can be miscounted. The direction that cannot be done safely, and the reason,
-     * are at the top of this class.
-     *
-     * <p>⚠ <b>Which of several names was destroyed is not asked and does not matter.</b>
-     * The store holds contents rather than items, and the only question it has is whether
-     * anything is left that could come and ask for them.
-     *
-     * @return whether that was the last name, so the contents have now gone
-     */
     public boolean lost(UUID id) {
         Filed filed = chests.get(id);
         if (filed == null) {
@@ -330,16 +125,6 @@ public class Kept extends SavedData {
         return true;
     }
 
-    /**
-     * Every name on a destroyed item, told to the store.
-     *
-     * <p><b>Several, because a fusion carries what it ate</b>: a crafted Semi-Perfect names
-     * eight chests until it is placed, and one that burns destroys eight names at once. See
-     * {@link Held}.
-     *
-     * <p>Does nothing on a client, which has no store to tell — see {@link #of}. And
-     * nothing at all for an item that names no chest, which is every empty one.
-     */
     public static void destroyed(Level level, ItemStack stack) {
         Held held = stack.get(CellaRegistry.KEPT.get());
         if (held == null) {
@@ -348,22 +133,10 @@ public class Kept extends SavedData {
         of(level).ifPresent(kept -> held.chests().forEach(kept::lost));
     }
 
-    /**
-     * What is known about one filed chest, without spending it.
-     *
-     * <p><b>Deliberately not {@link #take}.</b> Handing somebody an item that names a
-     * chest is not the same as putting the chest back, and the contents stay filed until
-     * something is placed. That keeps the one rule that makes all of this safe: contents
-     * come out of here exactly once, whoever asks and however often.
-     */
     public Optional<Trace> trace(UUID id) {
         return Optional.ofNullable(chests.get(id)).map(filed -> trace(id, filed));
     }
 
-    /**
-     * Everything filed, oldest first, with the ones that predate any record of their age
-     * ahead of those — which is the right way round, since they are the oldest there are.
-     */
     public List<Trace> list() {
         List<Trace> traces = new ArrayList<>(chests.size());
         chests.forEach((id, filed) -> traces.add(trace(id, filed)));
@@ -371,21 +144,10 @@ public class Kept extends SavedData {
         return traces;
     }
 
-    /** How many chests are filed. Asked before printing any of them. */
     public int size() {
         return chests.size();
     }
 
-    /**
-     * Destroys one, by name.
-     *
-     * <p>Separate from {@link #take} because it is a different act: taking is a chest
-     * being put back into the world, and this is a person having looked at an orphan and
-     * decided. There is no undoing it, which is why nothing calls it but a command with a
-     * name typed into it.
-     *
-     * @return whether there was anything under that name
-     */
     public boolean forget(UUID id) {
         if (chests.remove(id) == null) {
             return false;
@@ -400,27 +162,14 @@ public class Kept extends SavedData {
                 filed.names());
     }
 
-    /** How many slots have something in them; see the note on {@link #ITEMS}. */
     private static int usedIn(CompoundTag contents) {
         return contents.getList(ITEMS, Tag.TAG_COMPOUND).size();
     }
 
-    /** How big the chest was when it was filed, which is not its kind's size today. */
     private static int slotsIn(CompoundTag contents) {
         return contents.getInt(SIZE);
     }
 
-    /**
-     * <b>Entries written before there was anything to say about them still load.</b> The
-     * store held nothing but contents at first, and worlds have those. Dropping one would
-     * not be a cosmetic loss — it is exactly the orphan this class is meant to hand back,
-     * thrown away by the thing that was built to rescue it. It loads with no form and no
-     * date, and the listing says so rather than filling either in.
-     *
-     * <p>An entry with no name, on the other hand, is not an entry: there is no way to ask
-     * for it and no way to name it in a command, so it is skipped along with anything else
-     * that fails to parse.
-     */
     static Kept load(CompoundTag tag, HolderLookup.Provider registries) {
         Map<UUID, Filed> chests = new HashMap<>();
         ListTag list = tag.getList(CHESTS, Tag.TAG_COMPOUND);
@@ -457,7 +206,7 @@ public class Kept extends SavedData {
             if (filed.experience() > 0) {
                 entry.putInt(EXPERIENCE, filed.experience());
             }
-            // The common entry has the one name it was filed with, and says nothing.
+
             if (filed.names() != 1) {
                 entry.putInt(NAMES, filed.names());
             }

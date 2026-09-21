@@ -22,30 +22,12 @@ import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredItem;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
-/**
- * Registration, one of everything per {@link Kind}.
- *
- * <p><b>One block entity type over all of them, and one menu.</b> A type per kind would
- * buy nothing: the block entity behaves the same whatever it is in, and asks the block
- * it sits in how big it should be. Keeping one also means the block's ticker keeps
- * working without a thought, because a ticker is matched on the type.
- */
 public final class CellaRegistry {
-    /**
-     * Whether the right tool is needed for it to drop anything.
-     *
-     * <p>Only set where there is a level to require. Asking for the correct tool with no
-     * tag saying which one means nothing drops it, ever.
-     */
     private static BlockBehaviour.Properties particular(BlockBehaviour.Properties properties,
             Kind kind) {
         return kind.trait().particular() ? properties.requiresCorrectToolForDrops() : properties;
     }
 
-    /**
-     * Vanilla's own fire immunity for the dropped item, which is the first of the three
-     * the ladder promises. Explosions and cactus are {@code CellaItem#canBeHurtBy}.
-     */
     private static Item.Properties fireproof(Item.Properties properties, Kind kind) {
         return kind.trait().unbreakableAsAnItem() ? properties.fireResistant() : properties;
     }
@@ -61,25 +43,15 @@ public final class CellaRegistry {
     public static final DeferredRegister<DataComponentType<?>> COMPONENTS =
             DeferredRegister.create(Registries.DATA_COMPONENT_TYPE, Cella.MODID);
 
-    /**
-     * The name of the chest this item is carrying, for the forms that survive breaking.
-     *
-     * <p><b>A name and how full, not the contents.</b> What it names lives in
-     * {@link Kept}, which is where the reasons are. Absent on an item that was picked up
-     * empty, so its presence is also the answer to "is this one carrying anything" - see
-     * {@link CellaItem}.
-     */
     public static final DeferredHolder<DataComponentType<?>, DataComponentType<Held>> KEPT =
             COMPONENTS.register("kept", () -> DataComponentType.<Held>builder()
                     .persistent(Held.CODEC)
                     .networkSynchronized(Held.STREAM_CODEC)
                     .build());
 
-    /** The recipe that gives its parent back; see {@link Spawning}. */
     public static final DeferredHolder<RecipeSerializer<?>, Spawning.Serializer> SPAWNING =
             RECIPES.register("spawning", Spawning.Serializer::new);
 
-    /** The recipe that carries the contents of what it ate; see {@link Fusing}. */
     public static final DeferredHolder<RecipeSerializer<?>, Fusing.Serializer> FUSING =
             RECIPES.register("fusing", Fusing.Serializer::new);
 
@@ -88,8 +60,6 @@ public final class CellaRegistry {
 
     static {
         for (Kind kind : Kind.values()) {
-            // Hardness stays 2.5 all the way up - how long it takes to mine is not what
-            // the ladder is about - and everything that does differ comes off the trait.
             BLOCK.put(kind, BLOCKS.register(kind.id(), () -> new CellaBlock(kind,
                     particular(BlockBehaviour.Properties.of()
                             .mapColor(MapColor.WOOD)
@@ -101,22 +71,10 @@ public final class CellaRegistry {
         }
     }
 
-    /**
-     * One type, told about every block it may sit in.
-     *
-     * <p>{@code Builder.of} checks each block against a data fixer type it has no entry
-     * for and grumbles once per block in the log. That is noise, not a fault.
-     */
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<CellaBlockEntity>>
             BLOCK_ENTITY = BLOCK_ENTITIES.register("cella",
                     () -> BlockEntityType.Builder.of(CellaBlockEntity::new, blocks()).build(null));
 
-    /**
-     * The client builds its own menu from what is in the packet: where the chest is, how
-     * many slots it has, and how tall a page is. None of the three is derivable on the
-     * client — a chest keeps the size it was built with, and the client's copy of the
-     * block entity was made at whatever the config says now.
-     */
     public static final DeferredHolder<MenuType<?>, MenuType<CellaMenu>> MENU =
             MENUS.register("cella", () -> IMenuTypeExtension.create(
                     (id, inventory, buffer) -> CellaMenu.at(id, inventory,
@@ -126,19 +84,6 @@ public final class CellaRegistry {
     public static final DeferredRegister<CreativeModeTab> TABS =
             DeferredRegister.create(Registries.CREATIVE_MODE_TAB, Cella.MODID);
 
-    /**
-     * A tab of its own, rather than seven chests scattered through the vanilla one.
-     *
-     * <p><b>A tab is not decoration.</b> A block in no tab at all is invisible to anything
-     * that reads the creative menu, which is how a recipe browser builds its list - this
-     * mod was once craftable and unfindable for exactly that reason. What a tab of its own
-     * adds is that the seven are seen together, which is the only way the ramp of colours
-     * reads as a ramp.
-     *
-     * <p>The icon is Perfect: the middle of the chain and the one the mod is named after
-     * being the finished article. The contents are {@link Kind} in order, so a kind added
-     * there arrives here without anybody remembering to.
-     */
     public static final DeferredHolder<CreativeModeTab, CreativeModeTab> TAB =
             TABS.register("cella", () -> CreativeModeTab.builder()
                     .title(Component.translatable("itemGroup." + Cella.MODID))

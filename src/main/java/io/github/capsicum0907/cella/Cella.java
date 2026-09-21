@@ -23,10 +23,6 @@ import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 
 import org.slf4j.Logger;
 
-/**
- * Entry point. {@link #MODID} must match {@code mod_id} in gradle.properties,
- * which is what the generated neoforge.mods.toml is filled from.
- */
 @Mod(Cella.MODID)
 public class Cella {
     public static final String MODID = "cella";
@@ -46,10 +42,10 @@ public class Cella {
         modEventBus.addListener(Cella::capabilities);
         modEventBus.addListener(Cella::payloads);
         NeoForge.EVENT_BUS.addListener(Cella::left);
-        // Two halves of one question, and the answer is at the second: see Expiring.
+
         NeoForge.EVENT_BUS.addListener(Expiring::reached);
         NeoForge.EVENT_BUS.addListener(Expiring::tick);
-        // Out of the drops on the way down, back into the inventory on the way up.
+
         NeoForge.EVENT_BUS.addListener(Carried::died);
         NeoForge.EVENT_BUS.addListener(Carried::respawned);
         NeoForge.EVENT_BUS.addListener(KeptCommand::register);
@@ -70,19 +66,6 @@ public class Cella {
         LOGGER.info("Cella {} loaded.", modContainer.getModInfo().getVersion());
     }
 
-    /**
-     * The larva burns, and nothing else does.
-     *
-     * <p>⚠ <b>Backwards from how the ladder reads.</b> "Imperfect gains fire resistance"
-     * cannot be implemented by giving Imperfect anything: only blocks handed to
-     * {@code FireBlock#setFlammable} burn at all, and no Cella was ever handed to it, so
-     * every form was already fireproof and the step meant nothing. What makes it true is
-     * registering Larval — the larva catches, and everything above it is simply what a
-     * block is when left alone.
-     *
-     * <p>The two numbers are the ones a wooden chest has: how readily it catches and how
-     * long it goes on burning.
-     */
     private static void kindling(net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent event) {
         event.enqueueWork(() -> {
             net.minecraft.world.level.block.FireBlock fire =
@@ -95,33 +78,15 @@ public class Cella {
         });
     }
 
-    /**
-     * What a hopper or a pipe sees: <b>the whole chest</b>, every page of it.
-     *
-     * <p>Not the window. Which page a player happens to be looking at is a fact about
-     * that player, and a hopper that could only reach it would be nonsense — it would
-     * mean the chest changed size depending on who was standing nearby.
-     *
-     * <p>No side argument: every face is the same chest.
-     */
     private static void capabilities(RegisterCapabilitiesEvent event) {
         event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, CellaRegistry.BLOCK_ENTITY.get(),
                 (chest, side) -> chest.contents());
     }
 
-    /**
-     * Two messages, both from the client and neither answered directly: how much a
-     * player's screen can show, and what they are looking for.
-     *
-     * <p>See {@link Room}. Marked optional so that a client without this mod - or with an
-     * older one - connects rather than being turned away over a layout hint; a player who
-     * never says gets the chest's own shape.
-     */
     private static void payloads(RegisterPayloadHandlersEvent event) {
         event.registrar("1").optional().playToServer(Room.TYPE, Room.STREAM_CODEC,
                 (room, context) -> Room.remember(context.player().getUUID(), room));
-        // Straight to whatever that player has open, and only if it is one of ours. A
-        // message about a chest is only ever about the chest they are standing at.
+
         event.registrar("1").optional().playToServer(Look.TYPE, Look.STREAM_CODEC,
                 (look, context) -> {
                     if (context.player().containerMenu instanceof CellaMenu menu) {
@@ -130,21 +95,15 @@ public class Cella {
                 });
     }
 
-    /** A window that has gone is a window there is nothing to remember about. */
     private static void left(PlayerEvent.PlayerLoggedOutEvent event) {
         Room.forget(event.getEntity().getUUID());
     }
 
-    /**
-     * The two things that only exist on a client, kept behind a method so that loading
-     * this class on a dedicated server does not go looking for them.
-     */
     private static void onlyOnTheClient(ModContainer modContainer) {
         modContainer.registerConfig(ModConfig.Type.CLIENT, CellaClientConfig.SPEC);
         NeoForge.EVENT_BUS.addListener(Measure::tick);
     }
 
-    /** The drawn fill bar; the figures beside it are ordinary tooltip lines. */
     private static void tooltips(
             net.neoforged.neoforge.client.event.RegisterClientTooltipComponentFactoriesEvent event) {
         event.register(Held.class, io.github.capsicum0907.cella.client.FillBar::new);
@@ -154,7 +113,6 @@ public class Cella {
         event.register(CellaRegistry.MENU.get(), CellaScreen::new);
     }
 
-    /** The chest is drawn rather than modelled; see {@link CellaRenderer}. */
     private static void renderers(EntityRenderersEvent.RegisterRenderers event) {
         event.registerBlockEntityRenderer(CellaRegistry.BLOCK_ENTITY.get(), CellaRenderer::new);
     }
