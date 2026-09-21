@@ -741,6 +741,70 @@ public final class CellaTests {
     }
 
     /**
+     * What a player moves is written down; what a hopper moves is not.
+     *
+     * <p>A chest this size absorbs a mistake without a ripple — put the wrong stack in and
+     * nothing on the screen is different afterwards. ⚠ But a hopper running all afternoon
+     * would fill the record with its own footsteps and push out everything a person did,
+     * so only what comes through the screen counts.
+     */
+    @GameTest(template = TestStructures.FLOOR)
+    public static void whatAPlayerMovesIsWrittenDown(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper);
+        Player player = helper.makeMockPlayer(GameType.SURVIVAL);
+        player.getInventory().setItem(1, new ItemStack(Items.COBBLESTONE, 40));
+
+        // Automation, which is not remembered.
+        chest.contents().insertItem(0, new ItemStack(Items.DIAMOND, 7), false);
+        check(chest.ledger().size() == 0, "a hopper leaves no trace: " + chest.ledger().size());
+
+        CellaMenu menu = CellaMenu.at(1, player.getInventory(), helper.absolutePos(WHERE),
+                chest.contents().getSlots(),
+                CellaConfig.rows(KIND), CellaConfig.columns(KIND));
+        menu.clickMenuButton(player, CellaMenu.STOW);
+
+        check(chest.ledger().size() == 1, "a button press does: " + chest.ledger().size());
+        Ledger.Move move = chest.ledger().moves().getFirst();
+        check(move.kind().is(Items.COBBLESTONE), "the cobblestone that went in");
+        check(move.before() == 0 && move.after() == 40,
+                "from none to forty: " + move.before() + " -> " + move.after());
+        check(move.moved() == 40, "which is forty arriving");
+        helper.succeed();
+    }
+
+    /**
+     * The record keeps components, so an enchanted book is not filed as a book.
+     *
+     * <p>⚠ Recording bare item ids would report the loss of something irreplaceable as the
+     * loss of a paper one. {@code Tidy.merge} already tells them apart; so does this.
+     */
+    @GameTest(template = TestStructures.FLOOR)
+    public static void therecordkeepsWhatMakesAThingItself(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper);
+
+        ItemStack plain = new ItemStack(Items.DIAMOND_PICKAXE);
+        ItemStack named = new ItemStack(Items.DIAMOND_PICKAXE);
+        named.set(net.minecraft.core.component.DataComponents.CUSTOM_NAME,
+                net.minecraft.network.chat.Component.literal("Bertha"));
+
+        chest.byHand(() -> {
+            chest.contents().insertItem(0, plain.copy(), false);
+            chest.contents().insertItem(0, named.copy(), false);
+        });
+
+        check(chest.ledger().size() == 2, "two movements, not one: " + chest.ledger().size());
+        for (Ledger.Move move : chest.ledger().moves()) {
+            check(move.before() == 0 && move.after() == 1,
+                    "each went from none to one: " + move.before() + " -> " + move.after());
+        }
+        check(!ItemStack.isSameItemSameComponents(
+                        chest.ledger().moves().get(0).kind(),
+                        chest.ledger().moves().get(1).kind()),
+                "and the two are remembered as different things");
+        helper.succeed();
+    }
+
+    /**
      * The chest is in order at all times, with nobody having pressed anything.
      *
      * <p>Arrivals go where their kind belongs and pour into the one open stack of it; a

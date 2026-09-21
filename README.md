@@ -595,6 +595,32 @@ One block entity type serves them all, and one menu. A type per kind would buy
 nothing: the block entity behaves the same whatever it is in, and asks the block it
 sits in how big it should be.
 
+### It remembers what you moved, and not what a hopper did
+
+A chest of two hundred thousand slots absorbs a mistake without a ripple. Put the wrong
+stack in, or take the wrong one out, and nothing on the screen afterwards is any different
+— so the chest keeps a record of what went in and out of it.
+
+⚠ **Kinds, not slots.** The first sketch of this recorded a slot number, and that was
+written before the chest kept itself in order. It cannot now: slot five is whatever sorted
+into fifth place at the time, so a slot number means something different at every moment
+and records nothing. What is stable is the kind and how much of it there was — which is
+also the question being asked.
+
+⚠ **Only what goes through the screen.** A hopper feeding a chest for an afternoon would
+fill the record with its own footsteps and push out everything a person did. Automation is
+not what anybody goes looking for afterwards.
+
+**Components and all**, the same question `Tidy.merge` asks, so an enchanted book is not
+filed as a book. Recording bare item ids would report the loss of something irreplaceable
+as the loss of a paper one.
+
+How many movements a chest keeps is `history` in the config; nought turns it off. The
+default is thousands rather than hundreds, because thirty-six is a single shift-click of a
+full pack and the two moving buttons write far more than that in one press.
+
+⚠ **Nothing shows it yet.** This gathers and saves; reading it back is not built.
+
 ### It is drawn as a chest, and the lid opens
 
 A block entity renderer, not a model: the three parts come from

@@ -50,8 +50,14 @@ public final class CellaConfig {
      * inside one another — a config that loads and reads the wrong numbers, which is
      * worse than one that refuses. Hence the loop rather than a list of fields.
      */
+    private static ModConfigSpec.IntValue HISTORY;
+
     private static ModConfigSpec build() {
         ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
+        HISTORY = builder
+                .comment("How many movements a chest remembers. Only what goes in and out",
+                        "through its own screen is written down. Nought turns it off.")
+                .defineInRange("history", 4096, 0, 1 << 20);
         for (Kind kind : Kind.values()) {
             builder.push(kind.id());
             ROWS.put(kind, builder
@@ -84,6 +90,21 @@ public final class CellaConfig {
 
     public static int columns(Kind kind) {
         return COLUMNS.get(kind).get();
+    }
+
+    /**
+     * How many movements a chest keeps.
+     *
+     * <p>⚠ Thousands rather than hundreds: thirty-six is one shift-click of a full pack,
+     * and the two moving buttons write far more than that in a press, so a few hundred is
+     * one busy minute.
+     *
+     * <p>Asked before the config has loaded — a chest read off the disk during start-up —
+     * this answers with nothing kept rather than throwing. Nothing is lost by it: the
+     * ceiling is applied again on the next movement.
+     */
+    public static int history() {
+        return HISTORY != null && HISTORY.getSpec() != null && SPEC.isLoaded() ? HISTORY.get() : 0;
     }
 
 }

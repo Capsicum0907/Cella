@@ -1,8 +1,12 @@
 package io.github.capsicum0907.cella;
 
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import it.unimi.dsi.fastutil.objects.Object2IntOpenCustomHashMap;
+
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.ItemStackLinkedSet;
 import net.neoforged.neoforge.items.ItemStackHandler;
 
 /**
@@ -93,6 +97,11 @@ public class Sorted extends ItemStackHandler {
      * are trusted with is that they meant to write that many slots.
      */
     public void straight(Runnable work) {
+        // ⚠ Straight-through writes do not pass the place that says what moved, and a sort
+        // rewrites every slot besides. So a run that anybody cares about is counted from
+        // the outside: what was here, and what is here now. Two walks of the contents,
+        // against work that already walked them.
+        Object2IntMap<ItemStack> before = reporting() ? census() : null;
         boolean was = raw;
         raw = true;
         try {
@@ -102,6 +111,35 @@ public class Sorted extends ItemStackHandler {
         }
         if (!raw) {
             settle();
+        }
+        if (before != null) {
+            difference(before, census());
+        }
+    }
+
+    /** Whether it is worth working out what a whole-chest run moved. The owner decides. */
+    protected boolean reporting() {
+        return false;
+    }
+
+    private Object2IntMap<ItemStack> census() {
+        Object2IntMap<ItemStack> counts =
+                new Object2IntOpenCustomHashMap<>(ItemStackLinkedSet.TYPE_AND_TAG);
+        for (int at = 0; at < used; at++) {
+            ItemStack stack = stacks.get(at);
+            counts.mergeInt(copyWith(stack, 1), stack.getCount(), Integer::sum);
+        }
+        return counts;
+    }
+
+    private void difference(Object2IntMap<ItemStack> before, Object2IntMap<ItemStack> after) {
+        for (Object2IntMap.Entry<ItemStack> was : before.object2IntEntrySet()) {
+            poured(was.getKey(), was.getIntValue(), after.getInt(was.getKey()));
+        }
+        for (Object2IntMap.Entry<ItemStack> now : after.object2IntEntrySet()) {
+            if (!before.containsKey(now.getKey())) {
+                poured(now.getKey(), 0, now.getIntValue());
+            }
         }
     }
 
@@ -174,7 +212,10 @@ public class Sorted extends ItemStackHandler {
         boolean ran = false;
         if (slot < used) {
             from = Math.min(from, slot);
+            ItemStack gone = copyWith(stacks.get(slot), 1);
+            int had = total(gone);
             pull(slot);
+            poured(gone, had, total(gone));
             ran = true;
         }
         if (!stack.isEmpty()) {
@@ -242,6 +283,8 @@ public class Sorted extends ItemStackHandler {
             return copyWith(asked, taken);
         }
         ItemStack out = copyWith(from, taken);
+        ItemStack kind = copyWith(from, 1);
+        int had = total(kind);
         if (taken >= from.getCount()) {
             pull(last);
             moved(last);
@@ -249,6 +292,7 @@ public class Sorted extends ItemStackHandler {
             from.shrink(taken);
             onContentsChanged(last);
         }
+        poured(kind, had, total(kind));
         return out;
     }
 
@@ -271,6 +315,8 @@ public class Sorted extends ItemStackHandler {
     private ItemStack put(ItemStack incoming) {
         landed = getSlots();
         shifted = false;
+        ItemStack kind = copyWith(incoming, 1);
+        int had = total(kind);
         int at = start(incoming);
         int end = endOf(at);
 
@@ -296,6 +342,7 @@ public class Sorted extends ItemStackHandler {
             used++;
             landed = Math.min(landed, where);
         }
+        poured(kind, had, total(kind));
         return incoming;
     }
 
@@ -380,6 +427,35 @@ public class Sorted extends ItemStackHandler {
         ItemStack out = stack.copy();
         out.setCount(count);
         return out;
+    }
+
+    /**
+     * How much of exactly that kind the chest holds, components and all.
+     *
+     * <p>The run is contiguous under the order in force, so this is the length of one run
+     * rather than the length of the chest. Within it, only the stacks that are the same
+     * thing count: a plain pickaxe and an enchanted one share a registry name and a place
+     * in the order, and are not the same thing.
+     */
+    private int total(ItemStack like) {
+        int at = start(like);
+        int sum = 0;
+        while (at < used && order.grouping().compare(stacks.get(at), like) == 0) {
+            if (same(stacks.get(at), like)) {
+                sum += stacks.get(at).getCount();
+            }
+            at++;
+        }
+        return sum;
+    }
+
+    /**
+     * Says how much of one kind there was and how much there is.
+     *
+     * <p>Every arrival and departure passes through here, automation included. Deciding
+     * which of them is worth remembering is not this class's business; see {@link Ledger}.
+     */
+    protected void poured(ItemStack kind, int before, int after) {
     }
 
     /**

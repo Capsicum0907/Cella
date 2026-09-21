@@ -479,7 +479,7 @@ public class CellaMenu extends AbstractContainerMenu {
         if (!player.level().isClientSide) {
             // Every one of these writes most of the chest, so the neighbours are told
             // once at the end rather than once per slot. See CellaBlockEntity#inOneGo.
-            inOneGo(() -> {
+            byHand(() -> inOneGo(() -> {
                 switch (id) {
                     // ⚠ Not "sort now": the chest is already sorted. What is left for
                     // the button to mean is which order, and there is more than one.
@@ -495,7 +495,7 @@ public class CellaMenu extends AbstractContainerMenu {
                     case TAKE -> take(player, false);
                     default -> take(player, true);
                 }
-            });
+            }));
         }
         return true;
     }
@@ -543,6 +543,34 @@ public class CellaMenu extends AbstractContainerMenu {
             }
         }
         return kinds;
+    }
+
+    /**
+     * Runs something the player did, so that the chest writes it down.
+     *
+     * <p>⚠ <b>Every road from this class to the contents goes through here.</b> The three
+     * are a slot click, one of the five buttons, and shift-click; miss one and it becomes
+     * the movement that silently is not recorded, which is worse than not recording any.
+     */
+    private void byHand(Runnable work) {
+        access.execute((level, pos) -> {
+            if (level.getBlockEntity(pos) instanceof CellaBlockEntity chest) {
+                chest.byHand(work);
+            } else {
+                work.run();
+            }
+        });
+    }
+
+    /** A square clicked, dragged into or picked out of. Vanilla's own road to the slots. */
+    @Override
+    public void clicked(int id, int button, net.minecraft.world.inventory.ClickType type,
+            Player player) {
+        if (!server) {
+            super.clicked(id, button, type, player);
+            return;
+        }
+        byHand(() -> super.clicked(id, button, type, player));
     }
 
     /** Through the block entity when there is one; a menu without one has nobody to tell. */
@@ -637,6 +665,12 @@ public class CellaMenu extends AbstractContainerMenu {
         if (!server) {
             return ItemStack.EMPTY;
         }
+        ItemStack[] answer = new ItemStack[] { ItemStack.EMPTY };
+        byHand(() -> answer[0] = moved(player, index));
+        return answer[0];
+    }
+
+    private ItemStack moved(Player player, int index) {
         Slot slot = slots.get(index);
         if (!slot.hasItem()) {
             return ItemStack.EMPTY;

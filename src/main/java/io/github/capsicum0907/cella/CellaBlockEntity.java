@@ -28,6 +28,7 @@ import net.neoforged.neoforge.items.ItemStackHandler;
  */
 public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
     private static final String CONTENTS = "Contents";
+    private static final String HISTORY = "History";
     private static final String EXPERIENCE = "Experience";
 
     private final Sorted contents;
@@ -97,11 +98,51 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
                 super.moved(from);
                 settled = revision;
             }
+
+            @Override
+            protected boolean reporting() {
+                return watching;
+            }
+
+            @Override
+            protected void poured(ItemStack kind, int before, int after) {
+                if (watching) {
+                    ledger.put(kind, before, after);
+                    setChanged();
+                }
+            }
         };
     }
 
     public Sorted contents() {
         return contents;
+    }
+
+    private final Ledger ledger = new Ledger();
+
+    public Ledger ledger() {
+        return ledger;
+    }
+
+    /** Set while something a player did is running; see {@link #byHand}. */
+    private boolean watching;
+
+    /**
+     * Runs something a player asked for, and writes down what it moved.
+     *
+     * <p>⚠ <b>The flag is the whole of the distinction.</b> A hopper and a shift-click reach
+     * the contents by the same road, so there is nothing in the movement itself that says
+     * which it was — only whether a screen was the thing that started it. See
+     * {@code CellaMenu}, which is the only caller.
+     */
+    public void byHand(Runnable work) {
+        boolean was = watching;
+        watching = true;
+        try {
+            work.run();
+        } finally {
+            watching = was;
+        }
     }
 
     /** Set while a whole-chest operation is running; see {@link #inOneGo}. */
@@ -262,6 +303,9 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
     protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.saveAdditional(tag, registries);
         tag.put(CONTENTS, contents.serializeNBT(registries));
+        if (ledger.any()) {
+            tag.put(HISTORY, ledger.save(registries));
+        }
         tag.putInt(EXPERIENCE, experience);
         // A lit chest that is saved is still lit when the world comes back. Forgetting it
         // would be a chest that quietly stopped being dangerous.
@@ -281,6 +325,9 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
     protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.loadAdditional(tag, registries);
         contents.deserializeNBT(registries, tag.getCompound(CONTENTS));
+        // ⚠ After the contents, because reading them settles the chest and settling moves
+        // things - and nothing a save did counts as something a player did.
+        ledger.load(registries, tag.getList(HISTORY, Ledger.TAG));
         // Absent in every chest written before experience existed, which reads as nought
         // and is the truth: none of them had been fed anything.
         experience = tag.getInt(EXPERIENCE);
