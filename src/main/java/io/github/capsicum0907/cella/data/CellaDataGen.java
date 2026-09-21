@@ -128,17 +128,29 @@ public final class CellaDataGen {
                 horizontalBlock(CellaRegistry.block(kind).get(),
                         models().getBuilder(name).texture("particle", modLoc("block/" + name)));
 
+                float scale = kind.scale();
                 itemModels().getBuilder(name)
                         .parent(new ModelFile.UncheckedModelFile("block/block"))
                         .texture("all", modLoc("block/" + name))
                         .texture("particle", modLoc("block/" + name))
-                        .element().from(1, 0, 1).to(15, 10, 15)
+                        .element().from(across(1, scale), up(0, scale), across(1, scale))
+                                .to(across(15, scale), up(10, scale), across(15, scale))
                                 .allFaces((face, builder) -> whole(builder)).end()
-                        .element().from(1, 10, 1).to(15, 14, 15)
+                        .element().from(across(1, scale), up(10, scale), across(1, scale))
+                                .to(across(15, scale), up(14, scale), across(15, scale))
                                 .allFaces((face, builder) -> whole(builder)).end()
-                        .element().from(7, 7, 0).to(9, 11, 1)
+                        .element().from(across(7, scale), up(7, scale), across(0, scale))
+                                .to(across(9, scale), up(11, scale), across(1, scale))
                                 .allFaces((face, builder) -> whole(builder)).end();
             }
+        }
+
+        private static float across(float at, float scale) {
+            return 8.0F + (at - 8.0F) * scale;
+        }
+
+        private static float up(float at, float scale) {
+            return at * scale;
         }
 
         private static void whole(ModelBuilder<?>.ElementBuilder.FaceBuilder builder) {

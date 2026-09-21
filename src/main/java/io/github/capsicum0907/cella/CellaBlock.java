@@ -57,9 +57,20 @@ public class CellaBlock extends BaseEntityBlock {
 
     private static final VoxelShape SHAPE = Block.box(1.0, 0.0, 1.0, 15.0, 14.0, 15.0);
 
+    private final VoxelShape shape;
+
+    private static VoxelShape shaped(float scale) {
+        if (scale == 1.0F) {
+            return SHAPE;
+        }
+        double half = 7.0 * scale;
+        return Block.box(8.0 - half, 0.0, 8.0 - half, 8.0 + half, 14.0 * scale, 8.0 + half);
+    }
+
     public CellaBlock(Kind kind, Properties properties) {
         super(properties);
         this.kind = kind;
+        this.shape = shaped(kind.scale());
         registerDefaultState(stateDefinition.any().setValue(FACING, Direction.NORTH));
     }
 
@@ -90,7 +101,7 @@ public class CellaBlock extends BaseEntityBlock {
     @Override
     protected VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos,
             CollisionContext context) {
-        return SHAPE;
+        return shape;
     }
 
     @Override

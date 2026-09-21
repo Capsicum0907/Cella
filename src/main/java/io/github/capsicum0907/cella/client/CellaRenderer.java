@@ -53,6 +53,13 @@ public class CellaRenderer implements BlockEntityRenderer<CellaBlockEntity> {
                 -chest.getBlockState().getValue(CellaBlock.FACING).toYRot()));
         pose.translate(-0.5F, -0.5F, -0.5F);
 
+        float scale = chest.kind().scale();
+        if (scale != 1.0F) {
+            pose.translate(0.5F, 0.0F, 0.5F);
+            pose.scale(scale, scale, scale);
+            pose.translate(-0.5F, 0.0F, -0.5F);
+        }
+
         float swung = chest.getOpenNess(partial);
         swung = 1.0F - swung;
         swung = 1.0F - swung * swung * swung;

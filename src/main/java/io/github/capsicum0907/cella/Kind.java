@@ -49,7 +49,7 @@ public enum Kind {
             .key('C', PERFECT, "super_perfect")
             .count(7)
             .spawning()
-            .done()),
+            .done(), 0.5F),
 
     SUPER_PERFECT("super_perfect", "Super Perfect Cella", 0xA3E052, 12, 16, 55296, true, 149720, "", false, Trait.SUPER_PERFECT, null),
 
@@ -62,6 +62,7 @@ public enum Kind {
             .key('T', () -> Items.TOTEM_OF_UNDYING)
             .done());
 
+    private final float scale;
     private final String id;
     private final String name;
     private final int stain;
@@ -78,6 +79,14 @@ public enum Kind {
     Kind(String id, String name, int stain, int rows, int columns, int slots,
             boolean keeps, int growth, String becomes, boolean ripens, Trait trait,
             Supplier<Formula> formula) {
+        this(id, name, stain, rows, columns, slots, keeps, growth, becomes, ripens, trait,
+                formula, 1.0F);
+    }
+
+    Kind(String id, String name, int stain, int rows, int columns, int slots,
+            boolean keeps, int growth, String becomes, boolean ripens, Trait trait,
+            Supplier<Formula> formula, float scale) {
+        this.scale = scale;
         this.id = id;
         this.name = name;
         this.stain = stain;
@@ -94,6 +103,10 @@ public enum Kind {
 
     public String id() {
         return id;
+    }
+
+    public float scale() {
+        return scale;
     }
 
     public static java.util.Optional<Kind> named(String id) {
