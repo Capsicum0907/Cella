@@ -162,6 +162,18 @@ public class CellaMenu extends AbstractContainerMenu {
         addDataSlot(new DataSlot() {
             @Override
             public int get() {
+                return viewing;
+            }
+
+            @Override
+            public void set(int value) {
+                viewing = value;
+            }
+        });
+
+        addDataSlot(new DataSlot() {
+            @Override
+            public int get() {
                 return access.evaluate((level, at) ->
                         level.getBlockEntity(at) instanceof CellaBlockEntity chest
                                 ? Math.round(chest.grown() * 100.0F)
@@ -234,6 +246,42 @@ public class CellaMenu extends AbstractContainerMenu {
 
     public int pages() {
         return window.pages();
+    }
+
+    private int viewing = Peek.LIST;
+
+    public int viewing() {
+        return viewing;
+    }
+
+    public void view(int index) {
+        if (!server) {
+            return;
+        }
+        access.execute((level, pos) -> {
+            if (!(level.getBlockEntity(pos) instanceof CellaBlockEntity chest)) {
+                return;
+            }
+            int slots = chest.contents().getSlots();
+            java.util.List<Plan.Partition> carved = chest.plan().over(slots);
+            if (index < 0 || index >= carved.size()) {
+                viewing = Peek.LIST;
+                window.limit(0, 0);
+            } else {
+                viewing = index;
+                Plan.Partition one = carved.get(index);
+                window.limit(one.first(), Math.min(slots, one.past()) - one.first());
+            }
+            seen = revision();
+            sendAllDataToRemote();
+        });
+    }
+
+    public Shelf shelf(int shown) {
+        return access.evaluate((level, pos) ->
+                level.getBlockEntity(pos) instanceof CellaBlockEntity chest
+                        ? Shelf.of(chest, shown)
+                        : Shelf.NOTHING).orElse(Shelf.NOTHING);
     }
 
     public boolean nothingShown() {

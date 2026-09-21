@@ -576,6 +576,40 @@ public final class CellaTests {
     }
 
     @GameTest(template = TestStructures.FLOOR)
+    public static void theShelfSaysWhatEachPartitionHolds(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper);
+        check(chest.divide(new Plan.Partition("front", DyeColor.RED, 0, 1)), "carve one");
+        check(chest.divide(new Plan.Partition("back", DyeColor.BLUE, 1, 2)), "carve two");
+
+        chest.contents().insertItem(0, new ItemStack(Items.STONE, 100), false);
+        chest.contents().insertItem(0, new ItemStack(Items.APPLE, 3), false);
+        chest.contents().insertItem(Plan.LC, new ItemStack(Items.DIAMOND, 1), false);
+
+        Shelf all = Shelf.of(chest, Peek.LIST);
+        check(all.slices().size() == 2, "two slices: " + all.slices().size());
+        check(all.slices().get(0).name().equals("front"), "named");
+        check(all.slices().get(0).dye() == DyeColor.RED, "and coloured");
+        check(all.slices().get(0).slots() == Plan.LC, "a partition of one LC");
+        check(all.slices().get(1).slots() == Plan.LC * 2, "and one of two");
+        check(all.slices().get(0).used() == 3, "three slots used: "
+                + all.slices().get(0).used());
+        check(all.tallies().isEmpty(), "and nothing is counted unless it was asked for");
+
+        Shelf one = Shelf.of(chest, 0);
+        check(one.shown() == 0, "the first was asked for");
+        check(one.tallies().size() == 2, "two kinds in it: " + one.tallies().size());
+        check(one.tallies().get(0).kind().is(Items.APPLE), "apples first, being sorted");
+        check(one.tallies().get(0).count() == 3, "three of them");
+        check(one.tallies().get(1).kind().is(Items.STONE), "then the stone");
+        check(one.tallies().get(1).count() == 100, "all hundred, across its two slots");
+
+        Shelf other = Shelf.of(chest, 1);
+        check(other.tallies().size() == 1, "the second holds one kind");
+        check(other.tallies().get(0).kind().is(Items.DIAMOND), "which is the diamond");
+        helper.succeed();
+    }
+
+    @GameTest(template = TestStructures.FLOOR)
     public static void theRecordSaysWhichPartition(GameTestHelper helper) {
         CellaBlockEntity chest = place(helper);
         check(chest.divide(new Plan.Partition("front", DyeColor.RED, 0, 1)), "carve one");

@@ -8,7 +8,9 @@ public final class Window implements IItemHandlerModifiable {
 
     private final int size;
 
-    private final int total;
+    private int total;
+
+    private int base;
 
     private final boolean chest;
 
@@ -45,10 +47,24 @@ public final class Window implements IItemHandlerModifiable {
 
     private String wanted;
 
+    public void limit(int first, int many) {
+        base = first;
+        total = many;
+        page = 0;
+        if (wanted != null) {
+            rebuild();
+        }
+    }
+
+    public int base() {
+        return base;
+    }
+
     private void rebuild() {
-        int[] hits = new int[held.getSlots()];
+        int end = Math.min(held.getSlots(), base + total);
+        int[] hits = new int[Math.max(0, end - base)];
         int count = 0;
-        for (int slot = 0; slot < held.getSlots(); slot++) {
+        for (int slot = base; slot < end; slot++) {
             if (matches(slot)) {
                 hits[count++] = slot;
             }
@@ -130,11 +146,16 @@ public final class Window implements IItemHandlerModifiable {
         if (page < pages() - 1) {
             return results;
         }
-        return results + Math.min(size - results, held.getSlots() - free());
+        return results + Math.min(size - results,
+                Math.min(held.getSlots(), base + total) - free());
     }
 
     private int free() {
-        return held instanceof Sorted sorted ? sorted.used() : held.getSlots();
+        if (!(held instanceof Sorted sorted)) {
+            return held.getSlots();
+        }
+        int part = sorted.partOf(base);
+        return part < 0 ? held.getSlots() : sorted.firstFree(part);
     }
 
     public void told(int pages, int onThisPage) {
@@ -178,7 +199,7 @@ public final class Window implements IItemHandlerModifiable {
         }
         int into = page * size + slot;
         if (found == null) {
-            return into;
+            return base + into;
         }
         if (into < found.length) {
             return found[into];

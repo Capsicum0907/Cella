@@ -87,6 +87,23 @@ public class Cella {
         event.registrar("1").optional().playToServer(Room.TYPE, Room.STREAM_CODEC,
                 (room, context) -> Room.remember(context.player().getUUID(), room));
 
+        event.registrar("1").optional().playToClient(Shelf.TYPE, Shelf.STREAM_CODEC,
+                (shelf, context) -> ShelfHolder.told(shelf));
+
+        event.registrar("1").optional().playToServer(Peek.TYPE, Peek.STREAM_CODEC,
+                (peek, context) -> {
+                    if (!(context.player().containerMenu instanceof CellaMenu menu)) {
+                        return;
+                    }
+                    if (peek.open()) {
+                        menu.view(peek.index());
+                    }
+                    int shown = peek.open() ? Peek.LIST : peek.index();
+                    net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(
+                            (net.minecraft.server.level.ServerPlayer) context.player(),
+                            menu.shelf(shown));
+                });
+
         event.registrar("1").optional().playToServer(Look.TYPE, Look.STREAM_CODEC,
                 (look, context) -> {
                     if (context.player().containerMenu instanceof CellaMenu menu) {
