@@ -135,6 +135,25 @@ public final class Plan {
         return true;
     }
 
+    public int gapFor(int length, int slots, int ignoring) {
+        int want = length * LC;
+        List<Partition> others = new ArrayList<>();
+        for (int at = 0; at < carved.size(); at++) {
+            if (at != ignoring) {
+                others.add(carved.get(at));
+            }
+        }
+        others.sort(java.util.Comparator.comparingInt(Partition::start));
+        int at = 0;
+        for (Partition other : others) {
+            if (other.first() - at * LC >= want) {
+                return at;
+            }
+            at = Math.max(at, other.start() + other.length());
+        }
+        return slots - at * LC >= want ? at : NONE;
+    }
+
     public boolean add(Partition wanted, int slots) {
         if (!room(wanted, slots, NONE)) {
             return false;

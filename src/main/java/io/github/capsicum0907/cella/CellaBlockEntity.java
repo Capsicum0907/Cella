@@ -143,8 +143,23 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
         if (wanted.slots() < contents.used(index)) {
             return false;
         }
+        java.util.List<Plan.Partition> carved = plan.over(slots);
+        if (index < 0 || index >= carved.size()) {
+            return false;
+        }
+        int start = carved.get(index).start();
+        Plan.Partition here = new Plan.Partition(wanted.name(), wanted.colour(),
+                start, wanted.length());
+        if (!plan.room(here, slots, index)) {
+            int gap = plan.gapFor(wanted.length(), slots, index);
+            if (gap == Plan.NONE) {
+                return false;
+            }
+            here = new Plan.Partition(wanted.name(), wanted.colour(), gap, wanted.length());
+        }
+        Plan.Partition settled = here;
         boolean[] done = new boolean[1];
-        replan(() -> done[0] = plan.replace(index, wanted, slots));
+        replan(() -> done[0] = plan.replace(index, settled, slots));
         return done[0];
     }
 
@@ -173,8 +188,12 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
             return false;
         }
         int slots = contents.getSlots();
+        int gap = plan.gapFor(wanted.length(), slots, Plan.NONE);
+        Plan.Partition placed = gap == Plan.NONE
+                ? wanted
+                : new Plan.Partition(wanted.name(), wanted.colour(), gap, wanted.length());
         boolean[] done = new boolean[1];
-        replan(() -> done[0] = plan.add(wanted, slots));
+        replan(() -> done[0] = plan.add(placed, slots));
         return done[0];
     }
 
@@ -340,10 +359,14 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
         int slots = contents.getSlots();
         int grown = experience;
         Kept.of(level).ifPresent(kept -> {
-            java.util.UUID id = kept.put(contents.serializeNBT(level.registryAccess()),
-                    kind(), level.getGameTime(), grown);
+            CompoundTag filed = contents.serializeNBT(level.registryAccess());
+            if (plan.any()) {
+                filed.put(PLAN, plan.save());
+            }
+            java.util.UUID id = kept.put(filed, kind(), level.getGameTime(), grown);
 
             contents.setSize(contents.getSlots());
+            replan(() -> plan.load(new CompoundTag(), contents.getSlots()));
             experience = 0;
             ItemStack stack = new ItemStack(getBlockState().getBlock());
             stack.set(CellaRegistry.KEPT.get(),
@@ -355,6 +378,7 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
 
     public void restore(HolderLookup.Provider registries, Kept.Chest kept) {
         contents.deserializeNBT(registries, kept.contents());
+        replan(() -> plan.load(kept.contents().getCompound(PLAN), contents.getSlots()));
         experience = capped(kept.experience());
         setChanged();
     }

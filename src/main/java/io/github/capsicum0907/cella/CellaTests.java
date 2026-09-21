@@ -684,6 +684,65 @@ public final class CellaTests {
     }
 
     @GameTest(template = TestStructures.FLOOR)
+    public static void partitionsComeBackWithTheContents(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper, KIND);
+        check(chest.divide(new Plan.Partition("kit", DyeColor.LIME, 0, 2)), "carve one");
+        check(chest.divide(new Plan.Partition("ore", DyeColor.PURPLE, 2, 3)), "carve two");
+        chest.contents().insertItem(0, new ItemStack(Items.STONE, 5), false);
+        chest.replan(() -> chest.plan().assign(1));
+
+        Kept kept = Kept.of(helper.getLevel()).orElseThrow(
+                () -> new GameTestAssertException("there should be a store on a server"));
+        chest.handOver(helper.getLevel(), helper.absolutePos(WHERE));
+        check(chest.plan().over(chest.contents().getSlots()).size() == 1,
+                "the broken one keeps nothing");
+
+        Held held = dropped(helper).stream()
+                .map(stack -> stack.get(CellaRegistry.KEPT.get()))
+                .filter(java.util.Objects::nonNull)
+                .findFirst()
+                .orElseThrow(() -> new GameTestAssertException("no chest with a name"));
+        CellaBlockEntity back = place(helper, KIND);
+        back.restore(helper.getLevel().registryAccess(),
+                kept.take(held.chests().getFirst()).orElseThrow(
+                        () -> new GameTestAssertException("the contents should be there")));
+
+        java.util.List<Plan.Partition> carved =
+                back.plan().over(back.contents().getSlots());
+        check(carved.size() == 2, "both partitions came back: " + carved.size());
+        check(carved.get(0).name().equals("kit"), "named");
+        check(carved.get(1).colour() == DyeColor.PURPLE, "and coloured");
+        check(carved.get(1).length() == 3, "with their sizes");
+        check(back.plan().assigned() == 1, "and the outlet with them");
+        check(back.contents().getStackInSlot(0).is(Items.STONE), "contents too");
+        helper.succeed();
+    }
+
+    @GameTest(template = TestStructures.FLOOR)
+    public static void fourEmptyThenTwoHalves(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper, Kind.JUNIOR);
+        for (int at = 0; at < 4; at++) {
+            check(chest.divide(new Plan.Partition("p" + at, DyeColor.RED, 0, 0)),
+                    "an empty one, all asking for slot nought like the screen does");
+        }
+        check(chest.plan().over(chest.contents().getSlots()).size() == 4,
+                "four of them: " + chest.plan().over(chest.contents().getSlots()).size());
+
+        check(chest.resize(0, new Plan.Partition("p0", DyeColor.RED, 0, 32)),
+                "the first grows to thirty-two");
+
+        java.util.List<Plan.Partition> now = chest.plan().over(chest.contents().getSlots());
+        for (int at = 0; at < now.size(); at++) {
+            check(true, at + ": start=" + now.get(at).start()
+                    + " length=" + now.get(at).length());
+        }
+        check(chest.resize(1, new Plan.Partition("p1", DyeColor.BLUE, 32, 32)),
+                "and the second should take the other half, start="
+                        + now.get(1).start() + " length=" + now.get(1).length());
+        helper.succeed();
+    }
+
+    @GameTest(template = TestStructures.FLOOR)
     public static void twoHalvesFitExactly(GameTestHelper helper) {
         CellaBlockEntity chest = place(helper, Kind.JUNIOR);
         int all = chest.contents().getSlots() / Plan.LC;
@@ -713,7 +772,13 @@ public final class CellaTests {
         check(chest.divide(new Plan.Partition("front", DyeColor.RED, 0, 1)), "the first carve");
         check(chest.divide(new Plan.Partition("back", DyeColor.BLUE, 1, 2)), "and a second");
         check(contents.parts() == 2, "two partitions: " + contents.parts());
-        check(!chest.divide(new Plan.Partition("over", DyeColor.LIME, 0, 3)), "overlap refused");
+        check(chest.divide(new Plan.Partition("over", DyeColor.LIME, 0, 3)),
+                "asking for a taken place is put somewhere free instead");
+        check(chest.plan().over(chest.contents().getSlots()).get(2).start() == 3,
+                "which is after the two already there: "
+                        + chest.plan().over(chest.contents().getSlots()).get(2).start());
+        chest.undivide(2);
+        check(contents.parts() == 2, "and taking it away leaves two: " + contents.parts());
 
         contents.insertItem(0, new ItemStack(Items.STONE, 10), false);
         contents.insertItem(lc, new ItemStack(Items.APPLE, 3), false);
