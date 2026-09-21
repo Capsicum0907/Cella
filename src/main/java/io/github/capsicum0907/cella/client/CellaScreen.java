@@ -117,10 +117,12 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
                     () -> send(Screen.hasShiftDown() ? wide : plain)));
         }
 
-        int right = imageWidth - TITLE_X - BUTTON;
-        gear = divides() ? right : -1;
-        homeward = divides() ? right - SPACE - BUTTON : -1;
-        int sort = divides() ? right - 2 * (SPACE + BUTTON) : right;
+        int left = TITLE_X;
+        knob = divides() ? left : -1;
+        if (knob >= 0) {
+            left += BUTTON + SPACE;
+        }
+        int sort = imageWidth - TITLE_X - BUTTON;
 
         ordering = addRenderableWidget(new IconButton(leftPos + sort, topPos + BUTTON_Y,
                 icon("sort"), sorting(), () -> send(CellaMenu.SORT)));
@@ -138,12 +140,14 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
                 icon("next"), Component.translatable("gui.cella.next"), () -> turn(1)));
 
         if (!menu.kind().trait().finds()) {
+            this.titleLabelX = left;
             paging();
             return;
         }
 
-        this.titleLabelX = TITLE_X + FIND_SIZE + SPACE;
-        addRenderableWidget(new IconButton(leftPos + TITLE_X, topPos + FIND_Y, FIND_SIZE,
+        int find = left;
+        this.titleLabelX = find + FIND_SIZE + SPACE;
+        addRenderableWidget(new IconButton(leftPos + find, topPos + FIND_Y, FIND_SIZE,
                 FIND, FIND_SIZE, Component.translatable("gui.cella.find"), false, this::toggle));
 
         looking = new EditBox(font, leftPos + titleLabelX, topPos + TEXT_Y,
@@ -242,14 +246,14 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
         if (modal.open()) {
             return inModal(x, y, button);
         }
-        if (overGear(x, y)) {
-            modal.open(true);
-            peek(Peek.LIST, false);
-            return true;
-        }
-        if (overHome(x, y)) {
-            pane.forget();
-            peek(Peek.LIST, true);
+        if (overKnob(x, y)) {
+            if (listing()) {
+                modal.open(true);
+                peek(Peek.LIST, false);
+            } else {
+                pane.forget();
+                peek(Peek.LIST, true);
+            }
             return true;
         }
         if (listing()) {
@@ -424,9 +428,7 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
         return menu.rows() * CellaMenu.SLOT + 24;
     }
 
-    private int gear = -1;
-
-    private int homeward = -1;
+    private int knob = -1;
 
     private boolean divides() {
         return menu.kind().trait().divides();
@@ -441,16 +443,8 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
                 && y >= gearY() && y < gearY() + BUTTON;
     }
 
-    private boolean overGear(double x, double y) {
-        return at(gear, x, y);
-    }
-
-    private boolean homeShown() {
-        return homeward >= 0 && menu.viewing() != Peek.LIST;
-    }
-
-    private boolean overHome(double x, double y) {
-        return homeShown() && at(homeward, x, y);
+    private boolean overKnob(double x, double y) {
+        return at(knob, x, y);
     }
 
     private void knob(GuiGraphics graphics, int slot, String glyph) {
@@ -462,11 +456,8 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     }
 
     private void knobs(GuiGraphics graphics) {
-        if (gear >= 0) {
-            knob(graphics, gear, GEAR);
-        }
-        if (homeShown()) {
-            knob(graphics, homeward, HOME);
+        if (knob >= 0) {
+            knob(graphics, knob, listing() ? GEAR : HOME);
         }
     }
 
