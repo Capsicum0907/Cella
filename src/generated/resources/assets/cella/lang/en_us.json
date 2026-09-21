@@ -33,7 +33,7 @@
   "gui.cella.find.none": "Nothing here answers to that",
   "gui.cella.next": "Next page",
   "gui.cella.prev": "Previous page",
-  "gui.cella.sort": "Kept in order of %s — press to change",
+  "gui.cella.sort": "order: %s",
   "gui.cella.sort.display": "name",
   "gui.cella.sort.registry": "item id",
   "gui.cella.sort.source": "mod",

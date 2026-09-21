@@ -221,7 +221,7 @@ public final class CellaDataGen {
             }
             add("itemGroup." + Cella.MODID, "Cella");
             add("tooltip.cella.filled", "%s of %s slots used (%s%%)");
-            add("gui.cella.sort", "Kept in order of %s — press to change");
+            add("gui.cella.sort", "order: %s");
             add("gui.cella.sort.registry", "item id");
             add("gui.cella.sort.display", "name");
             add("gui.cella.sort.source", "mod");
