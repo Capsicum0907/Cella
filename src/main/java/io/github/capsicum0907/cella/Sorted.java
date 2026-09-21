@@ -96,7 +96,7 @@ public class Sorted extends ItemStackHandler {
     }
 
     public void straight(Runnable work) {
-        Object2IntMap<ItemStack> before = reporting() ? census() : null;
+        java.util.List<Object2IntMap<ItemStack>> before = reporting() ? census() : null;
         boolean was = raw;
         raw = true;
         try {
@@ -208,7 +208,7 @@ public class Sorted extends ItemStackHandler {
             ItemStack gone = copyWith(stacks.get(slot), 1);
             int had = total(gone, part);
             pull(slot, part);
-            poured(gone, had, total(gone, part));
+            poured(part, gone, had, total(gone, part));
             ran = true;
         }
         if (!stack.isEmpty()) {
@@ -284,7 +284,7 @@ public class Sorted extends ItemStackHandler {
             from.shrink(taken);
             onContentsChanged(last);
         }
-        poured(kind, had, total(kind, part));
+        poured(part, kind, had, total(kind, part));
         return out;
     }
 
@@ -321,7 +321,7 @@ public class Sorted extends ItemStackHandler {
             shifted = true;
             landed = Math.min(landed, where);
         }
-        poured(kind, had, total(kind, part));
+        poured(part, kind, had, total(kind, part));
         return incoming;
     }
 
@@ -419,31 +419,39 @@ public class Sorted extends ItemStackHandler {
         return out;
     }
 
-    private Object2IntMap<ItemStack> census() {
-        Object2IntMap<ItemStack> counts =
-                new Object2IntOpenCustomHashMap<>(ItemStackLinkedSet.TYPE_AND_TAG);
+    private java.util.List<Object2IntMap<ItemStack>> census() {
+        java.util.List<Object2IntMap<ItemStack>> all = new java.util.ArrayList<>();
         for (int part = 0; part < carve.count(); part++) {
+            Object2IntMap<ItemStack> counts =
+                    new Object2IntOpenCustomHashMap<>(ItemStackLinkedSet.TYPE_AND_TAG);
             int end = firstFree(part);
             for (int at = carve.first(part); at < end; at++) {
                 ItemStack stack = stacks.get(at);
                 counts.mergeInt(copyWith(stack, 1), stack.getCount(), Integer::sum);
             }
+            all.add(counts);
         }
-        return counts;
+        return all;
     }
 
-    private void difference(Object2IntMap<ItemStack> before, Object2IntMap<ItemStack> after) {
-        for (Object2IntMap.Entry<ItemStack> was : before.object2IntEntrySet()) {
-            poured(was.getKey(), was.getIntValue(), after.getInt(was.getKey()));
-        }
-        for (Object2IntMap.Entry<ItemStack> now : after.object2IntEntrySet()) {
-            if (!before.containsKey(now.getKey())) {
-                poured(now.getKey(), 0, now.getIntValue());
+    private void difference(java.util.List<Object2IntMap<ItemStack>> before,
+            java.util.List<Object2IntMap<ItemStack>> after) {
+        int parts = Math.min(before.size(), after.size());
+        for (int part = 0; part < parts; part++) {
+            Object2IntMap<ItemStack> was = before.get(part);
+            Object2IntMap<ItemStack> now = after.get(part);
+            for (Object2IntMap.Entry<ItemStack> one : was.object2IntEntrySet()) {
+                poured(part, one.getKey(), one.getIntValue(), now.getInt(one.getKey()));
+            }
+            for (Object2IntMap.Entry<ItemStack> one : now.object2IntEntrySet()) {
+                if (!was.containsKey(one.getKey())) {
+                    poured(part, one.getKey(), 0, one.getIntValue());
+                }
             }
         }
     }
 
-    protected void poured(ItemStack kind, int before, int after) {
+    protected void poured(int part, ItemStack kind, int before, int after) {
     }
 
     protected void moved(int from) {

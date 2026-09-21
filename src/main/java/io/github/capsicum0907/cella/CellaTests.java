@@ -541,6 +541,7 @@ public final class CellaTests {
 
         check(chest.ledger().size() == 1, "a button press does: " + chest.ledger().size());
         Ledger.Move move = chest.ledger().moves().getFirst();
+        check(move.part() == 0, "in the only partition there is: " + move.part());
         check(move.kind().is(Items.COBBLESTONE), "the cobblestone that went in");
         check(move.before() == 0 && move.after() == 40,
                 "from none to forty: " + move.before() + " -> " + move.after());
@@ -571,6 +572,30 @@ public final class CellaTests {
                         chest.ledger().moves().get(0).kind(),
                         chest.ledger().moves().get(1).kind()),
                 "and the two are remembered as different things");
+        helper.succeed();
+    }
+
+    @GameTest(template = TestStructures.FLOOR)
+    public static void theRecordSaysWhichPartition(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper);
+        check(chest.divide(new Plan.Partition("front", DyeColor.RED, 0, 1)), "carve one");
+        check(chest.divide(new Plan.Partition("back", DyeColor.BLUE, 1, 1)), "carve two");
+
+        chest.byHand(() -> {
+            chest.contents().insertItem(0, new ItemStack(Items.STONE, 4), false);
+            chest.contents().insertItem(Plan.LC, new ItemStack(Items.APPLE, 6), false);
+        });
+
+        check(chest.ledger().size() == 2, "two movements: " + chest.ledger().size());
+        Ledger.Move first = chest.ledger().moves().get(0);
+        Ledger.Move second = chest.ledger().moves().get(1);
+        check(first.part() == 0 && first.kind().is(Items.STONE), "the stone in the first");
+        check(second.part() == 1 && second.kind().is(Items.APPLE), "the apple in the second");
+        check(first.moved() == 4 && second.moved() == 6,
+                "with how many moved: " + first.moved() + " " + second.moved());
+
+        check(Plan.fit("a".repeat(30)).length() == Plan.LONGEST,
+                "and a name is cut to twenty");
         helper.succeed();
     }
 

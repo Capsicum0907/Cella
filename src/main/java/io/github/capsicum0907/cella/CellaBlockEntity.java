@@ -76,9 +76,9 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
             }
 
             @Override
-            protected void poured(ItemStack kind, int before, int after) {
+            protected void poured(int part, ItemStack kind, int before, int after) {
                 if (watching) {
-                    ledger.put(kind, before, after);
+                    ledger.put(part, kind, before, after);
                     setChanged();
                 }
             }

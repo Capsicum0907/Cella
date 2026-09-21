@@ -14,7 +14,18 @@ public final class Plan {
 
     public static final int NONE = -1;
 
+    public static final int LONGEST = 20;
+
+    public static String fit(String name) {
+        String clean = name == null ? "" : name;
+        return clean.length() <= LONGEST ? clean : clean.substring(0, LONGEST);
+    }
+
     public record Partition(String name, DyeColor colour, int start, int length) {
+        public Partition {
+            name = fit(name);
+        }
+
         private static final String NAME = "Name";
         private static final String COLOUR = "Colour";
         private static final String START = "Start";

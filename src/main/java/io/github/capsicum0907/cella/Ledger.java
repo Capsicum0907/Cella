@@ -11,13 +11,15 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.world.item.ItemStack;
 
 public final class Ledger {
-    public record Move(ItemStack kind, int before, int after) {
+    public record Move(int part, ItemStack kind, int before, int after) {
+        private static final String PART = "Part";
         private static final String KIND = "Kind";
         private static final String BEFORE = "Before";
         private static final String AFTER = "After";
 
         CompoundTag save(HolderLookup.Provider registries) {
             CompoundTag tag = new CompoundTag();
+            tag.putInt(PART, part);
             tag.put(KIND, kind.save(registries));
             tag.putInt(BEFORE, before);
             tag.putInt(AFTER, after);
@@ -27,7 +29,7 @@ public final class Ledger {
         static Move read(HolderLookup.Provider registries, CompoundTag tag) {
             ItemStack kind = ItemStack.parse(registries, tag.getCompound(KIND))
                     .orElse(ItemStack.EMPTY);
-            return new Move(kind, tag.getInt(BEFORE), tag.getInt(AFTER));
+            return new Move(tag.getInt(PART), kind, tag.getInt(BEFORE), tag.getInt(AFTER));
         }
 
         public int moved() {
@@ -37,13 +39,13 @@ public final class Ledger {
 
     private final Deque<Move> moves = new ArrayDeque<>();
 
-    public void put(ItemStack kind, int before, int after) {
+    public void put(int part, ItemStack kind, int before, int after) {
         if (before == after) {
             return;
         }
         ItemStack one = kind.copy();
         one.setCount(1);
-        moves.addLast(new Move(one, before, after));
+        moves.addLast(new Move(part, one, before, after));
         trim();
     }
 
