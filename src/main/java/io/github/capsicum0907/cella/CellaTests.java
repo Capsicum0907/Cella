@@ -949,8 +949,8 @@ public final class CellaTests {
         CellaMenu both = CellaMenu.at(3, player.getInventory(), helper.absolutePos(WHERE),
                 chest.contents().getSlots(),
                 CellaConfig.rows(KIND), CellaConfig.columns(KIND));
-        check(both.viewing() == Peek.LIST,
-                "two of them open the list instead: " + both.viewing());
+        check(both.viewing() == Peek.WHOLE,
+                "two of them open on everything instead: " + both.viewing());
         helper.succeed();
     }
 
@@ -1038,7 +1038,7 @@ public final class CellaTests {
     }
 
     @GameTest(template = TestStructures.FLOOR)
-    public static void storingGoesWhereItIsPointed(GameTestHelper helper) {
+    public static void storingGoesIntoWhateverIsOpen(GameTestHelper helper) {
         CellaBlockEntity chest = place(helper);
         Player player = helper.makeMockPlayer(GameType.SURVIVAL);
         Sorted contents = chest.contents();
@@ -1048,29 +1048,53 @@ public final class CellaTests {
 
         CellaMenu menu = CellaMenu.at(1, player.getInventory(), helper.absolutePos(WHERE),
                 contents.getSlots(), CellaConfig.rows(KIND), CellaConfig.columns(KIND));
-        menu.view(Peek.WHOLE);
+        check(menu.viewing() == Peek.WHOLE,
+                "a carved chest opens on everything: " + menu.viewing());
 
         int hand = menu.slots.size() - CellaConfig.PLAYER_COLUMNS;
         menu.slots.get(hand).set(new ItemStack(Items.COAL, 32));
         menu.quickMoveStack(player, hand);
         check(menu.slots.get(hand).getItem().getCount() == 32,
-                "nothing moves while nowhere is picked: " + menu.slots.get(hand).getItem());
+                "which is nowhere to store: " + menu.slots.get(hand).getItem());
 
-        menu.into(1);
+        menu.view(1);
         menu.quickMoveStack(player, hand);
         check(menu.slots.get(hand).getItem().isEmpty(),
-                "with the second picked it goes: " + menu.slots.get(hand).getItem());
+                "with the second open it goes: " + menu.slots.get(hand).getItem());
         check(contents.used(0) == 0,
                 "not into the first, which had room: " + contents.used(0));
-        check(contents.used(1) == 1, "but into the one pointed at: " + contents.used(1));
+        check(contents.used(1) == 1, "but into the one being looked at: " + contents.used(1));
         check(contents.getStackInSlot(Plan.LC).is(Items.COAL),
                 "which is where it landed: " + contents.getStackInSlot(Plan.LC));
+        helper.succeed();
+    }
 
-        menu.into(Into.NONE);
-        menu.slots.get(hand).set(new ItemStack(Items.APPLE, 4));
-        menu.quickMoveStack(player, hand);
-        check(menu.slots.get(hand).getItem().getCount() == 4,
-                "and letting it go stops storing again: " + menu.slots.get(hand).getItem());
+    @GameTest(template = TestStructures.FLOOR)
+    public static void whatIsCarriedGoesToThePartitionItIsDroppedOn(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper);
+        Player player = helper.makeMockPlayer(GameType.SURVIVAL);
+        Sorted contents = chest.contents();
+
+        carve(chest, new Plan.Partition("front", DyeColor.RED, 1),
+                new Plan.Partition("back", DyeColor.BLUE, 1));
+
+        CellaMenu menu = CellaMenu.at(1, player.getInventory(), helper.absolutePos(WHERE),
+                contents.getSlots(), CellaConfig.rows(KIND), CellaConfig.columns(KIND));
+
+        menu.setCarried(new ItemStack(Items.DIAMOND, 12));
+        menu.carryInto(1);
+        check(menu.getCarried().isEmpty(),
+                "the carried diamonds are put down: " + menu.getCarried());
+        check(contents.used(0) == 0 && contents.used(1) == 1,
+                "in the one they were dropped on: " + contents.used(0) + " " + contents.used(1));
+        check(contents.getStackInSlot(Plan.LC).getCount() == 12,
+                "all of them: " + contents.getStackInSlot(Plan.LC));
+
+        menu.setCarried(new ItemStack(Items.APPLE, 5));
+        menu.carryInto(7);
+        check(menu.getCarried().getCount() == 5,
+                "a partition that is not there takes nothing: " + menu.getCarried());
+        check(items(contents) == 12, "and the chest is unchanged: " + items(contents));
         helper.succeed();
     }
 
