@@ -119,7 +119,7 @@ public final class Plan {
     }
 
     public boolean room(Partition wanted, int slots, int ignoring) {
-        if (wanted.length() < 1 || wanted.start() < 0
+        if (wanted.length() < 0 || wanted.start() < 0
                 || wanted.past() > slots) {
             return false;
         }

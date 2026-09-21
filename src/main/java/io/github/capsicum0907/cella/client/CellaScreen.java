@@ -290,9 +290,9 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
                 net.neoforged.neoforge.network.PacketDistributor.sendToServer(
                         Edit.setting(modal.palette(), slice.name(), picked, slice.start(),
                                 slice.length()));
-                modal.pick(modal.palette());
-                return true;
             }
+            modal.shut();
+            return true;
         }
         if (modal.overClose(x, y, modalLeft(), modalTop())) {
             commit();
@@ -319,8 +319,8 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
         if (modal.adding(shelf, row)) {
             net.neoforged.neoforge.network.PacketDistributor.sendToServer(Edit.adding(
                     "Partition " + (EditModal.count(shelf) + 1),
-                    net.minecraft.world.item.DyeColor.byId(EditModal.count(shelf) % 16),
-                    nextGap(shelf), 1));
+                    net.minecraft.world.item.DyeColor.byId(1 + EditModal.count(shelf) % 15),
+                    nextGap(shelf), 0));
             return true;
         }
         int column = modal.columnOf(shelf, x, modalLeft(), modalWide());
@@ -477,6 +477,29 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
         cell.setFocused(false);
         if (done != null) {
             net.neoforged.neoforge.network.PacketDistributor.sendToServer(done);
+        }
+    }
+
+    private final java.util.List<net.minecraft.client.gui.components.AbstractWidget> veiled =
+            new java.util.ArrayList<>();
+
+    private void veil(boolean on) {
+        if (on) {
+            if (!veiled.isEmpty()) {
+                return;
+            }
+            for (net.minecraft.client.gui.components.events.GuiEventListener child : children()) {
+                if (child instanceof net.minecraft.client.gui.components.AbstractWidget one
+                        && one.visible) {
+                    one.visible = false;
+                    veiled.add(one);
+                }
+            }
+        } else {
+            for (net.minecraft.client.gui.components.AbstractWidget one : veiled) {
+                one.visible = true;
+            }
+            veiled.clear();
         }
     }
 
@@ -640,6 +663,7 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partial) {
+        veil(modal.open());
         super.render(graphics, mouseX, mouseY, partial);
         renderTooltip(graphics, mouseX, mouseY);
         overlay(graphics, mouseX, mouseY, partial);

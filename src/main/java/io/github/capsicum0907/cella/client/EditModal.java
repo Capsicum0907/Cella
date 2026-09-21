@@ -156,6 +156,10 @@ public final class EditModal {
         palette = palette == row ? -1 : row;
     }
 
+    public void shut() {
+        palette = -1;
+    }
+
     public int palette() {
         return palette;
     }
@@ -215,7 +219,7 @@ public final class EditModal {
             return null;
         }
         return Edit.setting(editing, slice.name(), slice.dye(), slice.start(),
-                Math.max(1, many));
+                Math.max(0, many));
     }
 
     public void draw(GuiGraphics graphics, Font font, Shelf shelf, int x, int y,

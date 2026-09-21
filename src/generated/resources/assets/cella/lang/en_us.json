@@ -39,7 +39,7 @@
   "gui.cella.next": "Next page",
   "gui.cella.partition.edit": "Edit partitions",
   "gui.cella.partition.none": "Pick one to see what is in it",
-  "gui.cella.partition.share": "%s%% of the chest",
+  "gui.cella.partition.share": "%s%% of chest",
   "gui.cella.partition.whole": "The whole chest",
   "gui.cella.prev": "Previous page",
   "gui.cella.sort": "order: %s",

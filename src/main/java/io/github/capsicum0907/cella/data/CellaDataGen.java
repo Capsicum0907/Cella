@@ -183,7 +183,7 @@ public final class CellaDataGen {
             add("gui.cella.find.none", "Nothing here answers to that");
             add("gui.cella.partition.whole", "The whole chest");
             add("gui.cella.partition.none", "Pick one to see what is in it");
-            add("gui.cella.partition.share", "%s%% of the chest");
+            add("gui.cella.partition.share", "%s%% of chest");
             add("gui.cella.partition.edit", "Edit partitions");
             add("gui.cella.edit.name", "Name");
             add("gui.cella.edit.share", "Share");

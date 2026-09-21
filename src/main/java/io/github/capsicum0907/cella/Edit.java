@@ -25,7 +25,7 @@ public record Edit(int index, String name, int colour, int start, int length, bo
     public static final int ADDING = -1;
 
     public static Edit removing(int index) {
-        return new Edit(index, "", 0, 0, 1, true);
+        return new Edit(index, "", 0, 0, 0, true);
     }
 
     public static Edit adding(String name, DyeColor colour, int start, int length) {
@@ -37,7 +37,7 @@ public record Edit(int index, String name, int colour, int start, int length, bo
     }
 
     public Plan.Partition wanted() {
-        return new Plan.Partition(name, DyeColor.byId(colour), start, Math.max(1, length));
+        return new Plan.Partition(name, DyeColor.byId(colour), start, Math.max(0, length));
     }
 
     @Override
