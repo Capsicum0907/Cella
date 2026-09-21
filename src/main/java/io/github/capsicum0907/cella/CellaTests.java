@@ -862,6 +862,69 @@ public final class CellaTests {
     }
 
     @GameTest(template = TestStructures.FLOOR)
+    public static void takingOneAwayBringsTheRestForward(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper);
+        Sorted contents = chest.contents();
+        int lc = Plan.LC;
+
+        carve(chest, new Plan.Partition("first", DyeColor.RED, 2),
+                new Plan.Partition("second", DyeColor.BLUE, 1),
+                new Plan.Partition("third", DyeColor.LIME, 1));
+
+        contents.insertItem(2 * lc, new ItemStack(Items.APPLE, 5), false);
+        contents.insertItem(3 * lc, new ItemStack(Items.DIAMOND, 9), false);
+        check(contents.used(1) == 1 && contents.used(2) == 1,
+                "a slot in each of the last two: " + contents.used(1) + " " + contents.used(2));
+
+        check(chest.undivide(0), "the empty first one goes away");
+        check(chest.plan().over(contents.getSlots()).size() == 2,
+                "leaving two: " + chest.plan().over(contents.getSlots()).size());
+        check(chest.plan().start(0) == 0 && chest.plan().start(1) == 1,
+                "packed to the front: " + chest.plan().start(0) + " " + chest.plan().start(1));
+
+        check(contents.getStackInSlot(0).is(Items.APPLE)
+                && contents.getStackInSlot(0).getCount() == 5,
+                "the apples slid forward: " + contents.getStackInSlot(0));
+        check(contents.getStackInSlot(lc).is(Items.DIAMOND)
+                && contents.getStackInSlot(lc).getCount() == 9,
+                "and the diamonds after them: " + contents.getStackInSlot(lc));
+        check(items(contents) == 14, "with nothing lost: " + items(contents));
+        helper.succeed();
+    }
+
+    @GameTest(template = TestStructures.FLOOR)
+    public static void aPlanTooSmallForWhatItFindsKeepsItAnyway(GameTestHelper helper) {
+        HolderLookup.Provider registries = helper.getLevel().registryAccess();
+        ItemStackHandler raw = new ItemStackHandler(KIND.slots());
+        raw.setStackInSlot(0, new ItemStack(Items.STONE, 3));
+        raw.setStackInSlot(60, new ItemStack(Items.APPLE, 4));
+        raw.setStackInSlot(120, new ItemStack(Items.DIAMOND, 5));
+        CompoundTag filed = raw.serializeNBT(registries);
+
+        CompoundTag one = new CompoundTag();
+        one.putString("Name", "small");
+        one.putInt("Colour", DyeColor.RED.getId());
+        one.putInt("Length", 1);
+        ListTag carved = new ListTag();
+        carved.add(one);
+        CompoundTag plan = new CompoundTag();
+        plan.put("Carved", carved);
+        plan.putInt("Assigned", 0);
+        filed.put("Plan", plan);
+
+        CellaBlockEntity chest = place(helper);
+        chest.restore(registries, new Kept.Chest(filed, 0));
+
+        check(chest.plan().over(chest.contents().getSlots()).size() == 1,
+                "one partition came back");
+        check(items(chest.contents()) == 12,
+                "and everything that was outside it came in: " + items(chest.contents()));
+        check(chest.contents().used(0) == 3,
+                "into three slots: " + chest.contents().used(0));
+        helper.succeed();
+    }
+
+    @GameTest(template = TestStructures.FLOOR)
     public static void theLastPartitionStays(GameTestHelper helper) {
         CellaBlockEntity chest = place(helper);
         check(!chest.undivide(0), "the only partition there is cannot be taken away");

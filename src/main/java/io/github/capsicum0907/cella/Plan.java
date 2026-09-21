@@ -183,9 +183,9 @@ public final class Plan {
         ListTag list = tag.getList(CARVED, Tag.TAG_COMPOUND);
         for (int at = 0; at < list.size(); at++) {
             Partition one = Partition.read(list.getCompound(at));
-            if (room(one.length(), slots, NONE)) {
-                carved.add(one);
-            }
+            int room = Math.max(0, capacity(slots) - taken());
+            carved.add(new Partition(one.name(), one.colour(),
+                    Math.min(one.length(), room)));
         }
         boolean had = !carved.isEmpty();
         ensure(slots);

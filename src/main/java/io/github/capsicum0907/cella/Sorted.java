@@ -155,28 +155,29 @@ public class Sorted extends ItemStackHandler {
     }
 
     private void spill(java.util.List<ItemStack> left) {
-        int spare = 0;
-        int any = 0;
         for (ItemStack one : left) {
             if (one.isEmpty()) {
                 continue;
             }
-            while (spare < getSlots()
-                    && (covered(carve, spare) || !stacks.get(spare).isEmpty())) {
-                spare++;
+            int at = free(true);
+            if (at < 0) {
+                at = free(false);
             }
-            int at = spare;
-            if (at >= getSlots()) {
-                while (any < getSlots() && !stacks.get(any).isEmpty()) {
-                    any++;
-                }
-                at = any;
-            }
-            if (at >= getSlots()) {
-                return;
+            if (at < 0) {
+                throw new IllegalStateException(
+                        "nowhere left in a chest of " + getSlots() + " for " + one);
             }
             stacks.set(at, one);
         }
+    }
+
+    private int free(boolean spare) {
+        for (int at = 0; at < getSlots(); at++) {
+            if (stacks.get(at).isEmpty() && (!spare || !covered(carve, at))) {
+                return at;
+            }
+        }
+        return -1;
     }
 
     private static boolean covered(Carve of, int slot) {
