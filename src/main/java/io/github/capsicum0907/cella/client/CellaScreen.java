@@ -525,7 +525,7 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     }
 
     private boolean listing() {
-        return menu.viewing() == Peek.LIST && ShelfHolder.latest().slices().size() > 1;
+        return menu.viewing() == Peek.LIST && !ShelfHolder.latest().slices().isEmpty();
     }
 
     private int paneLeft() {

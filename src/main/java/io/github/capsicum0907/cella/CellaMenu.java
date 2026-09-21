@@ -173,9 +173,14 @@ public class CellaMenu extends AbstractContainerMenu {
 
         if (server) {
             access.execute((level, pos) -> {
-                if (level.getBlockEntity(pos) instanceof CellaBlockEntity chest
-                        && chest.plan().divided()) {
+                if (!(level.getBlockEntity(pos) instanceof CellaBlockEntity chest)) {
+                    return;
+                }
+                if (chest.plan().divided()) {
+                    viewing = Peek.LIST;
                     window.limit(0, 0);
+                } else {
+                    viewing = 0;
                 }
             });
         }
