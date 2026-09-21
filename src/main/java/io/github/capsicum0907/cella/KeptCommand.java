@@ -66,18 +66,17 @@ public final class KeptCommand {
                                         .executes(KeptCommand::forget))))
                 .then(Commands.literal("partition")
                         .then(Commands.literal("add")
-                                .then(Commands.argument("start", IntegerArgumentType.integer(0))
-                                        .then(Commands.argument("length",
-                                                        IntegerArgumentType.integer(1))
-                                                .then(Commands.argument("name",
-                                                                StringArgumentType.string())
+                                .then(Commands.argument("length",
+                                                IntegerArgumentType.integer(0))
+                                        .then(Commands.argument("name",
+                                                        StringArgumentType.string())
+                                                .executes(context -> add(context,
+                                                        Plan.FIRST))
+                                                .then(Commands.argument("colour",
+                                                                StringArgumentType.word())
+                                                        .suggests(DYES)
                                                         .executes(context -> add(context,
-                                                                DyeColor.WHITE))
-                                                        .then(Commands.argument("colour",
-                                                                        StringArgumentType.word())
-                                                                .suggests(DYES)
-                                                                .executes(context -> add(context,
-                                                                        dye(context))))))))
+                                                                dye(context)))))))
                         .then(Commands.literal("remove")
                                 .then(Commands.argument("index",
                                                 IntegerArgumentType.integer(0))
@@ -120,7 +119,6 @@ public final class KeptCommand {
         }
         boolean done = chest.divide(new Plan.Partition(
                 StringArgumentType.getString(context, "name"), colour,
-                IntegerArgumentType.getInteger(context, "start"),
                 IntegerArgumentType.getInteger(context, "length")));
         context.getSource().sendSuccess(() -> Component.literal(
                 done ? "Carved." : "It does not fit there."), false);
@@ -168,7 +166,7 @@ public final class KeptCommand {
             int index = at;
             context.getSource().sendSuccess(() -> Component.literal(
                     index + ": " + one.name() + " [" + one.colour().getName() + "] "
-                            + one.start() + "+" + one.length() + " LC  "
+                            + chest.plan().start(index) + "+" + one.length() + " LC  "
                             + chest.contents().used(index) + "/" + one.slots()), false);
         }
         return carved.size();

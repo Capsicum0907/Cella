@@ -42,6 +42,10 @@ public final class EditModal {
     public static final int NAME = 0;
     public static final int SIZE = 1;
 
+    public static final int SWATCH_COLUMN = -2;
+    public static final int BIN_COLUMN = -3;
+    public static final int PACK_COLUMN = -4;
+
     private boolean open;
 
     private int scroll;
@@ -76,7 +80,7 @@ public final class EditModal {
     }
 
     public static int count(Shelf shelf) {
-        return shelf.divided() ? shelf.slices().size() : 0;
+        return shelf.slices().size();
     }
 
     private int rows(Shelf shelf) {
@@ -96,8 +100,16 @@ public final class EditModal {
         return true;
     }
 
+    private int binLeft(int x, int wide) {
+        return x + wide - PAD - BIN;
+    }
+
+    private int packLeft(int x, int wide) {
+        return binLeft(x, wide) - PAD - BIN;
+    }
+
     private int columnNumber(int x, int wide, int which) {
-        return x + wide - PAD - BIN - PAD - NUMBER * (3 - which);
+        return packLeft(x, wide) - PAD - NUMBER * (3 - which);
     }
 
     private int nameLeft(int x) {
@@ -136,8 +148,11 @@ public final class EditModal {
         if (mouseX >= size && mouseX < size + NUMBER) {
             return SIZE;
         }
-        if (mouseX >= x + wide - PAD - BIN && mouseX < x + wide - PAD) {
-            return -3;
+        if (mouseX >= binLeft(x, wide) && mouseX < binLeft(x, wide) + BIN) {
+            return BIN_COLUMN;
+        }
+        if (mouseX >= packLeft(x, wide) && mouseX < packLeft(x, wide) + BIN) {
+            return PACK_COLUMN;
         }
         return -1;
     }
@@ -212,7 +227,7 @@ public final class EditModal {
         Shelf.Slice slice = shelf.slices().get(editing);
         String said = box.getValue();
         if (field == NAME) {
-            return Edit.setting(editing, said, slice.dye(), slice.start(), slice.length());
+            return Edit.setting(editing, said, slice.dye(), slice.length());
         }
         int many;
         try {
@@ -220,8 +235,7 @@ public final class EditModal {
         } catch (NumberFormatException wrong) {
             return null;
         }
-        return Edit.setting(editing, slice.name(), slice.dye(), slice.start(),
-                Math.max(0, many));
+        return Edit.setting(editing, slice.name(), slice.dye(), Math.max(0, many));
     }
 
     public void draw(GuiGraphics graphics, Font font, Shelf shelf, int x, int y,
@@ -255,7 +269,7 @@ public final class EditModal {
         bar(graphics, shelf, x + PAD, barY, wide - 2 * PAD);
         int carved = 0;
         for (Shelf.Slice slice : shelf.slices()) {
-            carved += shelf.divided() ? slice.length() : 0;
+            carved += slice.length();
         }
         int whole = shelf.slots() / Plan.LC;
         graphics.drawString(font, Component.translatable("gui.cella.edit.carved",
@@ -288,8 +302,11 @@ public final class EditModal {
                 0xFF000000 | slice.dye().getTextureDiffuseColor());
 
         if (editing != at) {
-            graphics.drawString(font, font.plainSubstrByWidth(slice.name(), nameWide(x, wide)),
-                    nameLeft(x), top + 3, TEXT, false);
+            String name = slice.name().isEmpty()
+                    ? Component.translatable("gui.cella.partition.unnamed").getString()
+                    : slice.name();
+            graphics.drawString(font, font.plainSubstrByWidth(name, nameWide(x, wide)),
+                    nameLeft(x), top + 3, slice.name().isEmpty() ? FAINT : TEXT, false);
         }
 
         int share = shelf.slots() <= 0 ? 0 : Math.round(slice.slots() * 100.0F / shelf.slots());
@@ -301,8 +318,12 @@ public final class EditModal {
         graphics.drawString(font, Math.round(slice.filled() * 100.0F) + "%",
                 columnNumber(x, wide, 2), top + 3, FAINT, false);
 
+        boolean packed = slice.used() == slice.slots();
+        graphics.drawString(font, "»«", packLeft(x, wide), top + 3,
+                packed ? STOPPED : TEXT, false);
+
         boolean empty = slice.used() == 0;
-        graphics.drawString(font, "✖", x + wide - PAD - BIN, top + 3,
+        graphics.drawString(font, "✖", binLeft(x, wide), top + 3,
                 empty ? 0xB03030 : STOPPED, false);
     }
 

@@ -176,7 +176,7 @@ public class CellaMenu extends AbstractContainerMenu {
                 if (!(level.getBlockEntity(pos) instanceof CellaBlockEntity chest)) {
                     return;
                 }
-                if (chest.plan().divided()) {
+                if (chest.plan().split()) {
                     viewing = Peek.LIST;
                     window.limit(0, 0);
                 } else {
@@ -277,14 +277,13 @@ public class CellaMenu extends AbstractContainerMenu {
                 return;
             }
             int slots = chest.contents().getSlots();
-            java.util.List<Plan.Partition> carved = chest.plan().over(slots);
-            if (index < 0 || index >= carved.size()) {
+            if (index < 0 || index >= chest.plan().count(slots)) {
                 viewing = Peek.LIST;
                 window.limit(0, 0);
             } else {
                 viewing = index;
-                Plan.Partition one = carved.get(index);
-                window.limit(one.first(), Math.min(slots, one.past()) - one.first());
+                int from = chest.plan().first(index, slots);
+                window.limit(from, chest.plan().past(index, slots) - from);
             }
             seen = revision();
             sendAllDataToRemote();

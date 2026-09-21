@@ -83,6 +83,8 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
                 }
             }
         };
+        plan.ensure(contents.getSlots());
+        contents.adopt(carving());
     }
 
     public Sorted contents() {
@@ -96,28 +98,38 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
     }
 
     private Sorted.Carve carving() {
-        int slots = contents.getSlots();
         return new Sorted.Carve() {
             @Override
             public int count() {
-                return plan.count(slots);
+                return plan.count(contents.getSlots());
             }
 
             @Override
             public int first(int index) {
-                return Math.min(slots, plan.at(index, slots).first());
+                return plan.first(index, contents.getSlots());
             }
 
             @Override
             public int past(int index) {
-                return Math.min(slots, plan.at(index, slots).past());
+                return plan.past(index, contents.getSlots());
             }
         };
     }
 
     public void replan(Runnable change) {
         change.run();
-        contents.carve(carving());
+        contents.adopt(carving());
+        filed();
+    }
+
+    public void replan(Runnable change, java.util.function.IntUnaryOperator where) {
+        Sorted.Carve was = contents.frozen();
+        change.run();
+        contents.carve(was, carving(), where);
+        filed();
+    }
+
+    private void filed() {
         setChanged();
         if (level != null) {
             invalidateCapabilities();
@@ -126,57 +138,32 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
     }
 
     public net.neoforged.neoforge.items.IItemHandlerModifiable outlet() {
-        if (!plan.divided()) {
-            return contents;
-        }
         int at = plan.assigned();
         if (at == Plan.NONE) {
             return Outlet.NOTHING;
         }
         int slots = contents.getSlots();
-        Plan.Partition one = plan.at(at, slots);
-        return new Outlet(contents, one.first(), Math.min(slots, one.past()) - one.first());
+        int from = plan.first(at, slots);
+        return new Outlet(contents, from, plan.past(at, slots) - from);
     }
 
     public boolean resize(int index, Plan.Partition wanted) {
         int slots = contents.getSlots();
-        if (wanted.slots() < contents.used(index)) {
+        if (index < 0 || index >= plan.count(slots)
+                || wanted.slots() < contents.used(index)) {
             return false;
         }
-        java.util.List<Plan.Partition> carved = plan.over(slots);
-        if (index < 0 || index >= carved.size()) {
-            return false;
-        }
-        int start = carved.get(index).start();
-        Plan.Partition here = new Plan.Partition(wanted.name(), wanted.colour(),
-                start, wanted.length());
-        if (!plan.room(here, slots, index)) {
-            int gap = plan.gapFor(wanted.length(), slots, index);
-            if (gap == Plan.NONE) {
-                return false;
-            }
-            here = new Plan.Partition(wanted.name(), wanted.colour(), gap, wanted.length());
-        }
-        Plan.Partition settled = here;
         boolean[] done = new boolean[1];
-        replan(() -> done[0] = plan.replace(index, settled, slots));
+        replan(() -> done[0] = plan.replace(index, wanted, slots), part -> part);
         return done[0];
     }
 
     public int firstGap() {
-        int slots = contents.getSlots();
-        if (!plan.divided()) {
-            return 0;
-        }
-        java.util.List<Plan.Partition> carved = plan.over(slots);
-        int at = 0;
-        for (Plan.Partition one : carved) {
-            if (one.start() > at) {
-                return at;
-            }
-            at = Math.max(at, one.start() + one.length());
-        }
-        return at * Plan.LC < slots ? at : Plan.NONE;
+        return plan.taken();
+    }
+
+    public int spare() {
+        return Plan.capacity(contents.getSlots()) - plan.taken();
     }
 
     public boolean divides() {
@@ -188,12 +175,8 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
             return false;
         }
         int slots = contents.getSlots();
-        int gap = plan.gapFor(wanted.length(), slots, Plan.NONE);
-        Plan.Partition placed = gap == Plan.NONE
-                ? wanted
-                : new Plan.Partition(wanted.name(), wanted.colour(), gap, wanted.length());
         boolean[] done = new boolean[1];
-        replan(() -> done[0] = plan.add(placed, slots));
+        replan(() -> done[0] = plan.add(wanted, slots));
         return done[0];
     }
 
@@ -201,8 +184,10 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
         if (contents.used(index) > 0) {
             return false;
         }
-        replan(() -> plan.drop(index));
-        return true;
+        boolean[] done = new boolean[1];
+        replan(() -> done[0] = plan.drop(index),
+                part -> part < index ? part : (part > index ? part - 1 : -1));
+        return done[0];
     }
 
     private final Ledger ledger = new Ledger();
@@ -312,9 +297,7 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
         if (ledger.any()) {
             tag.put(HISTORY, ledger.save(registries));
         }
-        if (plan.any()) {
-            tag.put(PLAN, plan.save());
-        }
+        tag.put(PLAN, plan.save());
         tag.putInt(EXPERIENCE, experience);
 
         tag.putInt(FUSE, fuse);
@@ -326,7 +309,7 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
         contents.deserializeNBT(registries, tag.getCompound(CONTENTS));
 
         plan.load(tag.getCompound(PLAN), contents.getSlots());
-        contents.carve(carving());
+        contents.adopt(carving());
         ledger.load(registries, tag.getList(HISTORY, Ledger.TAG));
 
         experience = tag.getInt(EXPERIENCE);
@@ -360,9 +343,7 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
         int grown = experience;
         Kept.of(level).ifPresent(kept -> {
             CompoundTag filed = contents.serializeNBT(level.registryAccess());
-            if (plan.any()) {
-                filed.put(PLAN, plan.save());
-            }
+            filed.put(PLAN, plan.save());
             java.util.UUID id = kept.put(filed, kind(), level.getGameTime(), grown);
 
             contents.setSize(contents.getSlots());

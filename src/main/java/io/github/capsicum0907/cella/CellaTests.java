@@ -578,15 +578,14 @@ public final class CellaTests {
     @GameTest(template = TestStructures.FLOOR)
     public static void theShelfSaysWhatEachPartitionHolds(GameTestHelper helper) {
         CellaBlockEntity chest = place(helper);
-        check(chest.divide(new Plan.Partition("front", DyeColor.RED, 0, 1)), "carve one");
-        check(chest.divide(new Plan.Partition("back", DyeColor.BLUE, 1, 2)), "carve two");
+        carve(chest, new Plan.Partition("front", DyeColor.RED, 1),
+                new Plan.Partition("back", DyeColor.BLUE, 2));
 
         chest.contents().insertItem(0, new ItemStack(Items.STONE, 100), false);
         chest.contents().insertItem(0, new ItemStack(Items.APPLE, 3), false);
         chest.contents().insertItem(Plan.LC, new ItemStack(Items.DIAMOND, 1), false);
 
         Shelf all = Shelf.of(chest, Peek.LIST);
-        check(all.divided(), "the shelf says it is divided");
         check(all.slices().size() == 2, "two slices: " + all.slices().size());
         check(all.slices().get(0).name().equals("front"), "named");
         check(all.slices().get(0).dye() == DyeColor.RED, "and coloured");
@@ -610,16 +609,17 @@ public final class CellaTests {
 
         CellaBlockEntity plain = place(helper, Kind.SUPER_PERFECT);
         Shelf whole = Shelf.of(plain, Peek.LIST);
-        check(!whole.divided(), "an uncarved chest says it is not divided");
-        check(whole.slices().size() == 1, "but still offers one slice to look at");
+        check(whole.slices().size() == 1, "a fresh chest is one partition");
+        check(whole.slices().get(0).slots() == plain.contents().getSlots(),
+                "spanning the whole of it: " + whole.slices().get(0).slots());
         helper.succeed();
     }
 
     @GameTest(template = TestStructures.FLOOR)
     public static void theRecordSaysWhichPartition(GameTestHelper helper) {
         CellaBlockEntity chest = place(helper);
-        check(chest.divide(new Plan.Partition("front", DyeColor.RED, 0, 1)), "carve one");
-        check(chest.divide(new Plan.Partition("back", DyeColor.BLUE, 1, 1)), "carve two");
+        carve(chest, new Plan.Partition("front", DyeColor.RED, 1),
+                new Plan.Partition("back", DyeColor.BLUE, 1));
 
         chest.byHand(() -> {
             chest.contents().insertItem(0, new ItemStack(Items.STONE, 4), false);
@@ -645,10 +645,10 @@ public final class CellaTests {
         int lc = Plan.LC;
 
         check(chest.outlet().getSlots() == chest.contents().getSlots(),
-                "undivided, the whole chest is offered");
+                "a fresh chest offers the whole of itself");
 
-        check(chest.divide(new Plan.Partition("front", DyeColor.RED, 0, 1)), "carve one");
-        check(chest.divide(new Plan.Partition("back", DyeColor.BLUE, 1, 1)), "carve two");
+        carve(chest, new Plan.Partition("front", DyeColor.RED, 1),
+                new Plan.Partition("back", DyeColor.BLUE, 1));
 
         check(chest.outlet().getSlots() == 0, "divided, nothing is offered until it is assigned");
         check(chest.outlet().insertItem(0, new ItemStack(Items.STONE, 1), false).getCount() == 1,
@@ -676,7 +676,7 @@ public final class CellaTests {
 
         CellaBlockEntity small = place(helper, Kind.IMPERFECT);
         check(!small.divides(), "an Imperfect does not divide");
-        check(!small.divide(new Plan.Partition("no", DyeColor.RED, 0, 1)), "and refuses to");
+        check(!small.divide(new Plan.Partition("no", DyeColor.RED, 1)), "and refuses to");
         check(small.plan().over(small.contents().getSlots()).size() == 1,
                 "but is still one partition inside");
         check(small.contents().parts() == 1, "which is what the store sees");
@@ -686,8 +686,8 @@ public final class CellaTests {
     @GameTest(template = TestStructures.FLOOR)
     public static void partitionsComeBackWithTheContents(GameTestHelper helper) {
         CellaBlockEntity chest = place(helper, KIND);
-        check(chest.divide(new Plan.Partition("kit", DyeColor.LIME, 0, 2)), "carve one");
-        check(chest.divide(new Plan.Partition("ore", DyeColor.PURPLE, 2, 3)), "carve two");
+        carve(chest, new Plan.Partition("kit", DyeColor.LIME, 2),
+                new Plan.Partition("ore", DyeColor.PURPLE, 3));
         chest.contents().insertItem(0, new ItemStack(Items.STONE, 5), false);
         chest.replan(() -> chest.plan().assign(1));
 
@@ -695,7 +695,7 @@ public final class CellaTests {
                 () -> new GameTestAssertException("there should be a store on a server"));
         chest.handOver(helper.getLevel(), helper.absolutePos(WHERE));
         check(chest.plan().over(chest.contents().getSlots()).size() == 1,
-                "the broken one keeps nothing");
+                "the broken one is a fresh chest again");
 
         Held held = dropped(helper).stream()
                 .map(stack -> stack.get(CellaRegistry.KEPT.get()))
@@ -721,24 +721,19 @@ public final class CellaTests {
     @GameTest(template = TestStructures.FLOOR)
     public static void fourEmptyThenTwoHalves(GameTestHelper helper) {
         CellaBlockEntity chest = place(helper, Kind.JUNIOR);
-        for (int at = 0; at < 4; at++) {
-            check(chest.divide(new Plan.Partition("p" + at, DyeColor.RED, 0, 0)),
-                    "an empty one, all asking for slot nought like the screen does");
-        }
+        carve(chest, new Plan.Partition("p0", DyeColor.RED, 0),
+                new Plan.Partition("p1", DyeColor.RED, 0),
+                new Plan.Partition("p2", DyeColor.RED, 0),
+                new Plan.Partition("p3", DyeColor.RED, 0));
         check(chest.plan().over(chest.contents().getSlots()).size() == 4,
                 "four of them: " + chest.plan().over(chest.contents().getSlots()).size());
 
-        check(chest.resize(0, new Plan.Partition("p0", DyeColor.RED, 0, 32)),
+        check(chest.resize(0, new Plan.Partition("p0", DyeColor.RED, 32)),
                 "the first grows to thirty-two");
 
-        java.util.List<Plan.Partition> now = chest.plan().over(chest.contents().getSlots());
-        for (int at = 0; at < now.size(); at++) {
-            check(true, at + ": start=" + now.get(at).start()
-                    + " length=" + now.get(at).length());
-        }
-        check(chest.resize(1, new Plan.Partition("p1", DyeColor.BLUE, 32, 32)),
-                "and the second should take the other half, start="
-                        + now.get(1).start() + " length=" + now.get(1).length());
+        check(chest.resize(1, new Plan.Partition("p1", DyeColor.BLUE, 32)),
+                "and the second takes the other half");
+        check(chest.spare() == 0, "which leaves nothing free: " + chest.spare());
         helper.succeed();
     }
 
@@ -748,13 +743,13 @@ public final class CellaTests {
         int all = chest.contents().getSlots() / Plan.LC;
         check(all == 64, "a Cella Jr. is sixty-four LC: " + all);
 
-        check(chest.divide(new Plan.Partition("one", DyeColor.RED, 0, 0)), "an empty first");
-        check(chest.resize(0, new Plan.Partition("one", DyeColor.RED, 0, 32)),
+        carve(chest, new Plan.Partition("one", DyeColor.RED, 0));
+        check(chest.resize(0, new Plan.Partition("one", DyeColor.RED, 32)),
                 "grown to half the chest");
 
         check(chest.firstGap() == 32, "the gap starts at thirty-two: " + chest.firstGap());
-        check(chest.divide(new Plan.Partition("two", DyeColor.BLUE, 32, 0)), "an empty second");
-        check(chest.resize(1, new Plan.Partition("two", DyeColor.BLUE, 32, 32)),
+        check(chest.divide(new Plan.Partition("two", DyeColor.BLUE, 0)), "an empty second");
+        check(chest.resize(1, new Plan.Partition("two", DyeColor.BLUE, 32)),
                 "and the other half fits exactly");
 
         check(chest.plan().over(chest.contents().getSlots()).get(1).length() == 32,
@@ -769,15 +764,14 @@ public final class CellaTests {
         Sorted contents = chest.contents();
         int lc = Plan.LC;
 
-        check(chest.divide(new Plan.Partition("front", DyeColor.RED, 0, 1)), "the first carve");
-        check(chest.divide(new Plan.Partition("back", DyeColor.BLUE, 1, 2)), "and a second");
+        carve(chest, new Plan.Partition("front", DyeColor.RED, 1),
+                new Plan.Partition("back", DyeColor.BLUE, 2));
         check(contents.parts() == 2, "two partitions: " + contents.parts());
-        check(chest.divide(new Plan.Partition("over", DyeColor.LIME, 0, 3)),
-                "asking for a taken place is put somewhere free instead");
-        check(chest.plan().over(chest.contents().getSlots()).get(2).start() == 3,
-                "which is after the two already there: "
-                        + chest.plan().over(chest.contents().getSlots()).get(2).start());
-        chest.undivide(2);
+        check(chest.divide(new Plan.Partition("over", DyeColor.LIME, 3)),
+                "a third one takes the room that is left");
+        check(chest.plan().start(2) == 3,
+                "which begins after the two already there: " + chest.plan().start(2));
+        check(chest.undivide(2), "and it goes away again");
         check(contents.parts() == 2, "and taking it away leaves two: " + contents.parts());
 
         contents.insertItem(0, new ItemStack(Items.STONE, 10), false);
@@ -800,23 +794,97 @@ public final class CellaTests {
     }
 
     @GameTest(template = TestStructures.FLOOR)
-    public static void carvingAnUndividedChestKeepsWhatIsInIt(GameTestHelper helper) {
+    public static void addingAPartitionKeepsWhatWasAlreadyThere(GameTestHelper helper) {
         CellaBlockEntity chest = place(helper);
         Sorted contents = chest.contents();
+
+        check(chest.plan().over(contents.getSlots()).size() == 1,
+                "a fresh chest is one partition over the whole of it");
 
         contents.insertItem(0, new ItemStack(Items.STONE, 100), false);
         contents.insertItem(0, new ItemStack(Items.APPLE, 7), false);
         int had = items(contents);
         check(had == 107, "what went in: " + had);
 
-        check(chest.divide(new Plan.Partition("new", DyeColor.RED, 0, 0)),
-                "an empty partition on a chest that was never divided");
+        check(chest.divide(new Plan.Partition("new", DyeColor.RED, 0)),
+                "an empty partition beside it");
         check(items(contents) == had, "leaves every item where it was: " + items(contents));
+        check(contents.getStackInSlot(0).is(Items.APPLE), "and still in order");
 
-        check(chest.undivide(0), "and it can be taken away again");
+        check(chest.undivide(1), "and it can be taken away again");
         check(items(contents) == had, "with nothing lost either way: " + items(contents));
-        check(contents.getStackInSlot(0).is(Items.APPLE), "the chest back in one piece");
         check(contents.used() == 3, "packed to the front: " + contents.used());
+        helper.succeed();
+    }
+
+    @GameTest(template = TestStructures.FLOOR)
+    public static void growingOneCarriesTheNextAlong(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper);
+        Sorted contents = chest.contents();
+        int lc = Plan.LC;
+
+        carve(chest, new Plan.Partition("front", DyeColor.RED, 1),
+                new Plan.Partition("back", DyeColor.BLUE, 1));
+
+        contents.insertItem(0, new ItemStack(Items.STONE, 10), false);
+        contents.insertItem(lc, new ItemStack(Items.APPLE, 7), false);
+        check(contents.getStackInSlot(lc).is(Items.APPLE), "the apples sit in the second LC");
+
+        check(chest.resize(0, new Plan.Partition("front", DyeColor.RED, 3)),
+                "the first grows to three LC");
+        check(chest.plan().start(1) == 3,
+                "so the second begins at three: " + chest.plan().start(1));
+
+        check(contents.getStackInSlot(0).is(Items.STONE)
+                && contents.getStackInSlot(0).getCount() == 10,
+                "the stone stayed where it was: " + contents.getStackInSlot(0));
+        check(contents.getStackInSlot(3 * lc).is(Items.APPLE)
+                && contents.getStackInSlot(3 * lc).getCount() == 7,
+                "the apples came along: " + contents.getStackInSlot(3 * lc));
+        check(contents.getStackInSlot(lc).isEmpty(), "leaving nothing behind");
+        check(items(contents) == 17, "with nothing lost: " + items(contents));
+        check(contents.used(0) == 1 && contents.used(1) == 1,
+                "one slot each: " + contents.used(0) + " " + contents.used(1));
+
+        check(chest.resize(0, new Plan.Partition("front", DyeColor.RED, 1)),
+                "and it shrinks back again");
+        check(contents.getStackInSlot(lc).is(Items.APPLE),
+                "the apples come back with it: " + contents.getStackInSlot(lc));
+        check(items(contents) == 17, "still nothing lost: " + items(contents));
+
+        check(!chest.resize(0, new Plan.Partition("front", DyeColor.RED,
+                        Plan.capacity(contents.getSlots()))),
+                "it cannot take room the second one is holding");
+        check(!chest.resize(0, new Plan.Partition("front", DyeColor.RED, 0)),
+                "nor shrink onto what is in it");
+        check(items(contents) == 17, "and a refusal moves nothing: " + items(contents));
+        helper.succeed();
+    }
+
+    @GameTest(template = TestStructures.FLOOR)
+    public static void theLastPartitionStays(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper);
+        check(!chest.undivide(0), "the only partition there is cannot be taken away");
+        check(chest.plan().over(chest.contents().getSlots()).size() == 1, "so it stays");
+        helper.succeed();
+    }
+
+    @GameTest(template = TestStructures.FLOOR)
+    public static void givingBackTheRoomItIsNotUsing(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper);
+        Sorted contents = chest.contents();
+
+        contents.insertItem(0, new ItemStack(Items.STONE, 64 * Plan.LC + 1), false);
+        check(contents.used(0) == Plan.LC + 1, "it spans into a second LC: " + contents.used(0));
+
+        int least = (contents.used(0) + Plan.LC - 1) / Plan.LC;
+        check(least == 2, "which rounds up to two LC: " + least);
+        check(chest.resize(0, new Plan.Partition("", Plan.FIRST, least)),
+                "shrinking to what it uses is allowed");
+        check(chest.plan().over(contents.getSlots()).get(0).length() == least,
+                "so it claims two LC now");
+        check(chest.firstGap() == least, "and the rest is free from there: " + chest.firstGap());
+        check(items(contents) == 64 * Plan.LC + 1, "with nothing lost: " + items(contents));
         helper.succeed();
     }
 
@@ -833,11 +901,11 @@ public final class CellaTests {
         CellaBlockEntity chest = place(helper);
         Sorted contents = chest.contents();
 
-        check(chest.divide(new Plan.Partition("one", DyeColor.RED, 0, 2)), "carve two");
+        carve(chest, new Plan.Partition("one", DyeColor.RED, 2));
         contents.insertItem(0, new ItemStack(Items.STONE, 64 * Plan.LC + 1), false);
         check(contents.used(0) == Plan.LC + 1, "it spans into the second: " + contents.used(0));
 
-        check(!chest.resize(0, new Plan.Partition("one", DyeColor.RED, 0, 1)),
+        check(!chest.resize(0, new Plan.Partition("one", DyeColor.RED, 1)),
                 "shrinking below the contents is refused");
         check(contents.used(0) == Plan.LC + 1, "and nothing moved: " + contents.used(0));
 
@@ -845,7 +913,7 @@ public final class CellaTests {
         check(out.getCount() == 1, "the remainder is what comes out: " + out.getCount());
         check(contents.used(0) == Plan.LC, "leaving it exactly full: " + contents.used(0));
 
-        check(chest.resize(0, new Plan.Partition("one", DyeColor.RED, 0, 1)),
+        check(chest.resize(0, new Plan.Partition("one", DyeColor.RED, 1)),
                 "once it fits, it shrinks");
         int items = 0;
         for (int slot = 0; slot < contents.getSlots(); slot++) {
@@ -2030,6 +2098,19 @@ public final class CellaTests {
             entry.putString("Kind", kind);
         }
         return entry;
+    }
+
+    private static void freed(CellaBlockEntity chest) {
+        check(chest.resize(0, new Plan.Partition("", Plan.FIRST, 0)),
+                "the chest-wide partition gives its room back");
+    }
+
+    private static void carve(CellaBlockEntity chest, Plan.Partition... wanted) {
+        freed(chest);
+        for (Plan.Partition one : wanted) {
+            check(chest.divide(one), "carve " + one.name());
+        }
+        check(chest.undivide(0), "and the chest-wide one steps aside");
     }
 
     private static CellaBlockEntity place(GameTestHelper helper) {

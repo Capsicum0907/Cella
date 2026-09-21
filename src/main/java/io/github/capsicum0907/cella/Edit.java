@@ -8,7 +8,7 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.DyeColor;
 
-public record Edit(int index, String name, int colour, int start, int length, boolean drop)
+public record Edit(int index, String name, int colour, int length, boolean drop)
         implements CustomPacketPayload {
     public static final Type<Edit> TYPE =
             new Type<>(ResourceLocation.fromNamespaceAndPath(Cella.MODID, "edit"));
@@ -17,7 +17,6 @@ public record Edit(int index, String name, int colour, int start, int length, bo
             ByteBufCodecs.VAR_INT, Edit::index,
             ByteBufCodecs.stringUtf8(Plan.LONGEST), Edit::name,
             ByteBufCodecs.VAR_INT, Edit::colour,
-            ByteBufCodecs.VAR_INT, Edit::start,
             ByteBufCodecs.VAR_INT, Edit::length,
             ByteBufCodecs.BOOL, Edit::drop,
             Edit::new);
@@ -25,19 +24,19 @@ public record Edit(int index, String name, int colour, int start, int length, bo
     public static final int ADDING = -1;
 
     public static Edit removing(int index) {
-        return new Edit(index, "", 0, 0, 0, true);
+        return new Edit(index, "", 0, 0, true);
     }
 
-    public static Edit adding(String name, DyeColor colour, int start, int length) {
-        return new Edit(ADDING, name, colour.getId(), start, length, false);
+    public static Edit adding(String name, DyeColor colour, int length) {
+        return new Edit(ADDING, name, colour.getId(), length, false);
     }
 
-    public static Edit setting(int index, String name, DyeColor colour, int start, int length) {
-        return new Edit(index, name, colour.getId(), start, length, false);
+    public static Edit setting(int index, String name, DyeColor colour, int length) {
+        return new Edit(index, name, colour.getId(), length, false);
     }
 
     public Plan.Partition wanted() {
-        return new Plan.Partition(name, DyeColor.byId(colour), start, Math.max(0, length));
+        return new Plan.Partition(name, DyeColor.byId(colour), length);
     }
 
     @Override

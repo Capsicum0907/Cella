@@ -55,28 +55,127 @@ public class Sorted extends ItemStackHandler {
         };
     }
 
-    public void carve(Carve wanted) {
+    public Carve frozen() {
+        int many = carve.count();
+        int[] from = new int[many];
+        int[] to = new int[many];
+        for (int part = 0; part < many; part++) {
+            from[part] = Math.min(getSlots(), carve.first(part));
+            to[part] = Math.min(getSlots(), carve.past(part));
+        }
+        return new Carve() {
+            @Override
+            public int count() {
+                return many;
+            }
+
+            @Override
+            public int first(int index) {
+                return from[index];
+            }
+
+            @Override
+            public int past(int index) {
+                return to[index];
+            }
+        };
+    }
+
+    public void adopt(Carve wanted) {
         Carve next = wanted == null ? whole() : wanted;
-        java.util.List<ItemStack> stray = new java.util.ArrayList<>();
-        it.unimi.dsi.fastutil.ints.IntArrayList from =
-                new it.unimi.dsi.fastutil.ints.IntArrayList();
+        java.util.List<ItemStack> loose = new java.util.ArrayList<>();
         for (int slot = 0; slot < getSlots(); slot++) {
             ItemStack stack = stacks.get(slot);
-            if (stack.isEmpty() || covered(next, slot)) {
-                continue;
+            if (!stack.isEmpty() && !covered(next, slot)) {
+                loose.add(stack.copy());
+                stacks.set(slot, ItemStack.EMPTY);
             }
-            stray.add(stack.copy());
-            from.add(slot);
-            stacks.set(slot, ItemStack.EMPTY);
         }
         carve = next;
+        used = new int[next.count()];
         settle();
-        for (int at = 0; at < stray.size(); at++) {
-            ItemStack one = stray.get(at);
-            for (int part = 0; part < carve.count() && !one.isEmpty(); part++) {
-                one = put(one, part);
+        spill(offered(loose, next));
+    }
+
+    public void carve(Carve was, Carve wanted, java.util.function.IntUnaryOperator where) {
+        Carve next = wanted == null ? whole() : wanted;
+        java.util.List<java.util.List<ItemStack>> held = new java.util.ArrayList<>();
+        for (int part = 0; part < was.count(); part++) {
+            held.add(lift(was.first(part), was.past(part)));
+        }
+        java.util.List<ItemStack> loose = new java.util.ArrayList<>();
+        for (int slot = 0; slot < getSlots(); slot++) {
+            ItemStack stack = stacks.get(slot);
+            if (!stack.isEmpty() && !covered(was, slot)) {
+                loose.add(stack.copy());
             }
-            stacks.set(from.getInt(at), one);
+        }
+        for (int slot = 0; slot < getSlots(); slot++) {
+            stacks.set(slot, ItemStack.EMPTY);
+        }
+
+        carve = next;
+        used = new int[next.count()];
+        for (int part = 0; part < held.size(); part++) {
+            int to = where.applyAsInt(part);
+            for (ItemStack one : held.get(part)) {
+                ItemStack over = to >= 0 && to < next.count() ? put(one, to) : one;
+                if (!over.isEmpty()) {
+                    loose.add(over);
+                }
+            }
+        }
+        spill(offered(loose, next));
+        settle();
+    }
+
+    private java.util.List<ItemStack> offered(java.util.List<ItemStack> loose, Carve next) {
+        java.util.List<ItemStack> left = new java.util.ArrayList<>();
+        for (ItemStack one : loose) {
+            ItemStack over = one;
+            for (int part = 0; part < next.count() && !over.isEmpty(); part++) {
+                over = put(over, part);
+            }
+            if (!over.isEmpty()) {
+                left.add(over);
+            }
+        }
+        return left;
+    }
+
+    private java.util.List<ItemStack> lift(int from, int to) {
+        java.util.List<ItemStack> out = new java.util.ArrayList<>();
+        for (int at = from; at < to; at++) {
+            ItemStack stack = stacks.get(at);
+            if (!stack.isEmpty()) {
+                out.add(stack.copy());
+            }
+        }
+        return out;
+    }
+
+    private void spill(java.util.List<ItemStack> left) {
+        int spare = 0;
+        int any = 0;
+        for (ItemStack one : left) {
+            if (one.isEmpty()) {
+                continue;
+            }
+            while (spare < getSlots()
+                    && (covered(carve, spare) || !stacks.get(spare).isEmpty())) {
+                spare++;
+            }
+            int at = spare;
+            if (at >= getSlots()) {
+                while (any < getSlots() && !stacks.get(any).isEmpty()) {
+                    any++;
+                }
+                at = any;
+            }
+            if (at >= getSlots()) {
+                return;
+            }
+            stacks.set(at, one);
         }
     }
 
@@ -127,7 +226,9 @@ public class Sorted extends ItemStackHandler {
         try {
             int[] counted = new int[carve.count()];
             for (int part = 0; part < counted.length; part++) {
-                counted[part] = Tidy.range(this, order, carve.first(part), carve.past(part));
+                counted[part] = Tidy.range(this, order,
+                        Math.min(getSlots(), carve.first(part)),
+                        Math.min(getSlots(), carve.past(part)));
             }
             used = counted;
         } finally {

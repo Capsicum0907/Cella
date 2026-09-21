@@ -16,49 +16,38 @@ public final class Plan {
 
     public static final int LONGEST = 20;
 
+    public static final DyeColor FIRST = DyeColor.LIGHT_BLUE;
+
     public static String fit(String name) {
         String clean = name == null ? "" : name;
         return clean.length() <= LONGEST ? clean : clean.substring(0, LONGEST);
     }
 
-    public record Partition(String name, DyeColor colour, int start, int length) {
+    public record Partition(String name, DyeColor colour, int length) {
         public Partition {
             name = fit(name);
+            length = Math.max(0, length);
         }
 
         private static final String NAME = "Name";
         private static final String COLOUR = "Colour";
-        private static final String START = "Start";
         private static final String LENGTH = "Length";
-
-        public int first() {
-            return start * LC;
-        }
 
         public int slots() {
             return length * LC;
-        }
-
-        public int past() {
-            return first() + slots();
-        }
-
-        public boolean holds(int slot) {
-            return slot >= first() && slot < past();
         }
 
         CompoundTag save() {
             CompoundTag tag = new CompoundTag();
             tag.putString(NAME, name);
             tag.putInt(COLOUR, colour.getId());
-            tag.putInt(START, start);
             tag.putInt(LENGTH, length);
             return tag;
         }
 
         static Partition read(CompoundTag tag) {
             return new Partition(tag.getString(NAME), DyeColor.byId(tag.getInt(COLOUR)),
-                    tag.getInt(START), tag.getInt(LENGTH));
+                    tag.getInt(LENGTH));
         }
     }
 
@@ -66,34 +55,60 @@ public final class Plan {
 
     private int assigned = NONE;
 
-    public boolean divided() {
-        return !carved.isEmpty();
+    public static int capacity(int slots) {
+        return Math.max(1, slots / LC);
+    }
+
+    public void ensure(int slots) {
+        if (carved.isEmpty()) {
+            carved.add(new Partition("", FIRST, capacity(slots)));
+            assigned = 0;
+        }
+    }
+
+    public boolean split() {
+        return carved.size() > 1;
     }
 
     public List<Partition> over(int slots) {
-        if (carved.isEmpty()) {
-            return List.of(whole(slots));
-        }
         return List.copyOf(carved);
     }
 
-    private static Partition whole(int slots) {
-        return new Partition("", DyeColor.WHITE, 0, Math.max(1, slots / LC));
-    }
-
     public int count(int slots) {
-        return carved.isEmpty() ? 1 : carved.size();
+        return carved.size();
     }
 
     public Partition at(int index, int slots) {
-        List<Partition> all = over(slots);
-        return all.get(Math.floorMod(index, all.size()));
+        return carved.get(index);
+    }
+
+    public int taken() {
+        int all = 0;
+        for (Partition one : carved) {
+            all += one.length();
+        }
+        return all;
+    }
+
+    public int start(int index) {
+        int at = 0;
+        for (int before = 0; before < index && before < carved.size(); before++) {
+            at += carved.get(before).length();
+        }
+        return at;
+    }
+
+    public int first(int index, int slots) {
+        return Math.min(slots, start(index) * LC);
+    }
+
+    public int past(int index, int slots) {
+        return Math.min(slots, first(index, slots) + carved.get(index).slots());
     }
 
     public int indexOf(int slot, int slots) {
-        List<Partition> all = over(slots);
-        for (int at = 0; at < all.size(); at++) {
-            if (all.get(at).holds(slot)) {
+        for (int at = 0; at < carved.size(); at++) {
+            if (slot >= first(at, slots) && slot < past(at, slots)) {
                 return at;
             }
         }
@@ -106,75 +121,39 @@ public final class Plan {
     }
 
     public int assigned() {
-        return carved.isEmpty() ? 0 : assigned;
+        return assigned;
     }
 
     public void assign(int index) {
         assigned = index >= 0 && index < carved.size() ? index : NONE;
     }
 
-    public Optional<Partition> outlet(int slots) {
-        int at = assigned();
-        return at == NONE ? Optional.empty() : Optional.of(at(at, slots));
-    }
-
-    public boolean room(Partition wanted, int slots, int ignoring) {
-        if (wanted.length() < 0 || wanted.start() < 0
-                || wanted.past() > slots) {
-            return false;
-        }
-        for (int at = 0; at < carved.size(); at++) {
-            if (at == ignoring) {
-                continue;
-            }
-            Partition other = carved.get(at);
-            if (wanted.first() < other.past() && other.first() < wanted.past()) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    public int gapFor(int length, int slots, int ignoring) {
-        int want = length * LC;
-        List<Partition> others = new ArrayList<>();
-        for (int at = 0; at < carved.size(); at++) {
-            if (at != ignoring) {
-                others.add(carved.get(at));
-            }
-        }
-        others.sort(java.util.Comparator.comparingInt(Partition::start));
-        int at = 0;
-        for (Partition other : others) {
-            if (other.first() - at * LC >= want) {
-                return at;
-            }
-            at = Math.max(at, other.start() + other.length());
-        }
-        return slots - at * LC >= want ? at : NONE;
+    public boolean room(int length, int slots, int ignoring) {
+        int held = ignoring >= 0 && ignoring < carved.size()
+                ? carved.get(ignoring).length()
+                : 0;
+        return length >= 0 && taken() - held + length <= capacity(slots);
     }
 
     public boolean add(Partition wanted, int slots) {
-        if (!room(wanted, slots, NONE)) {
+        if (!room(wanted.length(), slots, NONE)) {
             return false;
         }
         carved.add(wanted);
-        carved.sort(java.util.Comparator.comparingInt(Partition::start));
         return true;
     }
 
     public boolean replace(int index, Partition wanted, int slots) {
-        if (index < 0 || index >= carved.size() || !room(wanted, slots, index)) {
+        if (index < 0 || index >= carved.size() || !room(wanted.length(), slots, index)) {
             return false;
         }
         carved.set(index, wanted);
-        carved.sort(java.util.Comparator.comparingInt(Partition::start));
         return true;
     }
 
-    public void drop(int index) {
-        if (index < 0 || index >= carved.size()) {
-            return;
+    public boolean drop(int index) {
+        if (index < 0 || index >= carved.size() || carved.size() <= 1) {
+            return false;
         }
         carved.remove(index);
         if (assigned == index) {
@@ -182,6 +161,7 @@ public final class Plan {
         } else if (assigned > index) {
             assigned--;
         }
+        return true;
     }
 
     private static final String CARVED = "Carved";
@@ -203,15 +183,12 @@ public final class Plan {
         ListTag list = tag.getList(CARVED, Tag.TAG_COMPOUND);
         for (int at = 0; at < list.size(); at++) {
             Partition one = Partition.read(list.getCompound(at));
-            if (room(one, slots, NONE)) {
+            if (room(one.length(), slots, NONE)) {
                 carved.add(one);
             }
         }
-        carved.sort(java.util.Comparator.comparingInt(Partition::start));
-        assign(tag.getInt(ASSIGNED));
-    }
-
-    public boolean any() {
-        return !carved.isEmpty() || assigned != NONE;
+        boolean had = !carved.isEmpty();
+        ensure(slots);
+        assign(had ? tag.getInt(ASSIGNED) : 0);
     }
 }

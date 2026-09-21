@@ -4,6 +4,7 @@ import io.github.capsicum0907.cella.Cella;
 import io.github.capsicum0907.cella.Order;
 import io.github.capsicum0907.cella.Edit;
 import io.github.capsicum0907.cella.Peek;
+import io.github.capsicum0907.cella.Plan;
 import io.github.capsicum0907.cella.Shelf;
 import io.github.capsicum0907.cella.ShelfHolder;
 import io.github.capsicum0907.cella.Look;
@@ -288,7 +289,7 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
             if (picked != null) {
                 Shelf.Slice slice = shelf.slices().get(modal.palette());
                 net.neoforged.neoforge.network.PacketDistributor.sendToServer(
-                        Edit.setting(modal.palette(), slice.name(), picked, slice.start(),
+                        Edit.setting(modal.palette(), slice.name(), picked,
                                 slice.length()));
             }
             modal.shut();
@@ -320,13 +321,20 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
             net.neoforged.neoforge.network.PacketDistributor.sendToServer(Edit.adding(
                     "Partition " + (EditModal.count(shelf) + 1),
                     net.minecraft.world.item.DyeColor.byId(1 + EditModal.count(shelf) % 15),
-                    nextGap(shelf), 0));
+                    0));
             return true;
         }
         int column = modal.columnOf(shelf, x, modalLeft(), modalWide());
-        if (column == -2) {
+        if (column == EditModal.SWATCH_COLUMN) {
             modal.pick(row);
-        } else if (column == -3) {
+        } else if (column == EditModal.PACK_COLUMN) {
+            Shelf.Slice slice = shelf.slices().get(row);
+            int least = (slice.used() + Plan.LC - 1) / Plan.LC;
+            if (least < slice.length()) {
+                net.neoforged.neoforge.network.PacketDistributor.sendToServer(
+                        Edit.setting(row, slice.name(), slice.dye(), least));
+            }
+        } else if (column == EditModal.BIN_COLUMN) {
             if (shelf.slices().get(row).used() == 0) {
                 net.neoforged.neoforge.network.PacketDistributor.sendToServer(
                         Edit.removing(row));
@@ -336,20 +344,6 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
             modal.place(cell, shelf, modalLeft(), modalTop(), modalWide());
         }
         return true;
-    }
-
-    private static int nextGap(Shelf shelf) {
-        if (!shelf.divided()) {
-            return 0;
-        }
-        int at = 0;
-        for (Shelf.Slice slice : shelf.slices()) {
-            if (slice.start() > at) {
-                return at;
-            }
-            at = Math.max(at, slice.start() + slice.length());
-        }
-        return at;
     }
 
     @Override
@@ -515,9 +509,15 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
         }
         int row = modal.rowAt(shelf, mouseY, modalTop(), modalTall());
         if (row >= 0 && row < EditModal.count(shelf)
-                && modal.columnOf(shelf, mouseX, modalLeft(), modalWide()) == -3
+                && modal.columnOf(shelf, mouseX, modalLeft(), modalWide()) == EditModal.BIN_COLUMN
                 && shelf.slices().get(row).used() > 0) {
             graphics.renderTooltip(font, Component.translatable("gui.cella.edit.full"),
+                    mouseX, mouseY);
+        }
+        if (row >= 0 && row < shelf.slices().size()
+                && modal.columnOf(shelf, mouseX, modalLeft(), modalWide())
+                        == EditModal.PACK_COLUMN) {
+            graphics.renderTooltip(font, Component.translatable("gui.cella.edit.pack"),
                     mouseX, mouseY);
         }
     }

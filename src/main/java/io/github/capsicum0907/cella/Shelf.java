@@ -12,7 +12,7 @@ import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.ItemStack;
 
 public record Shelf(List<Slice> slices, int assigned, int slots, int shown,
-        List<Tally> tallies, boolean divided)
+        List<Tally> tallies)
         implements CustomPacketPayload {
     public static final Type<Shelf> TYPE =
             new Type<>(ResourceLocation.fromNamespaceAndPath(Cella.MODID, "shelf"));
@@ -57,11 +57,10 @@ public record Shelf(List<Slice> slices, int assigned, int slots, int shown,
                     ByteBufCodecs.VAR_INT, Shelf::slots,
                     ByteBufCodecs.VAR_INT, Shelf::shown,
                     Tally.STREAM_CODEC.apply(ByteBufCodecs.list()), Shelf::tallies,
-                    ByteBufCodecs.BOOL, Shelf::divided,
                     Shelf::new);
 
     public static final Shelf NOTHING =
-            new Shelf(List.of(), Plan.NONE, 0, Peek.LIST, List.of(), false);
+            new Shelf(List.of(), Plan.NONE, 0, Peek.LIST, List.of());
 
     public static Shelf of(CellaBlockEntity chest, int shown) {
         int slots = chest.contents().getSlots();
@@ -69,22 +68,21 @@ public record Shelf(List<Slice> slices, int assigned, int slots, int shown,
         List<Slice> slices = new ArrayList<>();
         for (int at = 0; at < carved.size(); at++) {
             Plan.Partition one = carved.get(at);
-            slices.add(new Slice(one.name(), one.colour().getId(), one.start(), one.length(),
-                    chest.contents().used(at)));
+            slices.add(new Slice(one.name(), one.colour().getId(), chest.plan().start(at),
+                    one.length(), chest.contents().used(at)));
         }
         List<Tally> tallies = shown >= 0 && shown < carved.size()
-                ? counted(chest, carved.get(shown), slots)
+                ? counted(chest, chest.plan().first(shown, slots),
+                        chest.plan().past(shown, slots))
                 : List.of();
-        return new Shelf(slices, chest.plan().assigned(), slots, shown, tallies,
-                chest.plan().divided());
+        return new Shelf(slices, chest.plan().assigned(), slots, shown, tallies);
     }
 
-    private static List<Tally> counted(CellaBlockEntity chest, Plan.Partition one, int slots) {
+    private static List<Tally> counted(CellaBlockEntity chest, int from, int end) {
         List<Tally> tallies = new ArrayList<>();
-        int end = Math.min(slots, one.past());
         ItemStack running = ItemStack.EMPTY;
         int count = 0;
-        for (int slot = one.first(); slot < end; slot++) {
+        for (int slot = from; slot < end; slot++) {
             ItemStack stack = chest.contents().getStackInSlot(slot);
             if (stack.isEmpty()) {
                 break;

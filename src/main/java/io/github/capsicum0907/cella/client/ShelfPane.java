@@ -118,7 +118,7 @@ public final class ShelfPane {
         int room = wide - (textLeft - x) - PAD;
 
         String name = slice.name().isEmpty()
-                ? Component.translatable("gui.cella.partition.whole").getString()
+                ? Component.translatable("gui.cella.partition.unnamed").getString()
                 : slice.name();
         graphics.drawString(font, font.plainSubstrByWidth(name, room), textLeft, y + PAD,
                 TEXT, false);
@@ -155,7 +155,7 @@ public final class ShelfPane {
         int at = y + PAD;
 
         String name = slice.name().isEmpty()
-                ? Component.translatable("gui.cella.partition.whole").getString()
+                ? Component.translatable("gui.cella.partition.unnamed").getString()
                 : slice.name();
         graphics.drawString(font, font.plainSubstrByWidth(name, room), x + PAD, at, TEXT, false);
         at += LINE + 1;

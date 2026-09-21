@@ -181,7 +181,6 @@ public final class CellaDataGen {
             add("gui.cella.find", "Search this chest");
             add("gui.cella.find.hint", "Search");
             add("gui.cella.find.none", "Nothing here answers to that");
-            add("gui.cella.partition.whole", "The whole chest");
             add("gui.cella.partition.none", "Pick one to see what is in it");
             add("gui.cella.partition.share", "%s%% of chest");
             add("gui.cella.partition.edit", "Edit partitions");
@@ -190,6 +189,8 @@ public final class CellaDataGen {
             add("gui.cella.edit.size", "LC");
             add("gui.cella.edit.used", "Used");
             add("gui.cella.edit.full", "Empty it before deleting it");
+            add("gui.cella.edit.pack", "Give back the room it is not using");
+            add("gui.cella.partition.unnamed", "Unnamed");
             add("gui.cella.edit.nofit", "%s LC does not fit there");
             add("gui.cella.edit.shrink", "It holds more than %s LC would");
             add("gui.cella.edit.carved", "%s / %s LC carved, %s free");
