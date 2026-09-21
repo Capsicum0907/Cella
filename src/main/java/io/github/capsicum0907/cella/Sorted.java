@@ -354,8 +354,11 @@ public class Sorted extends ItemStackHandler {
     }
 
     private int endOf(int slot, int part) {
-        ItemStack like = stacks.get(slot);
         int end = firstFree(part);
+        if (slot >= end) {
+            return end;
+        }
+        ItemStack like = stacks.get(slot);
         int at = slot + 1;
         while (at < end && order.grouping().compare(stacks.get(at), like) == 0) {
             at++;
