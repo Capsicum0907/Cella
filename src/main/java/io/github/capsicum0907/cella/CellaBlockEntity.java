@@ -164,7 +164,14 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
         return at * Plan.LC < slots ? at : Plan.NONE;
     }
 
+    public boolean divides() {
+        return kind().trait().divides();
+    }
+
     public boolean divide(Plan.Partition wanted) {
+        if (!divides()) {
+            return false;
+        }
         int slots = contents.getSlots();
         boolean[] done = new boolean[1];
         replan(() -> done[0] = plan.add(wanted, slots));

@@ -661,6 +661,23 @@ public final class CellaTests {
     }
 
     @GameTest(template = TestStructures.FLOOR)
+    public static void onlyTheBigOnesDivide(GameTestHelper helper) {
+        for (Kind kind : Kind.values()) {
+            boolean big = kind != Kind.LARVAL && kind != Kind.IMPERFECT;
+            check(kind.trait().divides() == big,
+                    kind.id() + " divides: " + kind.trait().divides());
+        }
+
+        CellaBlockEntity small = place(helper, Kind.IMPERFECT);
+        check(!small.divides(), "an Imperfect does not divide");
+        check(!small.divide(new Plan.Partition("no", DyeColor.RED, 0, 1)), "and refuses to");
+        check(small.plan().over(small.contents().getSlots()).size() == 1,
+                "but is still one partition inside");
+        check(small.contents().parts() == 1, "which is what the store sees");
+        helper.succeed();
+    }
+
+    @GameTest(template = TestStructures.FLOOR)
     public static void eachPartitionIsItsOwnStore(GameTestHelper helper) {
         CellaBlockEntity chest = place(helper);
         Sorted contents = chest.contents();

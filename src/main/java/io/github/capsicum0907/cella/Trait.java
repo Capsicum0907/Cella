@@ -7,19 +7,19 @@ import net.minecraft.world.level.block.Blocks;
 import net.neoforged.neoforge.common.Tags;
 
 public enum Trait {
-    LARVA(true, 2.5F, false, BlockTags.MINEABLE_WITH_AXE, null, 0, false, false, false),
+    LARVA(true, 2.5F, false, BlockTags.MINEABLE_WITH_AXE, null, 0, false, false, false, false),
 
     IMPERFECT(false, 6.0F, false, BlockTags.MINEABLE_WITH_AXE, BlockTags.NEEDS_IRON_TOOL, 4, false,
-            false, false),
+            false, false, false),
 
     SEMI_PERFECT(false, 1200.0F, false, BlockTags.MINEABLE_WITH_AXE,
-            BlockTags.NEEDS_DIAMOND_TOOL, 8, false, true, false),
+            BlockTags.NEEDS_DIAMOND_TOOL, 8, false, true, false, true),
 
     PERFECT(false, 1200.0F, false, BlockTags.MINEABLE_WITH_PICKAXE,
-            BlockTags.NEEDS_DIAMOND_TOOL, 8, false, true, false),
+            BlockTags.NEEDS_DIAMOND_TOOL, 8, false, true, false, true),
 
     SUPER_PERFECT(false, 3600000.0F, true, BlockTags.MINEABLE_WITH_PICKAXE,
-            Tags.Blocks.NEEDS_NETHERITE_TOOL, 0, true, true, true);
+            Tags.Blocks.NEEDS_NETHERITE_TOOL, 0, true, true, true, true);
 
     private final boolean burns;
     private final float resistance;
@@ -30,10 +30,12 @@ public enum Trait {
     private final boolean unbreakableAsAnItem;
     private final boolean finds;
     private final boolean keptOnDeath;
+    private final boolean divides;
 
     Trait(boolean burns, float resistance, boolean witherproof, TagKey<Block> tool,
             TagKey<Block> level, int reach, boolean unbreakableAsAnItem, boolean finds,
-            boolean keptOnDeath) {
+            boolean keptOnDeath, boolean divides) {
+        this.divides = divides;
         this.burns = burns;
         this.resistance = resistance;
         this.witherproof = witherproof;
@@ -79,6 +81,10 @@ public enum Trait {
 
     public boolean survivesAnnihilation() {
         return resistance >= Blocks.BEDROCK.getExplosionResistance();
+    }
+
+    public boolean divides() {
+        return divides;
     }
 
     public boolean finds() {

@@ -117,7 +117,10 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
                     () -> send(Screen.hasShiftDown() ? wide : plain)));
         }
 
-        int sort = imageWidth - TITLE_X - BUTTON;
+        int right = imageWidth - TITLE_X - BUTTON;
+        gear = divides() ? right : -1;
+        homeward = divides() ? right - SPACE - BUTTON : -1;
+        int sort = divides() ? right - 2 * (SPACE + BUTTON) : right;
 
         ordering = addRenderableWidget(new IconButton(leftPos + sort, topPos + BUTTON_Y,
                 icon("sort"), sorting(), () -> send(CellaMenu.SORT)));
@@ -242,6 +245,11 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
         if (overGear(x, y)) {
             modal.open(true);
             peek(Peek.LIST, false);
+            return true;
+        }
+        if (overHome(x, y)) {
+            pane.forget();
+            peek(Peek.LIST, true);
             return true;
         }
         if (listing()) {
@@ -390,6 +398,10 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
         send(Math.floorMod(menu.page() + by, menu.pages()));
     }
 
+    private static final String GEAR = "\u2261";
+
+    private static final String HOME = "\u25C0";
+
     private final ShelfPane pane = new ShelfPane();
 
     private final EditModal modal = new EditModal();
@@ -412,17 +424,50 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
         return menu.rows() * CellaMenu.SLOT + 24;
     }
 
-    private int gearX() {
-        return leftPos + imageWidth - TITLE_X - BUTTON;
+    private int gear = -1;
+
+    private int homeward = -1;
+
+    private boolean divides() {
+        return menu.kind().trait().divides();
     }
 
     private int gearY() {
         return topPos + BUTTON_Y;
     }
 
-    private boolean overGear(double x, double y) {
-        return listing() && x >= gearX() && x < gearX() + BUTTON
+    private boolean at(int slot, double x, double y) {
+        return slot >= 0 && x >= leftPos + slot && x < leftPos + slot + BUTTON
                 && y >= gearY() && y < gearY() + BUTTON;
+    }
+
+    private boolean overGear(double x, double y) {
+        return at(gear, x, y);
+    }
+
+    private boolean homeShown() {
+        return homeward >= 0 && menu.viewing() != Peek.LIST;
+    }
+
+    private boolean overHome(double x, double y) {
+        return homeShown() && at(homeward, x, y);
+    }
+
+    private void knob(GuiGraphics graphics, int slot, String glyph) {
+        graphics.fill(leftPos + slot, gearY(), leftPos + slot + BUTTON, gearY() + BUTTON,
+                0xFF373737);
+        graphics.fill(leftPos + slot + 1, gearY() + 1, leftPos + slot + BUTTON - 1,
+                gearY() + BUTTON - 1, 0xFF8B8B8B);
+        graphics.drawString(font, glyph, leftPos + slot + 3, gearY() + 2, LABEL, false);
+    }
+
+    private void knobs(GuiGraphics graphics) {
+        if (gear >= 0) {
+            knob(graphics, gear, GEAR);
+        }
+        if (homeShown()) {
+            knob(graphics, homeward, HOME);
+        }
     }
 
     private void commit() {
@@ -516,11 +561,8 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
         if (listing()) {
             pane.draw(graphics, font, ShelfHolder.latest(), paneLeft(), paneTop(),
                     paneWide(), paneTall(), mouseX, mouseY);
-            graphics.fill(gearX(), gearY(), gearX() + BUTTON, gearY() + BUTTON, 0xFF373737);
-            graphics.fill(gearX() + 1, gearY() + 1, gearX() + BUTTON - 1, gearY() + BUTTON - 1,
-                    0xFF8B8B8B);
-            graphics.drawString(font, "\u2261", gearX() + 3, gearY() + 2, LABEL, false);
         }
+        knobs(graphics);
         for (net.minecraft.world.inventory.Slot slot : menu.slots) {
             if (slot.isActive()) {
                 graphics.blit(BACKGROUND, leftPos + slot.x - 1, topPos + slot.y - 1,
