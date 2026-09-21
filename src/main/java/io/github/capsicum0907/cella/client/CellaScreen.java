@@ -315,8 +315,8 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
         }
         if (modal.adding(shelf, row)) {
             net.neoforged.neoforge.network.PacketDistributor.sendToServer(Edit.adding(
-                    "Partition " + (shelf.slices().size() + 1),
-                    net.minecraft.world.item.DyeColor.byId(shelf.slices().size() % 16),
+                    "Partition " + (EditModal.count(shelf) + 1),
+                    net.minecraft.world.item.DyeColor.byId(EditModal.count(shelf) % 16),
                     nextGap(shelf), 1));
             return true;
         }
@@ -336,6 +336,9 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     }
 
     private static int nextGap(Shelf shelf) {
+        if (!shelf.divided()) {
+            return 0;
+        }
         int at = 0;
         for (Shelf.Slice slice : shelf.slices()) {
             if (slice.start() > at) {
@@ -485,7 +488,7 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
             cell.render(graphics, mouseX, mouseY, partial);
         }
         int row = modal.rowAt(shelf, mouseY, modalTop(), modalTall());
-        if (row >= 0 && row < shelf.slices().size()
+        if (row >= 0 && row < EditModal.count(shelf)
                 && modal.columnOf(shelf, mouseX, modalLeft(), modalWide()) == -3
                 && shelf.slices().get(row).used() > 0) {
             graphics.renderTooltip(font, Component.translatable("gui.cella.edit.full"),
@@ -508,7 +511,8 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
                     mouseX, mouseY, paneLeft(), paneTop(), paneWide(), paneTall());
             if (!over.isEmpty()) {
                 graphics.renderTooltip(font, net.minecraft.network.chat.Component.literal(
-                        over.getCount() + " ").append(over.getHoverName()), mouseX, mouseY);
+                        ShelfPane.grouped(over.getCount()) + " ").append(over.getHoverName()),
+                        mouseX, mouseY);
                 return;
             }
         }
@@ -607,7 +611,7 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
                     LABEL, false);
         }
 
-        if (menu.nothingShown()) {
+        if (menu.nothingShown() && !listing()) {
             Component none = Component.translatable("gui.cella.find.none");
             int top = menu.slots.getFirst().y;
             int middle = top + (menu.rows() * CellaMenu.SLOT - font.lineHeight) / 2;

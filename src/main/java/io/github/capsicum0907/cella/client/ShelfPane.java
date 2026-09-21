@@ -126,7 +126,7 @@ public final class ShelfPane {
         int barY = y + PAD + LINE + 1;
         bar(graphics, textLeft, barY, room, slice.filled(), slice.dye());
 
-        String numbers = slice.used() + "/" + slice.slots()
+        String numbers = grouped(slice.used()) + "/" + grouped(slice.slots())
                 + " (" + Math.round(slice.filled() * 100.0F) + "%)";
         graphics.drawString(font, font.plainSubstrByWidth(numbers, room), textLeft,
                 barY + BAR + 2, FAINT, false);
@@ -161,12 +161,14 @@ public final class ShelfPane {
         at += LINE + 1;
 
         int share = shelf.slots() <= 0 ? 0 : Math.round(slice.slots() * 100.0F / shelf.slots());
-        graphics.drawString(font,
-                Component.translatable("gui.cella.partition.share", share), x + PAD, at,
-                FAINT, false);
+        graphics.drawString(font, font.plainSubstrByWidth(
+                Component.translatable("gui.cella.partition.share", share).getString(), room),
+                x + PAD, at, FAINT, false);
         at += LINE;
 
-        graphics.drawString(font, slice.used() + "/" + slice.slots(), x + PAD, at, FAINT, false);
+        graphics.drawString(font, font.plainSubstrByWidth(
+                grouped(slice.used()) + "/" + grouped(slice.slots()), room),
+                x + PAD, at, FAINT, false);
         at += LINE + 2;
 
         if (shelf.shown() != chosen) {
@@ -200,6 +202,10 @@ public final class ShelfPane {
             at += LINE + 3;
         }
         return ItemStack.EMPTY;
+    }
+
+    public static String grouped(int count) {
+        return String.format(java.util.Locale.ROOT, "%,d", count);
     }
 
     public static String brief(int count) {

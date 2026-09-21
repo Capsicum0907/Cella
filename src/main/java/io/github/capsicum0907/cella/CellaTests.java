@@ -586,6 +586,7 @@ public final class CellaTests {
         chest.contents().insertItem(Plan.LC, new ItemStack(Items.DIAMOND, 1), false);
 
         Shelf all = Shelf.of(chest, Peek.LIST);
+        check(all.divided(), "the shelf says it is divided");
         check(all.slices().size() == 2, "two slices: " + all.slices().size());
         check(all.slices().get(0).name().equals("front"), "named");
         check(all.slices().get(0).dye() == DyeColor.RED, "and coloured");
@@ -606,6 +607,11 @@ public final class CellaTests {
         Shelf other = Shelf.of(chest, 1);
         check(other.tallies().size() == 1, "the second holds one kind");
         check(other.tallies().get(0).kind().is(Items.DIAMOND), "which is the diamond");
+
+        CellaBlockEntity plain = place(helper, Kind.SUPER_PERFECT);
+        Shelf whole = Shelf.of(plain, Peek.LIST);
+        check(!whole.divided(), "an uncarved chest says it is not divided");
+        check(whole.slices().size() == 1, "but still offers one slice to look at");
         helper.succeed();
     }
 

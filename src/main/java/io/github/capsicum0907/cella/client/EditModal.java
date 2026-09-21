@@ -14,7 +14,7 @@ import net.minecraft.world.item.DyeColor;
 public final class EditModal {
     public static final int ROW = 14;
 
-    private static final int HEAD = 11;
+    private static final int HEAD = 19;
 
     private static final int BAR = 6;
 
@@ -75,8 +75,12 @@ public final class EditModal {
         return palette >= 0;
     }
 
+    public static int count(Shelf shelf) {
+        return shelf.divided() ? shelf.slices().size() : 0;
+    }
+
     private int rows(Shelf shelf) {
-        return shelf.slices().size() + 1;
+        return count(shelf) + 1;
     }
 
     private int listTall(int tall) {
@@ -118,7 +122,7 @@ public final class EditModal {
     }
 
     public boolean adding(Shelf shelf, int row) {
-        return row == shelf.slices().size();
+        return row == count(shelf);
     }
 
     public int columnOf(Shelf shelf, double mouseX, int x, int wide) {
@@ -174,7 +178,7 @@ public final class EditModal {
     }
 
     public void place(EditBox box, Shelf shelf, int x, int y, int wide) {
-        if (editing < 0 || editing >= shelf.slices().size()) {
+        if (editing < 0 || editing >= count(shelf)) {
             box.visible = false;
             return;
         }
@@ -196,7 +200,7 @@ public final class EditModal {
     }
 
     public Edit committed(EditBox box, Shelf shelf) {
-        if (editing < 0 || editing >= shelf.slices().size()) {
+        if (editing < 0 || editing >= count(shelf)) {
             return null;
         }
         Shelf.Slice slice = shelf.slices().get(editing);
@@ -233,7 +237,7 @@ public final class EditModal {
             if (top + ROW <= listTop || top >= listTop + listTall) {
                 continue;
             }
-            if (at < shelf.slices().size()) {
+            if (at < count(shelf)) {
                 row(graphics, font, shelf, at, x, top, wide, mouseX, mouseY);
             } else {
                 plus(graphics, font, x, top, wide, mouseX, mouseY);
@@ -243,7 +247,7 @@ public final class EditModal {
 
         bar(graphics, shelf, x + PAD, y + tall - PAD - BAR, wide - 2 * PAD);
 
-        if (palette >= 0 && palette < shelf.slices().size()) {
+        if (palette >= 0 && palette < count(shelf)) {
             swatches(graphics, x, y);
         }
     }
