@@ -51,6 +51,16 @@ public class CellaMenu extends AbstractContainerMenu {
 
     private Player who;
 
+    private int into = Into.NONE;
+
+    public void into(int index) {
+        into = index;
+    }
+
+    public int into() {
+        return into;
+    }
+
     private int shown = Peek.LIST;
 
     public void shows(int index) {
@@ -337,6 +347,33 @@ public class CellaMenu extends AbstractContainerMenu {
         });
     }
 
+    private boolean picked() {
+        return access.evaluate((level, pos) ->
+                level.getBlockEntity(pos) instanceof CellaBlockEntity chest
+                        && into >= 0 && into < chest.plan().count(chest.contents().getSlots()))
+                .orElse(false);
+    }
+
+    private net.neoforged.neoforge.items.IItemHandler chosen() {
+        return access.evaluate((level, pos) -> {
+            if (!(level.getBlockEntity(pos) instanceof CellaBlockEntity chest)) {
+                return null;
+            }
+            int slots = chest.contents().getSlots();
+            if (into < 0 || into >= chest.plan().count(slots)) {
+                return null;
+            }
+            int from = chest.plan().first(into, slots);
+            return (net.neoforged.neoforge.items.IItemHandler)
+                    new Outlet(chest.contents(), from, chest.plan().past(into, slots) - from);
+        }).orElse(null);
+    }
+
+    private ItemStack poured(ItemStack stack) {
+        net.neoforged.neoforge.items.IItemHandler where = chosen();
+        return where == null ? stack : ItemHandlerHelper.insertItemStacked(where, stack, false);
+    }
+
     public Shelf shelf(int shown) {
         return access.evaluate((level, pos) ->
                 level.getBlockEntity(pos) instanceof CellaBlockEntity chest
@@ -429,7 +466,8 @@ public class CellaMenu extends AbstractContainerMenu {
         if (viewing == Peek.LIST && id != SORT) {
             return true;
         }
-        if (viewing < 0 && (id == STOW || id == MATCHING)) {
+        if ((id == STOW || id == MATCHING)
+                && (viewing == Peek.LIST || (viewing == Peek.WHOLE && !picked()))) {
             return true;
         }
         if (!player.level().isClientSide) {
@@ -524,7 +562,9 @@ public class CellaMenu extends AbstractContainerMenu {
             if (stack.isEmpty() || (matchingOnly && !kept.contains(stack))) {
                 continue;
             }
-            inventory.setItem(slot, ItemHandlerHelper.insertItemStacked(contents, stack, false));
+            inventory.setItem(slot, viewing == Peek.WHOLE
+                    ? poured(stack)
+                    : ItemHandlerHelper.insertItemStacked(contents, stack, false));
         }
         inventory.setChanged();
     }
@@ -562,7 +602,7 @@ public class CellaMenu extends AbstractContainerMenu {
         if (!slot.hasItem() || viewing == Peek.LIST) {
             return ItemStack.EMPTY;
         }
-        if (index >= pageSize && viewing < 0) {
+        if (index >= pageSize && viewing == Peek.WHOLE && !picked()) {
             return ItemStack.EMPTY;
         }
         ItemStack stack = slot.getItem();
@@ -580,7 +620,9 @@ public class CellaMenu extends AbstractContainerMenu {
             return before;
         }
 
-        ItemStack left = ItemHandlerHelper.insertItemStacked(contents, stack, false);
+        ItemStack left = viewing == Peek.WHOLE
+                ? poured(stack)
+                : ItemHandlerHelper.insertItemStacked(contents, stack, false);
 
         if (left.getCount() == stack.getCount()) {
             return ItemStack.EMPTY;

@@ -3,6 +3,7 @@ package io.github.capsicum0907.cella.client;
 import io.github.capsicum0907.cella.Cella;
 import io.github.capsicum0907.cella.Order;
 import io.github.capsicum0907.cella.Edit;
+import io.github.capsicum0907.cella.Into;
 import io.github.capsicum0907.cella.Peek;
 import io.github.capsicum0907.cella.Plan;
 import io.github.capsicum0907.cella.Shelf;
@@ -18,6 +19,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
+import net.minecraft.util.Mth;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
@@ -67,6 +69,86 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     private static final int LABEL = 0x404040;
 
     private static final int TYPED = 0xFFFFFF;
+
+    private static final int CHIP = 8;
+
+    private static final int CHIP_GAP = 2;
+
+    private int chips;
+
+    private boolean whole() {
+        return menu.viewing() == Peek.WHOLE;
+    }
+
+    private int stripLeft() {
+        return leftPos + inventoryLabelX + font.width(playerInventoryTitle) + APART;
+    }
+
+    private int stripRight() {
+        return leftPos + movers - APART;
+    }
+
+    private int stripTop() {
+        return topPos + inventoryLabelY - 1;
+    }
+
+    private int fits() {
+        return Math.max(0, (stripRight() - stripLeft() + CHIP_GAP) / (CHIP + CHIP_GAP));
+    }
+
+    private int chipAt(double x, double y) {
+        Shelf shelf = ShelfHolder.latest();
+        if (!whole() || y < stripTop() || y >= stripTop() + CHIP) {
+            return Into.NONE;
+        }
+        int many = Math.min(fits(), shelf.slices().size() - chips);
+        for (int at = 0; at < many; at++) {
+            int left = stripLeft() + at * (CHIP + CHIP_GAP);
+            if (x >= left && x < left + CHIP) {
+                return chips + at;
+            }
+        }
+        return Into.NONE;
+    }
+
+    private void strip(GuiGraphics graphics, int mouseX, int mouseY) {
+        if (!whole()) {
+            return;
+        }
+        Shelf shelf = ShelfHolder.latest();
+        chips = Mth.clamp(chips, 0, Math.max(0, shelf.slices().size() - fits()));
+        int many = Math.min(fits(), shelf.slices().size() - chips);
+        for (int at = 0; at < many; at++) {
+            int index = chips + at;
+            int left = stripLeft() + at * (CHIP + CHIP_GAP);
+            boolean here = index == menu.into();
+            graphics.fill(left, stripTop(), left + CHIP, stripTop() + CHIP,
+                    here ? 0xFF000000 : 0xFF5B5B5B);
+            graphics.fill(left + 1, stripTop() + 1, left + CHIP - 1, stripTop() + CHIP - 1,
+                    0xFF000000 | shelf.slices().get(index).dye().getTextureDiffuseColor());
+            if (!here) {
+                graphics.fill(left + 1, stripTop() + 1, left + CHIP - 1, stripTop() + CHIP - 1,
+                        0x60000000);
+            }
+        }
+        if (menu.into() == Into.NONE && many > 0) {
+            graphics.drawString(font, Component.translatable("gui.cella.into.none"),
+                    stripLeft(), stripTop() + CHIP + 2, LABEL, false);
+        }
+    }
+
+    private void stripTip(GuiGraphics graphics, int mouseX, int mouseY) {
+        int at = chipAt(mouseX, mouseY);
+        if (at == Into.NONE) {
+            return;
+        }
+        Shelf.Slice slice = ShelfHolder.latest().slices().get(at);
+        Component name = slice.name().isEmpty()
+                ? Component.translatable("gui.cella.partition.unnamed")
+                : Component.literal(slice.name());
+        graphics.renderTooltip(font, Component.translatable("gui.cella.into.pick", name),
+                mouseX, mouseY);
+    }
 
     private static final String ELLIPSIS = "...";
 
@@ -252,6 +334,13 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
         if (modal.open()) {
             return inModal(x, y, button);
         }
+        int chip = chipAt(x, y);
+        if (chip != Into.NONE) {
+            int wanted = chip == menu.into() ? Into.NONE : chip;
+            menu.into(wanted);
+            net.neoforged.neoforge.network.PacketDistributor.sendToServer(new Into(wanted));
+            return true;
+        }
         if (overKnob(x, y)) {
             if (listing()) {
                 modal.open(true);
@@ -395,6 +484,12 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
         }
         if (listing() && scrollY != 0
                 && pane.scrolled(ShelfHolder.latest(), scrollY, paneTall())) {
+            return true;
+        }
+        if (whole() && scrollY != 0 && mouseY >= stripTop() && mouseY < stripTop() + CHIP
+                && ShelfHolder.latest().slices().size() > fits()) {
+            chips = Mth.clamp(chips - (int) scrollY, 0,
+                    ShelfHolder.latest().slices().size() - fits());
             return true;
         }
         if (menu.pages() > 1 && scrollY != 0 && overPanel(mouseX, mouseY)
@@ -596,6 +691,7 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
                     paneWide(), paneTall(), mouseX, mouseY);
         }
         knobs(graphics);
+        strip(graphics, mouseX, mouseY);
         for (net.minecraft.world.inventory.Slot slot : menu.slots) {
             if (slot.isActive()) {
                 graphics.blit(BACKGROUND, leftPos + slot.x - 1, topPos + slot.y - 1,
@@ -679,6 +775,9 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
         veil(modal.open());
         super.render(graphics, mouseX, mouseY, partial);
         renderTooltip(graphics, mouseX, mouseY);
+        if (!modal.open()) {
+            stripTip(graphics, mouseX, mouseY);
+        }
         overlay(graphics, mouseX, mouseY, partial);
     }
 }

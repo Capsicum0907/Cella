@@ -40,6 +40,8 @@
   "gui.cella.find": "Search this chest",
   "gui.cella.find.hint": "Search",
   "gui.cella.find.none": "Nothing here answers to that",
+  "gui.cella.into.none": "Pick where to store",
+  "gui.cella.into.pick": "Store into %s",
   "gui.cella.next": "Next page",
   "gui.cella.partition.edit": "Edit partitions",
   "gui.cella.partition.everything": "Everything",

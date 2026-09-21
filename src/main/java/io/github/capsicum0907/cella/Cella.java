@@ -90,6 +90,13 @@ public class Cella {
         event.registrar("1").optional().playToClient(Shelf.TYPE, Shelf.STREAM_CODEC,
                 (shelf, context) -> ShelfHolder.told(shelf));
 
+        event.registrar("1").optional().playToServer(Into.TYPE, Into.STREAM_CODEC,
+                (into, context) -> {
+                    if (context.player().containerMenu instanceof CellaMenu menu) {
+                        menu.into(into.index());
+                    }
+                });
+
         event.registrar("1").optional().playToServer(Peek.TYPE, Peek.STREAM_CODEC,
                 (peek, context) -> {
                     if (!(context.player().containerMenu instanceof CellaMenu menu)) {

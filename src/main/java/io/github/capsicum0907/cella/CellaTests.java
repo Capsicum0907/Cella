@@ -1038,6 +1038,43 @@ public final class CellaTests {
     }
 
     @GameTest(template = TestStructures.FLOOR)
+    public static void storingGoesWhereItIsPointed(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper);
+        Player player = helper.makeMockPlayer(GameType.SURVIVAL);
+        Sorted contents = chest.contents();
+
+        carve(chest, new Plan.Partition("front", DyeColor.RED, 1),
+                new Plan.Partition("back", DyeColor.BLUE, 1));
+
+        CellaMenu menu = CellaMenu.at(1, player.getInventory(), helper.absolutePos(WHERE),
+                contents.getSlots(), CellaConfig.rows(KIND), CellaConfig.columns(KIND));
+        menu.view(Peek.WHOLE);
+
+        int hand = menu.slots.size() - CellaConfig.PLAYER_COLUMNS;
+        menu.slots.get(hand).set(new ItemStack(Items.COAL, 32));
+        menu.quickMoveStack(player, hand);
+        check(menu.slots.get(hand).getItem().getCount() == 32,
+                "nothing moves while nowhere is picked: " + menu.slots.get(hand).getItem());
+
+        menu.into(1);
+        menu.quickMoveStack(player, hand);
+        check(menu.slots.get(hand).getItem().isEmpty(),
+                "with the second picked it goes: " + menu.slots.get(hand).getItem());
+        check(contents.used(0) == 0,
+                "not into the first, which had room: " + contents.used(0));
+        check(contents.used(1) == 1, "but into the one pointed at: " + contents.used(1));
+        check(contents.getStackInSlot(Plan.LC).is(Items.COAL),
+                "which is where it landed: " + contents.getStackInSlot(Plan.LC));
+
+        menu.into(Into.NONE);
+        menu.slots.get(hand).set(new ItemStack(Items.APPLE, 4));
+        menu.quickMoveStack(player, hand);
+        check(menu.slots.get(hand).getItem().getCount() == 4,
+                "and letting it go stops storing again: " + menu.slots.get(hand).getItem());
+        helper.succeed();
+    }
+
+    @GameTest(template = TestStructures.FLOOR)
     public static void theLastPartitionStays(GameTestHelper helper) {
         CellaBlockEntity chest = place(helper);
         check(!chest.undivide(0), "the only partition there is cannot be taken away");
