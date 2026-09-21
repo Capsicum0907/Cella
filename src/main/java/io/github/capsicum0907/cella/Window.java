@@ -266,9 +266,39 @@ public final class Window implements IItemHandlerModifiable {
         return found != null ? found.length : total;
     }
 
-    /** How many squares of the page being shown are real. The server's answer to tell. */
+    /**
+     * How many squares of the page being shown are real. The server's answer to tell.
+     *
+     * <p><b>The last page of an answer is filled out to the end of itself.</b> A search
+     * that turned up six things leaves the rest of that page bare, and bare panel is both
+     * the wrong answer to <i>is that all of them</i> — it is also what an empty chest looks
+     * like — and nowhere to put anything down. So the squares after the last result are
+     * spare slots of the chest: real ones, which take what is dropped on them and pass it
+     * to wherever its kind belongs.
+     *
+     * <p>⚠ <b>Only after a result, and never as a page of its own.</b> A search that found
+     * nothing gets no squares at all and is told so in words — a grid of empty boxes reads
+     * as items that cannot be seen. And an answer that fills its last page exactly is left
+     * alone rather than given another page to hold the signal, which would be the same
+     * misreading one page further on.
+     */
     public int onThisPage() {
-        return Math.clamp(viewed() - page * size, 0, size);
+        if (found == null) {
+            return Math.clamp(total - page * size, 0, size);
+        }
+        if (found.length == 0) {
+            return 0;
+        }
+        int results = Math.clamp(found.length - page * size, 0, size);
+        if (page < pages() - 1) {
+            return results;
+        }
+        return results + Math.min(size - results, held.getSlots() - free());
+    }
+
+    /** The first slot of the chest with nothing in it, which is where the spare ones start. */
+    private int free() {
+        return held instanceof Sorted sorted ? sorted.used() : held.getSlots();
     }
 
     /** What the client was told, because it cannot count what it does not have. */
@@ -323,9 +353,15 @@ public final class Window implements IItemHandlerModifiable {
             return slot;
         }
         int into = page * size + slot;
-        return found != null
-                ? (into < found.length ? found[into] : held.getSlots())
-                : into;
+        if (found == null) {
+            return into;
+        }
+        if (into < found.length) {
+            return found[into];
+        }
+        // Past the last result: a spare slot of the chest, counting on from the first
+        // empty one. Off the end of those is off the end, and there() refuses it.
+        return free() + (into - found.length);
     }
 
     @Override

@@ -2067,6 +2067,41 @@ public final class CellaTests {
     }
 
     /**
+     * The last page of an answer is filled out with somewhere to put things.
+     *
+     * <p>Six results on a page of a hundred and ninety-two used to leave the rest bare, and
+     * bare is both the wrong answer to <i>is that all of them</i> — it is what an empty
+     * chest looks like too — and nowhere to drop anything. The squares after the last
+     * result are spare slots of the chest, so they take what is put on them.
+     *
+     * <p>⚠ A search that found nothing gets none of them: a grid of empty boxes reads as
+     * items that cannot be seen, and there are words for that case instead.
+     */
+    @GameTest(template = TestStructures.FLOOR)
+    public static void theLastPageOfAnAnswerHasSomewhereToPutThings(GameTestHelper helper) {
+        int size = 4;
+        Sorted chest = new Sorted(200);
+        chest.insertItem(0, new ItemStack(Items.DIAMOND, 1), false);
+        chest.insertItem(0, new ItemStack(Items.DIAMOND_SWORD, 1), false);
+        chest.insertItem(0, new ItemStack(Items.EMERALD, 1), false);
+
+        Window window = Window.onto(chest, size);
+        window.search("diamond");
+        check(window.onThisPage() == size,
+                "two results and the page filled out: " + window.onThisPage());
+        check(window.getStackInSlot(2).isEmpty(), "the spare squares hold nothing");
+        check(window.holds(2), "but they are slots, not a picture of slots");
+
+        window.setStackInSlot(2, new ItemStack(Items.COAL, 5));
+        check(chest.getStackInSlot(0).is(Items.COAL) && chest.getStackInSlot(0).getCount() == 5,
+                "and what is put on one goes where its kind belongs");
+
+        window.search("netherite");
+        check(window.onThisPage() == 0, "a search that answered nothing gets no squares");
+        helper.succeed();
+    }
+
+    /**
      * A search does not need the server to have a language.
      *
      * <p>⚠ <b>A dedicated server never loaded a resource pack.</b> Asked for the name of a

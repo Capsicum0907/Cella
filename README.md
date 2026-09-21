@@ -454,6 +454,14 @@ squares of this one are real, both of which fit and neither of which is the coun
 from. And the query is walked against every non-empty slot on the server, so the box waits
 four ticks after the last key rather than asking once per keystroke.
 
+**The last page of an answer is filled out to the end of itself.** Six results on a page of
+a hundred and ninety-two used to leave the rest bare, and bare is two wrong answers at
+once: it is what an empty chest looks like, so it does not say *that is all of them*, and
+it is nowhere to put anything down. The squares after the last result are spare slots of
+the chest — real ones, which take what is dropped on them and pass it to wherever its kind
+belongs. ⚠ An answer that fills its last page exactly is left alone rather than given
+another page to carry the signal, which would be the same misreading one page further on.
+
 **A search that answers nothing says so**, across the bare panel where the squares would
 be. Empty is also what a chest with nothing in it looks like, and the difference between
 *your word found nothing* and *this chest is empty* is the whole of what the player is
