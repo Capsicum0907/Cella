@@ -49,6 +49,14 @@ public class CellaMenu extends AbstractContainerMenu {
     public static final int TAKE = -4;
     public static final int TAKING = -5;
 
+    private Player who;
+
+    private int shown = Peek.LIST;
+
+    public void shows(int index) {
+        shown = index;
+    }
+
     private final ContainerLevelAccess access;
 
     private final IItemHandlerModifiable contents;
@@ -88,6 +96,7 @@ public class CellaMenu extends AbstractContainerMenu {
         this.columns = columns;
         this.pageSize = window.getSlots();
         this.window = window;
+        this.who = inventory.player;
         this.server = !inventory.player.level().isClientSide;
         this.width = width(columns);
         int chestLeft = (width - columns * SLOT) / 2;
@@ -364,7 +373,7 @@ public class CellaMenu extends AbstractContainerMenu {
 
     @Override
     public void broadcastChanges() {
-        if (server && window.searching()) {
+        if (server) {
             follow();
         }
         super.broadcastChanges();
@@ -381,18 +390,28 @@ public class CellaMenu extends AbstractContainerMenu {
             }
             int[] since = chest.since(seen);
             seen = now;
-            boolean moved = false;
-            if (since == null) {
-                moved = window.again();
-            } else {
-                for (int slot : since) {
-                    moved |= window.changed(slot);
+            if (window.searching()) {
+                boolean moved = false;
+                if (since == null) {
+                    moved = window.again();
+                } else {
+                    for (int slot : since) {
+                        moved |= window.changed(slot);
+                    }
+                }
+                if (moved) {
+                    sendAllDataToRemote();
                 }
             }
-            if (moved) {
-                sendAllDataToRemote();
-            }
+            tell(chest);
         });
+    }
+
+    private void tell(CellaBlockEntity chest) {
+        if (who instanceof net.minecraft.server.level.ServerPlayer player) {
+            net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(player,
+                    Shelf.of(chest, shown));
+        }
     }
 
     @Override
@@ -403,6 +422,9 @@ public class CellaMenu extends AbstractContainerMenu {
         }
         if (id < TAKING) {
             return false;
+        }
+        if (viewing == Peek.LIST && id != SORT) {
+            return true;
         }
         if (!player.level().isClientSide) {
             byHand(() -> inOneGo(() -> {
@@ -531,7 +553,7 @@ public class CellaMenu extends AbstractContainerMenu {
 
     private ItemStack moved(Player player, int index) {
         Slot slot = slots.get(index);
-        if (!slot.hasItem()) {
+        if (!slot.hasItem() || viewing == Peek.LIST) {
             return ItemStack.EMPTY;
         }
         ItemStack stack = slot.getItem();

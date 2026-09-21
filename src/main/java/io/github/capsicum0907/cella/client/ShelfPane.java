@@ -22,12 +22,14 @@ public final class ShelfPane {
 
     private static final int LINE = 9;
 
+    private static final int TALLY = 18;
+
     private static final int TEXT = 0x404040;
     private static final int FAINT = 0x707070;
     private static final int TRACK = 0xFF8B8B8B;
     private static final int WELL = 0xFF373737;
-    private static final int CHOSEN = 0x40000000;
-    private static final int OVER = 0x20000000;
+    private static final int CHOSEN = 0x60FFFFFF;
+    private static final int OVER = 0x30FFFFFF;
 
     private int scroll;
 
@@ -44,6 +46,10 @@ public final class ShelfPane {
     public void forget() {
         chosen = Peek.LIST;
         scroll = 0;
+    }
+
+    public void unpick() {
+        chosen = Peek.LIST;
     }
 
     private int listWide(int wide) {
@@ -175,12 +181,13 @@ public final class ShelfPane {
             return;
         }
         for (Shelf.Tally tally : shelf.tallies()) {
-            if (at + LINE > y + tall - PAD) {
+            if (at + TALLY > y + tall - PAD) {
                 return;
             }
-            graphics.renderItem(tally.kind(), x + PAD, at - 4);
-            graphics.drawString(font, brief(tally.count()), x + PAD + 18, at, TEXT, false);
-            at += LINE + 3;
+            graphics.renderItem(tally.kind(), x + PAD, at);
+            graphics.drawString(font, brief(tally.count()), x + PAD + TALLY + PAD,
+                    at + (TALLY - LINE) / 2, TEXT, false);
+            at += TALLY;
         }
     }
 
@@ -196,10 +203,10 @@ public final class ShelfPane {
         }
         int at = y + PAD + (LINE + 1) + LINE + LINE + 2;
         for (Shelf.Tally tally : shelf.tallies()) {
-            if (mouseY >= at - 4 && mouseY < at + LINE + 1) {
+            if (mouseY >= at && mouseY < at + TALLY) {
                 return tally.kind().copyWithCount(tally.count());
             }
-            at += LINE + 3;
+            at += TALLY;
         }
         return ItemStack.EMPTY;
     }

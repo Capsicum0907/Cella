@@ -272,6 +272,10 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
                 }
                 return true;
             }
+            if (pane.chosen() != Peek.LIST) {
+                pane.unpick();
+                peek(Peek.LIST, false);
+            }
         }
         boolean onBox = finding && looking != null && looking.isMouseOver(x, y);
         boolean handled = super.mouseClicked(x, y, button);
@@ -386,7 +390,8 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
                 && pane.scrolled(ShelfHolder.latest(), scrollY, paneTall())) {
             return true;
         }
-        if (menu.pages() > 1 && scrollY != 0 && hoveredSlot == null && overPanel(mouseX, mouseY)) {
+        if (menu.pages() > 1 && scrollY != 0 && overPanel(mouseX, mouseY)
+                && (hoveredSlot == null || !hoveredSlot.hasItem())) {
             turn(scrollY > 0 ? -1 : 1);
             return true;
         }

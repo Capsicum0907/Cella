@@ -99,6 +99,7 @@ public class Cella {
                         menu.view(peek.index());
                     }
                     int shown = peek.open() ? Peek.LIST : peek.index();
+                    menu.shows(shown);
                     net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(
                             (net.minecraft.server.level.ServerPlayer) context.player(),
                             menu.shelf(shown));
