@@ -13,6 +13,7 @@ import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestAssertException;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.CraftingInput;
@@ -570,6 +571,64 @@ public final class CellaTests {
                         chest.ledger().moves().get(0).kind(),
                         chest.ledger().moves().get(1).kind()),
                 "and the two are remembered as different things");
+        helper.succeed();
+    }
+
+    @GameTest(template = TestStructures.FLOOR)
+    public static void eachPartitionIsItsOwnStore(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper);
+        Sorted contents = chest.contents();
+        int lc = Plan.LC;
+
+        check(chest.divide(new Plan.Partition("front", DyeColor.RED, 0, 1)), "the first carve");
+        check(chest.divide(new Plan.Partition("back", DyeColor.BLUE, 1, 2)), "and a second");
+        check(contents.parts() == 2, "two partitions: " + contents.parts());
+        check(!chest.divide(new Plan.Partition("over", DyeColor.LIME, 0, 3)), "overlap refused");
+
+        contents.insertItem(0, new ItemStack(Items.STONE, 10), false);
+        contents.insertItem(lc, new ItemStack(Items.APPLE, 3), false);
+
+        check(contents.getStackInSlot(0).is(Items.STONE), "the stone is in the first");
+        check(contents.getStackInSlot(lc).is(Items.APPLE), "the apple in the second");
+        check(contents.used(0) == 1 && contents.used(1) == 1,
+                "one slot each: " + contents.used(0) + " " + contents.used(1));
+
+        contents.insertItem(0, new ItemStack(Items.APPLE, 5), false);
+        check(contents.getStackInSlot(0).is(Items.APPLE), "the first partition sorts itself");
+        check(contents.getStackInSlot(1).is(Items.STONE), "with its own stone after it");
+        check(contents.getStackInSlot(lc).is(Items.APPLE), "and the second is untouched");
+
+        ItemStack over = contents.insertItem(0, new ItemStack(Items.DIRT, 64 * lc), false);
+        check(!over.isEmpty(), "one partition of fifty-four slots cannot take all of it");
+        check(contents.used(1) == 1, "and nothing landed next door: " + contents.used(1));
+        helper.succeed();
+    }
+
+    @GameTest(template = TestStructures.FLOOR)
+    public static void aPartitionWillNotShrinkOntoItsContents(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper);
+        Sorted contents = chest.contents();
+
+        check(chest.divide(new Plan.Partition("one", DyeColor.RED, 0, 2)), "carve two");
+        contents.insertItem(0, new ItemStack(Items.STONE, 64 * Plan.LC + 1), false);
+        check(contents.used(0) == Plan.LC + 1, "it spans into the second: " + contents.used(0));
+
+        check(!chest.resize(0, new Plan.Partition("one", DyeColor.RED, 0, 1)),
+                "shrinking below the contents is refused");
+        check(contents.used(0) == Plan.LC + 1, "and nothing moved: " + contents.used(0));
+
+        ItemStack out = contents.extractItem(0, 64, false);
+        check(out.getCount() == 1, "the remainder is what comes out: " + out.getCount());
+        check(contents.used(0) == Plan.LC, "leaving it exactly full: " + contents.used(0));
+
+        check(chest.resize(0, new Plan.Partition("one", DyeColor.RED, 0, 1)),
+                "once it fits, it shrinks");
+        int items = 0;
+        for (int slot = 0; slot < contents.getSlots(); slot++) {
+            items += contents.getStackInSlot(slot).getCount();
+        }
+        check(items == 64 * Plan.LC, "with every item still there: " + items);
+        check(contents.used(0) == Plan.LC, "packed into the slots it has: " + contents.used(0));
         helper.succeed();
     }
 

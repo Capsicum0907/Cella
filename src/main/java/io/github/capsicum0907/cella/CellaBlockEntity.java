@@ -21,6 +21,7 @@ import net.neoforged.neoforge.items.ItemStackHandler;
 public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
     private static final String CONTENTS = "Contents";
     private static final String HISTORY = "History";
+    private static final String PLAN = "Plan";
     private static final String EXPERIENCE = "Experience";
 
     private final Sorted contents;
@@ -86,6 +87,63 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
 
     public Sorted contents() {
         return contents;
+    }
+
+    private final Plan plan = new Plan();
+
+    public Plan plan() {
+        return plan;
+    }
+
+    private Sorted.Carve carving() {
+        int slots = contents.getSlots();
+        return new Sorted.Carve() {
+            @Override
+            public int count() {
+                return plan.count(slots);
+            }
+
+            @Override
+            public int first(int index) {
+                return Math.min(slots, plan.at(index, slots).first());
+            }
+
+            @Override
+            public int past(int index) {
+                return Math.min(slots, plan.at(index, slots).past());
+            }
+        };
+    }
+
+    public void replan(Runnable change) {
+        change.run();
+        contents.carve(carving());
+        setChanged();
+    }
+
+    public boolean resize(int index, Plan.Partition wanted) {
+        int slots = contents.getSlots();
+        if (wanted.slots() < contents.used(index)) {
+            return false;
+        }
+        boolean[] done = new boolean[1];
+        replan(() -> done[0] = plan.replace(index, wanted, slots));
+        return done[0];
+    }
+
+    public boolean divide(Plan.Partition wanted) {
+        int slots = contents.getSlots();
+        boolean[] done = new boolean[1];
+        replan(() -> done[0] = plan.add(wanted, slots));
+        return done[0];
+    }
+
+    public boolean undivide(int index) {
+        if (contents.used(index) > 0) {
+            return false;
+        }
+        replan(() -> plan.drop(index));
+        return true;
     }
 
     private final Ledger ledger = new Ledger();
@@ -195,6 +253,9 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
         if (ledger.any()) {
             tag.put(HISTORY, ledger.save(registries));
         }
+        if (plan.any()) {
+            tag.put(PLAN, plan.save());
+        }
         tag.putInt(EXPERIENCE, experience);
 
         tag.putInt(FUSE, fuse);
@@ -205,6 +266,8 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
         super.loadAdditional(tag, registries);
         contents.deserializeNBT(registries, tag.getCompound(CONTENTS));
 
+        plan.load(tag.getCompound(PLAN), contents.getSlots());
+        contents.carve(carving());
         ledger.load(registries, tag.getList(HISTORY, Ledger.TAG));
 
         experience = tag.getInt(EXPERIENCE);

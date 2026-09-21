@@ -23,8 +23,12 @@ public final class Tidy {
             sorted.settle();
             return;
         }
+        range(contents, order, 0, contents.getSlots());
+    }
+
+    public static int range(IItemHandlerModifiable contents, Order order, int from, int to) {
         List<ItemStack> gathered = new ArrayList<>();
-        for (int slot = 0; slot < contents.getSlots(); slot++) {
+        for (int slot = from; slot < to; slot++) {
             ItemStack stack = contents.getStackInSlot(slot);
             if (!stack.isEmpty()) {
                 gathered.add(stack.copy());
@@ -35,9 +39,14 @@ public final class Tidy {
         List<ItemStack> merged = merge(gathered);
         merged.sort(order.full());
 
-        for (int slot = 0; slot < merged.size() && slot < contents.getSlots(); slot++) {
-            contents.setStackInSlot(slot, merged.get(slot));
+        int at = from;
+        for (ItemStack stack : merged) {
+            if (at >= to) {
+                break;
+            }
+            contents.setStackInSlot(at++, stack);
         }
+        return at - from;
     }
 
     private static List<ItemStack> merge(List<ItemStack> gathered) {
