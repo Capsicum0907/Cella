@@ -361,7 +361,7 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
                 return true;
             }
             if (key != org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE
-                    && cell.keyPressed(key, scan, modifiers)) {
+                    && (cell.keyPressed(key, scan, modifiers) || cell.canConsumeInput())) {
                 return true;
             }
         }
