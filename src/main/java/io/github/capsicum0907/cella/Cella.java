@@ -109,7 +109,7 @@ public class Cella {
                     if (!(context.player().containerMenu instanceof CellaMenu menu)) {
                         return;
                     }
-                    menu.edit(edit);
+                    menu.edit(edit, context.player());
                     net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(
                             (net.minecraft.server.level.ServerPlayer) context.player(),
                             menu.shelf(Peek.LIST));

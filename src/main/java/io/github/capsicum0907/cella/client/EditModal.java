@@ -14,7 +14,7 @@ import net.minecraft.world.item.DyeColor;
 public final class EditModal {
     public static final int ROW = 14;
 
-    private static final int HEAD = 19;
+    private static final int HEAD = 26;
 
     private static final int BAR = 6;
 
@@ -84,7 +84,7 @@ public final class EditModal {
     }
 
     private int listTall(int tall) {
-        return tall - HEAD - BAR - PAD * 3;
+        return tall - HEAD - BAR - LINE - 1 - PAD * 3;
     }
 
     public boolean scrolled(Shelf shelf, double amount, int tall) {
@@ -201,6 +201,8 @@ public final class EditModal {
             box.setValue(Integer.toString(slice.length()));
         }
         box.setFocused(true);
+        box.setCursorPosition(box.getValue().length());
+        box.setHighlightPos(0);
     }
 
     public Edit committed(EditBox box, Shelf shelf) {
@@ -249,7 +251,15 @@ public final class EditModal {
         }
         graphics.disableScissor();
 
-        bar(graphics, shelf, x + PAD, y + tall - PAD - BAR, wide - 2 * PAD);
+        int barY = y + tall - PAD - BAR - LINE - 1;
+        bar(graphics, shelf, x + PAD, barY, wide - 2 * PAD);
+        int carved = 0;
+        for (Shelf.Slice slice : shelf.slices()) {
+            carved += shelf.divided() ? slice.length() : 0;
+        }
+        int whole = shelf.slots() / Plan.LC;
+        graphics.drawString(font, Component.translatable("gui.cella.edit.carved",
+                carved, whole, whole - carved), x + PAD, barY + BAR + 2, FAINT, false);
 
         if (palette >= 0 && palette < count(shelf)) {
             swatches(graphics, x, y);
@@ -257,7 +267,7 @@ public final class EditModal {
     }
 
     private void head(GuiGraphics graphics, Font font, int x, int y, int wide) {
-        int top = y + PAD + LINE + 2;
+        int top = y + PAD + LINE + 3;
         graphics.drawString(font, Component.translatable("gui.cella.edit.name"),
                 nameLeft(x), top, FAINT, false);
         String[] keys = { "gui.cella.edit.share", "gui.cella.edit.size", "gui.cella.edit.used" };
@@ -265,7 +275,7 @@ public final class EditModal {
             graphics.drawString(font, Component.translatable(keys[at]),
                     columnNumber(x, wide, at), top, FAINT, false);
         }
-        graphics.fill(x + PAD, y + PAD + HEAD - 2, x + wide - PAD, y + PAD + HEAD - 1, WELL);
+        graphics.fill(x + PAD, y + PAD + HEAD - 4, x + wide - PAD, y + PAD + HEAD - 3, WELL);
     }
 
     private void row(GuiGraphics graphics, Font font, Shelf shelf, int at, int x, int top,

@@ -190,6 +190,9 @@ public final class CellaDataGen {
             add("gui.cella.edit.size", "LC");
             add("gui.cella.edit.used", "Used");
             add("gui.cella.edit.full", "Empty it before deleting it");
+            add("gui.cella.edit.nofit", "%s LC does not fit there");
+            add("gui.cella.edit.shrink", "It holds more than %s LC would");
+            add("gui.cella.edit.carved", "%s / %s LC carved, %s free");
             add("gui.cella.prev", "Previous page");
             add("gui.cella.next", "Next page");
 

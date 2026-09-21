@@ -291,7 +291,7 @@ public class CellaMenu extends AbstractContainerMenu {
         });
     }
 
-    public void edit(Edit edit) {
+    public void edit(Edit edit, net.minecraft.world.entity.player.Player who) {
         if (!server) {
             return;
         }
@@ -299,12 +299,23 @@ public class CellaMenu extends AbstractContainerMenu {
             if (!(level.getBlockEntity(pos) instanceof CellaBlockEntity chest)) {
                 return;
             }
+            String trouble = null;
             if (edit.drop()) {
-                chest.undivide(edit.index());
+                if (!chest.undivide(edit.index())) {
+                    trouble = "gui.cella.edit.full";
+                }
             } else if (edit.index() == Edit.ADDING) {
-                chest.divide(edit.wanted());
-            } else {
-                chest.resize(edit.index(), edit.wanted());
+                if (!chest.divide(edit.wanted())) {
+                    trouble = "gui.cella.edit.nofit";
+                }
+            } else if (!chest.resize(edit.index(), edit.wanted())) {
+                trouble = chest.contents().used(edit.index()) > edit.wanted().slots()
+                        ? "gui.cella.edit.shrink"
+                        : "gui.cella.edit.nofit";
+            }
+            if (trouble != null && who != null) {
+                who.sendSystemMessage(net.minecraft.network.chat.Component
+                        .translatable(trouble, edit.wanted().length()));
             }
             view(Peek.LIST);
         });

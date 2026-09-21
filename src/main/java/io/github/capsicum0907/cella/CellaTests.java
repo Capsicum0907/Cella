@@ -684,6 +684,27 @@ public final class CellaTests {
     }
 
     @GameTest(template = TestStructures.FLOOR)
+    public static void twoHalvesFitExactly(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper, Kind.JUNIOR);
+        int all = chest.contents().getSlots() / Plan.LC;
+        check(all == 64, "a Cella Jr. is sixty-four LC: " + all);
+
+        check(chest.divide(new Plan.Partition("one", DyeColor.RED, 0, 0)), "an empty first");
+        check(chest.resize(0, new Plan.Partition("one", DyeColor.RED, 0, 32)),
+                "grown to half the chest");
+
+        check(chest.firstGap() == 32, "the gap starts at thirty-two: " + chest.firstGap());
+        check(chest.divide(new Plan.Partition("two", DyeColor.BLUE, 32, 0)), "an empty second");
+        check(chest.resize(1, new Plan.Partition("two", DyeColor.BLUE, 32, 32)),
+                "and the other half fits exactly");
+
+        check(chest.plan().over(chest.contents().getSlots()).get(1).length() == 32,
+                "which is what it says: "
+                        + chest.plan().over(chest.contents().getSlots()).get(1).length());
+        helper.succeed();
+    }
+
+    @GameTest(template = TestStructures.FLOOR)
     public static void eachPartitionIsItsOwnStore(GameTestHelper helper) {
         CellaBlockEntity chest = place(helper);
         Sorted contents = chest.contents();
