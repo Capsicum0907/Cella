@@ -28,6 +28,18 @@ public final class EditModal {
 
     private static final int LINE = 9;
 
+    private static final int NAMED = 70;
+
+    private static final int SHOWN = 3;
+
+    public static int least() {
+        return NAMED + SWATCH + 2 * BIN + 3 * NUMBER + 6 * PAD;
+    }
+
+    public static int leastTall() {
+        return HEAD + SHOWN * ROW + BAR + LINE + 1 + 3 * PAD;
+    }
+
     private static final int TEXT = 0x404040;
     private static final int FAINT = 0x707070;
     private static final int STOPPED = 0xA0A0A0;
@@ -117,7 +129,7 @@ public final class EditModal {
     }
 
     private int nameWide(int x, int wide) {
-        return columnNumber(x, wide, 0) - nameLeft(x) - PAD;
+        return Math.max(0, columnNumber(x, wide, 0) - nameLeft(x) - PAD);
     }
 
     public int rowAt(Shelf shelf, double mouseY, int y, int tall) {

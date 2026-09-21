@@ -413,7 +413,7 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     private net.minecraft.client.gui.components.EditBox cell;
 
     private int modalLeft() {
-        return leftPos + 6;
+        return leftPos + (imageWidth - modalWide()) / 2;
     }
 
     private int modalTop() {
@@ -421,11 +421,11 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     }
 
     private int modalWide() {
-        return imageWidth - 12;
+        return Math.max(imageWidth - 12, EditModal.least());
     }
 
     private int modalTall() {
-        return menu.rows() * CellaMenu.SLOT + 24;
+        return Math.max(menu.rows() * CellaMenu.SLOT + 24, EditModal.leastTall());
     }
 
     private int knob = -1;
