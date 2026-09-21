@@ -186,6 +186,8 @@ public class CellaMenu extends AbstractContainerMenu {
                     window.limit(from, chest.plan().past(0, slots) - from);
                 }
             });
+        } else {
+            window.told(told, onPage);
         }
 
         addDataSlot(new DataSlot() {

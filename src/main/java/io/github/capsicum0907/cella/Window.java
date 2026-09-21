@@ -220,6 +220,9 @@ public final class Window implements IItemHandlerModifiable {
 
     @Override
     public void setStackInSlot(int slot, ItemStack stack) {
+        if (chest && !holds(slot)) {
+            return;
+        }
         if (there(slot)) {
             held.setStackInSlot(at(slot), stack);
         }

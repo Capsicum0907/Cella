@@ -960,6 +960,40 @@ public final class CellaTests {
     }
 
     @GameTest(template = TestStructures.FLOOR)
+    public static void aPartitionOfNothingHoldsNothing(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper);
+        Player player = helper.makeMockPlayer(GameType.SURVIVAL);
+
+        check(chest.resize(0, new Plan.Partition("", Plan.FIRST, 0)),
+                "an empty partition gives all its room back");
+        check(chest.plan().over(chest.contents().getSlots()).get(0).length() == 0,
+                "so it claims nothing");
+
+        CellaMenu menu = CellaMenu.at(1, player.getInventory(), helper.absolutePos(WHERE),
+                chest.contents().getSlots(),
+                CellaConfig.rows(KIND), CellaConfig.columns(KIND));
+        check(menu.viewing() == 0, "it still opens into itself: " + menu.viewing());
+        check(!menu.slots.get(0).isActive(), "and shows no squares at all");
+        check(!menu.slots.get(0).mayPlace(new ItemStack(Items.COAL, 1)),
+                "and refuses anything put straight into it");
+
+        int hand = menu.slots.size() - CellaConfig.PLAYER_COLUMNS;
+        menu.slots.get(hand).set(new ItemStack(Items.COAL, 32));
+        menu.quickMoveStack(player, hand);
+        check(menu.slots.get(hand).getItem().getCount() == 32,
+                "shift-clicking leaves the coal where it is: "
+                        + menu.slots.get(hand).getItem());
+
+        menu.slots.get(0).set(new ItemStack(Items.DIAMOND, 5));
+        check(menu.slots.get(0).getItem().isEmpty(),
+                "a square that is not there refuses what is put in it: "
+                        + menu.slots.get(0).getItem());
+        check(items(chest.contents()) == 0,
+                "so nothing went into the chest either: " + items(chest.contents()));
+        helper.succeed();
+    }
+
+    @GameTest(template = TestStructures.FLOOR)
     public static void theLastPartitionStays(GameTestHelper helper) {
         CellaBlockEntity chest = place(helper);
         check(!chest.undivide(0), "the only partition there is cannot be taken away");
