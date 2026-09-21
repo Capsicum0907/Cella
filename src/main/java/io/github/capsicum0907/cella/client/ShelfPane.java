@@ -1,6 +1,7 @@
 package io.github.capsicum0907.cella.client;
 
 import io.github.capsicum0907.cella.Peek;
+import io.github.capsicum0907.cella.Plan;
 import io.github.capsicum0907.cella.Shelf;
 
 import net.minecraft.client.gui.Font;
@@ -56,8 +57,10 @@ public final class ShelfPane {
         return (wide - GAP) * 7 / 10;
     }
 
+    private static final int SPARE = 0xFF505050;
+
     private int rows(Shelf shelf) {
-        return shelf.slices().size();
+        return shelf.slices().size() + 1;
     }
 
     private int reach(Shelf shelf, int tall) {
@@ -78,7 +81,10 @@ public final class ShelfPane {
             return Peek.LIST;
         }
         int at = (int) ((y - top + scroll) / ITEM);
-        return at >= 0 && at < rows(shelf) ? at : Peek.LIST;
+        if (at == 0) {
+            return Peek.WHOLE;
+        }
+        return at >= 1 && at < rows(shelf) ? at - 1 : Peek.LIST;
     }
 
     public void draw(GuiGraphics graphics, Font font, Shelf shelf, int left, int top,
@@ -97,8 +103,12 @@ public final class ShelfPane {
             if (y + ITEM <= top || y >= top + tall) {
                 continue;
             }
-            item(graphics, font, shelf.slices().get(at), left, y, listWide,
-                    at == chosen, at == over);
+            if (at == 0) {
+                everything(graphics, font, shelf, left, y, listWide, over == Peek.WHOLE);
+            } else {
+                item(graphics, font, shelf.slices().get(at - 1), left, y, listWide,
+                        at - 1 == chosen, at - 1 == over);
+            }
         }
         graphics.disableScissor();
 
@@ -136,6 +146,49 @@ public final class ShelfPane {
                 + " (" + Math.round(slice.filled() * 100.0F) + "%)";
         graphics.drawString(font, font.plainSubstrByWidth(numbers, room), textLeft,
                 barY + BAR + 2, FAINT, false);
+    }
+
+    private void everything(GuiGraphics graphics, Font font, Shelf shelf, int x, int y,
+            int wide, boolean under) {
+        if (under) {
+            graphics.fill(x + 1, y, x + wide - 1, y + ITEM - 1, OVER);
+        }
+
+        int textLeft = x + 1 + STRIPE + PAD;
+        int room = wide - (textLeft - x) - PAD;
+
+        graphics.drawString(font, font.plainSubstrByWidth(
+                Component.translatable("gui.cella.partition.everything").getString(), room),
+                textLeft, y + PAD, TEXT, false);
+
+        int barY = y + PAD + LINE + 1;
+        stacked(graphics, shelf, textLeft, barY, room);
+
+        int used = 0;
+        int carved = 0;
+        for (Shelf.Slice slice : shelf.slices()) {
+            used += slice.used();
+            carved += slice.slots();
+        }
+        String numbers = grouped(used) + "/" + grouped(carved) + " ("
+                + (carved <= 0 ? 0 : Math.round(used * 100.0F / carved)) + "%)";
+        graphics.drawString(font, font.plainSubstrByWidth(numbers, room), textLeft,
+                barY + BAR + 2, FAINT, false);
+    }
+
+    private void stacked(GuiGraphics graphics, Shelf shelf, int x, int y, int wide) {
+        graphics.fill(x, y, x + wide, y + BAR, WELL);
+        graphics.fill(x + 1, y + 1, x + wide - 1, y + BAR - 1, SPARE);
+        if (shelf.slots() <= 0) {
+            return;
+        }
+        int inner = wide - 2;
+        for (Shelf.Slice slice : shelf.slices()) {
+            int from = x + 1 + Math.round(slice.start() * (float) Plan.LC / shelf.slots() * inner);
+            int much = Math.max(1, Math.round(slice.slots() / (float) shelf.slots() * inner));
+            graphics.fill(from, y + 1, Math.min(x + wide - 1, from + much), y + BAR - 1,
+                    0xFF000000 | slice.dye().getTextureDiffuseColor());
+        }
     }
 
     private void bar(GuiGraphics graphics, int x, int y, int wide, float filled,

@@ -265,6 +265,11 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
         if (listing()) {
             int at = pane.hit(ShelfHolder.latest(), x, y, paneLeft(), paneTop(),
                     paneWide(), paneTall());
+            if (at == Peek.WHOLE) {
+                pane.unpick();
+                peek(Peek.WHOLE, true);
+                return true;
+            }
             if (at != Peek.LIST) {
                 if (pane.chosen() == at) {
                     peek(at, true);
@@ -644,7 +649,8 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
                     LABEL, false);
         }
 
-        if (menu.nothingShown() && !listing()) {
+        if (menu.nothingShown() && !listing() && finding
+                && looking != null && !looking.getValue().isBlank()) {
             Component none = Component.translatable("gui.cella.find.none");
             int top = menu.slots.getFirst().y;
             int middle = top + (menu.rows() * CellaMenu.SLOT - font.lineHeight) / 2;

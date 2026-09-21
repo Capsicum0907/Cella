@@ -42,6 +42,7 @@
   "gui.cella.find.none": "Nothing here answers to that",
   "gui.cella.next": "Next page",
   "gui.cella.partition.edit": "Edit partitions",
+  "gui.cella.partition.everything": "Everything",
   "gui.cella.partition.none": "Pick one to see what is in it",
   "gui.cella.partition.share": "%s%% of chest",
   "gui.cella.partition.unnamed": "Unnamed",

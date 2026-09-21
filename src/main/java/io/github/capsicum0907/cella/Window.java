@@ -34,24 +34,40 @@ public final class Window implements IItemHandlerModifiable {
         return new Window(chest, size, chest.getSlots(), true);
     }
 
+    private boolean whole;
+
     public void search(String looking) {
         page = 0;
         if (looking.isBlank()) {
             wanted = null;
             found = null;
+            if (whole) {
+                rebuild();
+            }
             return;
         }
         wanted = looking.toLowerCase(java.util.Locale.ROOT);
         rebuild();
     }
 
+    public void everything(int many) {
+        whole = true;
+        base = 0;
+        total = many;
+        page = 0;
+        rebuild();
+    }
+
     private String wanted;
 
     public void limit(int first, int many) {
+        whole = false;
         base = first;
         total = many;
         page = 0;
-        if (wanted != null) {
+        if (wanted == null) {
+            found = null;
+        } else {
             rebuild();
         }
     }
@@ -76,6 +92,9 @@ public final class Window implements IItemHandlerModifiable {
         ItemStack stack = held.getStackInSlot(slot);
         if (stack.isEmpty()) {
             return false;
+        }
+        if (wanted == null) {
+            return true;
         }
         String path = net.minecraft.core.registries.BuiltInRegistries.ITEM
                 .getKey(stack.getItem()).getPath();
@@ -143,7 +162,7 @@ public final class Window implements IItemHandlerModifiable {
             return 0;
         }
         int results = Math.clamp(found.length - page * size, 0, size);
-        if (page < pages() - 1) {
+        if (whole || page < pages() - 1) {
             return results;
         }
         return results + Math.min(size - results,

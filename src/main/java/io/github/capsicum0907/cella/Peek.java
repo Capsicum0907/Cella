@@ -18,6 +18,8 @@ public record Peek(int index, boolean open) implements CustomPacketPayload {
 
     public static final int LIST = -1;
 
+    public static final int WHOLE = -2;
+
     @Override
     public Type<? extends CustomPacketPayload> type() {
         return TYPE;

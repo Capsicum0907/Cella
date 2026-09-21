@@ -291,7 +291,10 @@ public class CellaMenu extends AbstractContainerMenu {
                 return;
             }
             int slots = chest.contents().getSlots();
-            if (index < 0 || index >= chest.plan().count(slots)) {
+            if (index == Peek.WHOLE) {
+                viewing = Peek.WHOLE;
+                window.everything(Math.min(slots, chest.plan().taken() * Plan.LC));
+            } else if (index < 0 || index >= chest.plan().count(slots)) {
                 viewing = Peek.LIST;
                 window.limit(0, 0);
             } else {
@@ -426,6 +429,9 @@ public class CellaMenu extends AbstractContainerMenu {
         if (viewing == Peek.LIST && id != SORT) {
             return true;
         }
+        if (viewing < 0 && (id == STOW || id == MATCHING)) {
+            return true;
+        }
         if (!player.level().isClientSide) {
             byHand(() -> inOneGo(() -> {
                 switch (id) {
@@ -554,6 +560,9 @@ public class CellaMenu extends AbstractContainerMenu {
     private ItemStack moved(Player player, int index) {
         Slot slot = slots.get(index);
         if (!slot.hasItem() || viewing == Peek.LIST) {
+            return ItemStack.EMPTY;
+        }
+        if (index >= pageSize && viewing < 0) {
             return ItemStack.EMPTY;
         }
         ItemStack stack = slot.getItem();

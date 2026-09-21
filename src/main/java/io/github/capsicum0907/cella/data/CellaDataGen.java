@@ -191,6 +191,7 @@ public final class CellaDataGen {
             add("gui.cella.edit.full", "Empty it before deleting it");
             add("gui.cella.edit.pack", "Give back the room it is not using");
             add("gui.cella.partition.unnamed", "Unnamed");
+            add("gui.cella.partition.everything", "Everything");
             add("gui.cella.edit.nofit", "%s LC does not fit there");
             add("gui.cella.edit.shrink", "It holds more than %s LC would");
             add("gui.cella.edit.carved", "%s / %s LC carved, %s free");

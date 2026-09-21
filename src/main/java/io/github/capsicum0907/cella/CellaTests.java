@@ -994,6 +994,50 @@ public final class CellaTests {
     }
 
     @GameTest(template = TestStructures.FLOOR)
+    public static void everythingShowsEveryPartitionAtOnce(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper);
+        Player player = helper.makeMockPlayer(GameType.SURVIVAL);
+        Sorted contents = chest.contents();
+        int lc = Plan.LC;
+
+        carve(chest, new Plan.Partition("front", DyeColor.RED, 1),
+                new Plan.Partition("back", DyeColor.BLUE, 1));
+
+        contents.insertItem(0, new ItemStack(Items.STONE, 10), false);
+        contents.insertItem(lc, new ItemStack(Items.APPLE, 7), false);
+        contents.insertItem(lc, new ItemStack(Items.DIAMOND, 3), false);
+
+        CellaMenu menu = CellaMenu.at(1, player.getInventory(), helper.absolutePos(WHERE),
+                contents.getSlots(), CellaConfig.rows(KIND), CellaConfig.columns(KIND));
+        menu.view(Peek.WHOLE);
+        check(menu.viewing() == Peek.WHOLE, "the whole chest is on show: " + menu.viewing());
+
+        check(menu.slots.get(0).getItem().is(Items.STONE),
+                "the first partition's stone leads: " + menu.slots.get(0).getItem());
+        check(menu.slots.get(1).getItem().is(Items.APPLE),
+                "then the second one's apples, with no gap between: "
+                        + menu.slots.get(1).getItem());
+        check(menu.slots.get(2).getItem().is(Items.DIAMOND),
+                "and its diamonds: " + menu.slots.get(2).getItem());
+        check(!menu.slots.get(3).isActive(), "and nothing past what is there");
+
+        int hand = menu.slots.size() - CellaConfig.PLAYER_COLUMNS;
+        menu.slots.get(hand).set(new ItemStack(Items.COAL, 32));
+        menu.quickMoveStack(player, hand);
+        check(menu.slots.get(hand).getItem().getCount() == 32,
+                "nothing is stored while no partition is picked to store it in: "
+                        + menu.slots.get(hand).getItem());
+        check(items(contents) == 20, "so the chest is unchanged: " + items(contents));
+
+        menu.quickMoveStack(player, 0);
+        check(items(contents) == 10, "but taking out works: " + items(contents));
+        menu.broadcastChanges();
+        check(menu.slots.get(0).getItem().is(Items.APPLE),
+                "and the rest closes up: " + menu.slots.get(0).getItem());
+        helper.succeed();
+    }
+
+    @GameTest(template = TestStructures.FLOOR)
     public static void theLastPartitionStays(GameTestHelper helper) {
         CellaBlockEntity chest = place(helper);
         check(!chest.undivide(0), "the only partition there is cannot be taken away");
