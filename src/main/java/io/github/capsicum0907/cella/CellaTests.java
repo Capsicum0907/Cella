@@ -925,6 +925,41 @@ public final class CellaTests {
     }
 
     @GameTest(template = TestStructures.FLOOR)
+    public static void oneOfThemOpensStraightIntoIt(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper);
+        Player player = helper.makeMockPlayer(GameType.SURVIVAL);
+
+        CellaMenu alone = CellaMenu.at(1, player.getInventory(), helper.absolutePos(WHERE),
+                chest.contents().getSlots(),
+                CellaConfig.rows(KIND), CellaConfig.columns(KIND));
+        check(alone.viewing() == 0,
+                "one partition opens into itself, not the list: " + alone.viewing());
+
+        check(chest.resize(0, new Plan.Partition("only", DyeColor.RED, 2)),
+                "and when that one is smaller than the chest");
+        CellaMenu narrow = CellaMenu.at(2, player.getInventory(), helper.absolutePos(WHERE),
+                chest.contents().getSlots(),
+                CellaConfig.rows(KIND), CellaConfig.columns(KIND));
+        check(narrow.viewing() == 0, "it still opens into itself: " + narrow.viewing());
+        check(narrow.pages() == pagesOver(2 * Plan.LC),
+                "over its own slots only: " + narrow.pages());
+
+        carve(chest, new Plan.Partition("front", DyeColor.RED, 1),
+                new Plan.Partition("back", DyeColor.BLUE, 1));
+        CellaMenu both = CellaMenu.at(3, player.getInventory(), helper.absolutePos(WHERE),
+                chest.contents().getSlots(),
+                CellaConfig.rows(KIND), CellaConfig.columns(KIND));
+        check(both.viewing() == Peek.LIST,
+                "two of them open the list instead: " + both.viewing());
+        helper.succeed();
+    }
+
+    private static int pagesOver(int slots) {
+        int page = CellaConfig.rows(KIND) * CellaConfig.columns(KIND);
+        return Math.max(1, (slots + page - 1) / page);
+    }
+
+    @GameTest(template = TestStructures.FLOOR)
     public static void theLastPartitionStays(GameTestHelper helper) {
         CellaBlockEntity chest = place(helper);
         check(!chest.undivide(0), "the only partition there is cannot be taken away");

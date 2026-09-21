@@ -181,6 +181,9 @@ public class CellaMenu extends AbstractContainerMenu {
                     window.limit(0, 0);
                 } else {
                     viewing = 0;
+                    int slots = chest.contents().getSlots();
+                    int from = chest.plan().first(0, slots);
+                    window.limit(from, chest.plan().past(0, slots) - from);
                 }
             });
         }
