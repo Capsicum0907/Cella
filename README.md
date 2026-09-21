@@ -4,7 +4,7 @@ A chest with more than one page.
 
 *Cella* is Latin for a storeroom, and also a compartment inside one.
 
-> **Status: the ladder works, end to end.** Forty-eight game tests, watched in a client.
+> **Status: v1.0.0.** Sixty-six game tests, watched in a client.
 >
 > A Cella is fed the experience you fought for, grows into the next form, and the last
 > step is not a recipe at all: a Perfect that has taken in all it can use, ended in the
