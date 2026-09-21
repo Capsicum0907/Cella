@@ -2,6 +2,8 @@ package io.github.capsicum0907.cella.client;
 
 import io.github.capsicum0907.cella.Cella;
 import io.github.capsicum0907.cella.Order;
+import io.github.capsicum0907.cella.Peek;
+import io.github.capsicum0907.cella.ShelfHolder;
 import io.github.capsicum0907.cella.Look;
 import io.github.capsicum0907.cella.CellaMenu;
 import io.github.capsicum0907.cella.Mods;
@@ -118,6 +120,7 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
         ordering = addRenderableWidget(new IconButton(leftPos + sort, topPos + BUTTON_Y,
                 icon("sort"), sorting(), () -> send(CellaMenu.SORT)));
         kept = menu.order();
+        peek(Peek.LIST, false);
 
         int next = sort - APART - BUTTON;
         controls = next - SPACE - BUTTON;
@@ -192,6 +195,15 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     protected void containerTick() {
         super.containerTick();
         paging();
+        boolean list = listing();
+        if (ordering != null) {
+            ordering.visible = !list;
+        }
+        if (back != null && on != null) {
+            boolean many = menu.pages() > 1 && !list;
+            back.visible = many;
+            on.visible = many;
+        }
         if (ordering != null && kept != menu.order()) {
             kept = menu.order();
             ordering.setTooltip(net.minecraft.client.gui.components.Tooltip.create(sorting()));
@@ -219,6 +231,19 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
 
     @Override
     public boolean mouseClicked(double x, double y, int button) {
+        if (listing()) {
+            int at = pane.hit(ShelfHolder.latest(), x, y, paneLeft(), paneTop(),
+                    paneWide(), paneTall());
+            if (at != Peek.LIST) {
+                if (pane.chosen() == at) {
+                    peek(at, true);
+                } else {
+                    pane.choose(at);
+                    peek(at, false);
+                }
+                return true;
+            }
+        }
         boolean onBox = finding && looking.isMouseOver(x, y);
         boolean handled = super.mouseClicked(x, y, button);
         if (!onBox && !grabbing && looking.isFocused()) {
@@ -248,6 +273,10 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        if (listing() && scrollY != 0
+                && pane.scrolled(ShelfHolder.latest(), scrollY, paneTall())) {
+            return true;
+        }
         if (menu.pages() > 1 && scrollY != 0 && hoveredSlot == null && overPanel(mouseX, mouseY)) {
             turn(scrollY > 0 ? -1 : 1);
             return true;
@@ -264,6 +293,46 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
         send(Math.floorMod(menu.page() + by, menu.pages()));
     }
 
+    private final ShelfPane pane = new ShelfPane();
+
+    @Override
+    protected void renderTooltip(GuiGraphics graphics, int mouseX, int mouseY) {
+        if (listing()) {
+            net.minecraft.world.item.ItemStack over = pane.over(ShelfHolder.latest(),
+                    mouseX, mouseY, paneLeft(), paneTop(), paneWide(), paneTall());
+            if (!over.isEmpty()) {
+                graphics.renderTooltip(font, net.minecraft.network.chat.Component.literal(
+                        over.getCount() + " ").append(over.getHoverName()), mouseX, mouseY);
+                return;
+            }
+        }
+        super.renderTooltip(graphics, mouseX, mouseY);
+    }
+
+    private boolean listing() {
+        return menu.viewing() == Peek.LIST && ShelfHolder.latest().slices().size() > 1;
+    }
+
+    private int paneLeft() {
+        return leftPos + TITLE_X;
+    }
+
+    private int paneTop() {
+        return topPos + menu.slots.getFirst().y;
+    }
+
+    private int paneWide() {
+        return imageWidth - 2 * TITLE_X;
+    }
+
+    private int paneTall() {
+        return menu.rows() * CellaMenu.SLOT;
+    }
+
+    private void peek(int index, boolean open) {
+        net.neoforged.neoforge.network.PacketDistributor.sendToServer(new Peek(index, open));
+    }
+
     private void send(int id) {
         Minecraft client = Minecraft.getInstance();
         if (client.gameMode != null) {
@@ -274,6 +343,10 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     @Override
     protected void renderBg(GuiGraphics graphics, float partial, int mouseX, int mouseY) {
         panel(graphics, leftPos, topPos, imageWidth, imageHeight);
+        if (listing()) {
+            pane.draw(graphics, font, ShelfHolder.latest(), paneLeft(), paneTop(),
+                    paneWide(), paneTall(), mouseX, mouseY);
+        }
         for (net.minecraft.world.inventory.Slot slot : menu.slots) {
             if (slot.isActive()) {
                 graphics.blit(BACKGROUND, leftPos + slot.x - 1, topPos + slot.y - 1,

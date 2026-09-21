@@ -181,6 +181,9 @@ public final class CellaDataGen {
             add("gui.cella.find", "Search this chest");
             add("gui.cella.find.hint", "Search");
             add("gui.cella.find.none", "Nothing here answers to that");
+            add("gui.cella.partition.whole", "The whole chest");
+            add("gui.cella.partition.none", "Pick one to see what is in it");
+            add("gui.cella.partition.share", "%s%% of the chest");
             add("gui.cella.prev", "Previous page");
             add("gui.cella.next", "Next page");
 

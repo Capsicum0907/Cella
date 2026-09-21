@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -20,6 +21,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.Style;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 
@@ -61,7 +63,115 @@ public final class KeptCommand {
                         .then(Commands.literal("forget")
                                 .then(Commands.argument(ID, UuidArgument.uuid())
                                         .suggests(FILED)
-                                        .executes(KeptCommand::forget)))));
+                                        .executes(KeptCommand::forget))))
+                .then(Commands.literal("partition")
+                        .then(Commands.literal("add")
+                                .then(Commands.argument("start", IntegerArgumentType.integer(0))
+                                        .then(Commands.argument("length",
+                                                        IntegerArgumentType.integer(1))
+                                                .then(Commands.argument("name",
+                                                                StringArgumentType.string())
+                                                        .executes(context -> add(context,
+                                                                DyeColor.WHITE))
+                                                        .then(Commands.argument("colour",
+                                                                        StringArgumentType.word())
+                                                                .suggests(DYES)
+                                                                .executes(context -> add(context,
+                                                                        dye(context))))))))
+                        .then(Commands.literal("remove")
+                                .then(Commands.argument("index",
+                                                IntegerArgumentType.integer(0))
+                                        .executes(KeptCommand::remove)))
+                        .then(Commands.literal("assign")
+                                .then(Commands.argument("index",
+                                                IntegerArgumentType.integer(-1))
+                                        .executes(KeptCommand::assign)))
+                        .then(Commands.literal("list")
+                                .executes(KeptCommand::partitions))));
+    }
+
+    private static final SuggestionProvider<CommandSourceStack> DYES = (context, builder) ->
+            SharedSuggestionProvider.suggest(
+                    Arrays.stream(DyeColor.values()).map(DyeColor::getName), builder);
+
+    private static DyeColor dye(CommandContext<CommandSourceStack> context) {
+        DyeColor found = DyeColor.byName(StringArgumentType.getString(context, "colour"), null);
+        return found == null ? DyeColor.WHITE : found;
+    }
+
+    private static CellaBlockEntity looking(CommandContext<CommandSourceStack> context)
+            throws CommandSyntaxException {
+        ServerPlayer player = context.getSource().getPlayerOrException();
+        net.minecraft.world.phys.HitResult hit = player.pick(8.0, 0.0F, false);
+        if (hit instanceof net.minecraft.world.phys.BlockHitResult block
+                && player.level().getBlockEntity(block.getBlockPos())
+                        instanceof CellaBlockEntity chest) {
+            return chest;
+        }
+        return null;
+    }
+
+    private static int add(CommandContext<CommandSourceStack> context, DyeColor colour)
+            throws CommandSyntaxException {
+        CellaBlockEntity chest = looking(context);
+        if (chest == null) {
+            context.getSource().sendFailure(Component.literal("Look at a Cella."));
+            return 0;
+        }
+        boolean done = chest.divide(new Plan.Partition(
+                StringArgumentType.getString(context, "name"), colour,
+                IntegerArgumentType.getInteger(context, "start"),
+                IntegerArgumentType.getInteger(context, "length")));
+        context.getSource().sendSuccess(() -> Component.literal(
+                done ? "Carved." : "It does not fit there."), false);
+        return done ? 1 : 0;
+    }
+
+    private static int remove(CommandContext<CommandSourceStack> context)
+            throws CommandSyntaxException {
+        CellaBlockEntity chest = looking(context);
+        if (chest == null) {
+            context.getSource().sendFailure(Component.literal("Look at a Cella."));
+            return 0;
+        }
+        boolean done = chest.undivide(IntegerArgumentType.getInteger(context, "index"));
+        context.getSource().sendSuccess(() -> Component.literal(
+                done ? "Gone." : "Empty it first."), false);
+        return done ? 1 : 0;
+    }
+
+    private static int assign(CommandContext<CommandSourceStack> context)
+            throws CommandSyntaxException {
+        CellaBlockEntity chest = looking(context);
+        if (chest == null) {
+            context.getSource().sendFailure(Component.literal("Look at a Cella."));
+            return 0;
+        }
+        int index = IntegerArgumentType.getInteger(context, "index");
+        chest.replan(() -> chest.plan().assign(index));
+        context.getSource().sendSuccess(() -> Component.literal(
+                "Outlet: " + chest.plan().assigned()), false);
+        return 1;
+    }
+
+    private static int partitions(CommandContext<CommandSourceStack> context)
+            throws CommandSyntaxException {
+        CellaBlockEntity chest = looking(context);
+        if (chest == null) {
+            context.getSource().sendFailure(Component.literal("Look at a Cella."));
+            return 0;
+        }
+        int slots = chest.contents().getSlots();
+        List<Plan.Partition> carved = chest.plan().over(slots);
+        for (int at = 0; at < carved.size(); at++) {
+            Plan.Partition one = carved.get(at);
+            int index = at;
+            context.getSource().sendSuccess(() -> Component.literal(
+                    index + ": " + one.name() + " [" + one.colour().getName() + "] "
+                            + one.start() + "+" + one.length() + " LC  "
+                            + chest.contents().used(index) + "/" + one.slots()), false);
+        }
+        return carved.size();
     }
 
     private static int list(CommandContext<CommandSourceStack> context) {

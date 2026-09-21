@@ -171,6 +171,15 @@ public class CellaMenu extends AbstractContainerMenu {
             }
         });
 
+        if (server) {
+            access.execute((level, pos) -> {
+                if (level.getBlockEntity(pos) instanceof CellaBlockEntity chest
+                        && chest.plan().divided()) {
+                    window.limit(0, 0);
+                }
+            });
+        }
+
         addDataSlot(new DataSlot() {
             @Override
             public int get() {
