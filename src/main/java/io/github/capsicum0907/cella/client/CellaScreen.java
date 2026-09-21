@@ -235,6 +235,9 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     }
 
     private void letGo() {
+        if (looking == null) {
+            return;
+        }
         looking.setFocused(false);
         if (getFocused() == looking) {
             setFocused(null);
@@ -269,9 +272,9 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
                 return true;
             }
         }
-        boolean onBox = finding && looking.isMouseOver(x, y);
+        boolean onBox = finding && looking != null && looking.isMouseOver(x, y);
         boolean handled = super.mouseClicked(x, y, button);
-        if (!onBox && !grabbing && looking.isFocused()) {
+        if (!onBox && !grabbing && looking != null && looking.isFocused()) {
             letGo();
         }
         return handled;
