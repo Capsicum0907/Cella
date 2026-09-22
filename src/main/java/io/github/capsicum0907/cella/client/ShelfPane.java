@@ -54,7 +54,7 @@ public final class ShelfPane {
     }
 
     private int listWide(int wide) {
-        return wide;
+        return (wide - GAP) * 7 / 10;
     }
 
     private static final int SPARE = 0xFF505050;
@@ -90,8 +90,11 @@ public final class ShelfPane {
     public void draw(GuiGraphics graphics, Font font, Shelf shelf, int left, int top,
             int wide, int tall, int mouseX, int mouseY) {
         int listWide = listWide(wide);
+        int detailLeft = left + listWide + GAP;
+        int detailWide = wide - listWide - GAP;
 
         well(graphics, left, top, listWide, tall);
+        well(graphics, detailLeft, top, detailWide, tall);
 
         graphics.enableScissor(left, top, left + listWide, top + tall);
         int over = hit(shelf, mouseX, mouseY, left, top, wide, tall);
@@ -101,14 +104,15 @@ public final class ShelfPane {
                 continue;
             }
             if (at == 0) {
-                everything(graphics, font, shelf, left, y, listWide,
-                        chosen == Peek.WHOLE, over == Peek.WHOLE);
+                everything(graphics, font, shelf, left, y, listWide, over == Peek.WHOLE);
             } else {
                 item(graphics, font, shelf.slices().get(at - 1), left, y, listWide,
                         at - 1 == chosen, at - 1 == over);
             }
         }
         graphics.disableScissor();
+
+        detail(graphics, font, shelf, detailLeft, top, detailWide, tall);
     }
 
     private void well(GuiGraphics graphics, int x, int y, int wide, int tall) {
@@ -145,10 +149,8 @@ public final class ShelfPane {
     }
 
     private void everything(GuiGraphics graphics, Font font, Shelf shelf, int x, int y,
-            int wide, boolean picked, boolean under) {
-        if (picked) {
-            graphics.fill(x + 1, y, x + wide - 1, y + ITEM - 1, CHOSEN);
-        } else if (under) {
+            int wide, boolean under) {
+        if (under) {
             graphics.fill(x + 1, y, x + wide - 1, y + ITEM - 1, OVER);
         }
 

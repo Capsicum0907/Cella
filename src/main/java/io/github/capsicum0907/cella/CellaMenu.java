@@ -43,14 +43,6 @@ public class CellaMenu extends AbstractContainerMenu {
         return (width - 2 * MARGIN) / SLOT;
     }
 
-    public static final int PANEL = 92;
-
-    private int panel;
-
-    public int panel() {
-        return panel;
-    }
-
     public static final int SORT = -1;
     public static final int STOW = -2;
     public static final int MATCHING = -3;
@@ -59,7 +51,15 @@ public class CellaMenu extends AbstractContainerMenu {
 
     private Player who;
 
+    private int into = Into.NONE;
 
+    public void into(int index) {
+        into = index;
+    }
+
+    public int into() {
+        return into;
+    }
 
     private int shown = Peek.LIST;
 
@@ -108,11 +108,9 @@ public class CellaMenu extends AbstractContainerMenu {
         this.window = window;
         this.who = inventory.player;
         this.server = !inventory.player.level().isClientSide;
-        this.panel = kind.trait().divides() ? PANEL : 0;
-        int content = width(columns);
-        this.width = content + panel;
-        int chestLeft = panel + (content - columns * SLOT) / 2;
-        int playerLeft = panel + (content - CellaConfig.PLAYER_COLUMNS * SLOT) / 2;
+        this.width = width(columns);
+        int chestLeft = (width - columns * SLOT) / 2;
+        int playerLeft = (width - CellaConfig.PLAYER_COLUMNS * SLOT) / 2;
 
         for (int index = 0; index < pageSize; index++) {
             addSlot(new PagedSlot(window, index,
@@ -197,15 +195,14 @@ public class CellaMenu extends AbstractContainerMenu {
                 if (!(level.getBlockEntity(pos) instanceof CellaBlockEntity chest)) {
                     return;
                 }
-                int room = chest.contents().getSlots();
                 if (chest.plan().split()) {
-                    viewing = Peek.WHOLE;
-                    window.everything(
-                            Math.min(room, chest.plan().taken() * Plan.LC));
+                    viewing = Peek.LIST;
+                    window.limit(0, 0);
                 } else {
                     viewing = 0;
-                    int from = chest.plan().first(0, room);
-                    window.limit(from, chest.plan().past(0, room) - from);
+                    int slots = chest.contents().getSlots();
+                    int from = chest.plan().first(0, slots);
+                    window.limit(from, chest.plan().past(0, slots) - from);
                 }
             });
         } else {
@@ -350,32 +347,31 @@ public class CellaMenu extends AbstractContainerMenu {
         });
     }
 
-    private net.neoforged.neoforge.items.IItemHandlerModifiable partition(int index) {
+    private boolean picked() {
+        return access.evaluate((level, pos) ->
+                level.getBlockEntity(pos) instanceof CellaBlockEntity chest
+                        && into >= 0 && into < chest.plan().count(chest.contents().getSlots()))
+                .orElse(false);
+    }
+
+    private net.neoforged.neoforge.items.IItemHandler chosen() {
         return access.evaluate((level, pos) -> {
             if (!(level.getBlockEntity(pos) instanceof CellaBlockEntity chest)) {
-                return Outlet.NOTHING;
+                return null;
             }
             int slots = chest.contents().getSlots();
-            if (index < 0 || index >= chest.plan().count(slots)) {
-                return Outlet.NOTHING;
+            if (into < 0 || into >= chest.plan().count(slots)) {
+                return null;
             }
-            int from = chest.plan().first(index, slots);
-            return (net.neoforged.neoforge.items.IItemHandlerModifiable)
-                    new Outlet(chest.contents(), from, chest.plan().past(index, slots) - from);
-        }).orElse(Outlet.NOTHING);
+            int from = chest.plan().first(into, slots);
+            return (net.neoforged.neoforge.items.IItemHandler)
+                    new Outlet(chest.contents(), from, chest.plan().past(into, slots) - from);
+        }).orElse(null);
     }
 
     private ItemStack poured(ItemStack stack) {
-        return ItemHandlerHelper.insertItemStacked(partition(viewing), stack, false);
-    }
-
-    public void carryInto(int index) {
-        if (!server || getCarried().isEmpty()) {
-            return;
-        }
-        net.neoforged.neoforge.items.IItemHandlerModifiable where = partition(index);
-        byHand(() -> setCarried(
-                ItemHandlerHelper.insertItemStacked(where, getCarried(), false)));
+        net.neoforged.neoforge.items.IItemHandler where = chosen();
+        return where == null ? stack : ItemHandlerHelper.insertItemStacked(where, stack, false);
     }
 
     public Shelf shelf(int shown) {
@@ -470,7 +466,8 @@ public class CellaMenu extends AbstractContainerMenu {
         if (viewing == Peek.LIST && id != SORT) {
             return true;
         }
-        if ((id == STOW || id == MATCHING) && viewing < 0) {
+        if ((id == STOW || id == MATCHING)
+                && (viewing == Peek.LIST || (viewing == Peek.WHOLE && !picked()))) {
             return true;
         }
         if (!player.level().isClientSide) {
@@ -565,7 +562,9 @@ public class CellaMenu extends AbstractContainerMenu {
             if (stack.isEmpty() || (matchingOnly && !kept.contains(stack))) {
                 continue;
             }
-            inventory.setItem(slot, poured(stack));
+            inventory.setItem(slot, viewing == Peek.WHOLE
+                    ? poured(stack)
+                    : ItemHandlerHelper.insertItemStacked(contents, stack, false));
         }
         inventory.setChanged();
     }
@@ -603,7 +602,7 @@ public class CellaMenu extends AbstractContainerMenu {
         if (!slot.hasItem() || viewing == Peek.LIST) {
             return ItemStack.EMPTY;
         }
-        if (index >= pageSize && viewing < 0) {
+        if (index >= pageSize && viewing == Peek.WHOLE && !picked()) {
             return ItemStack.EMPTY;
         }
         ItemStack stack = slot.getItem();
@@ -621,7 +620,9 @@ public class CellaMenu extends AbstractContainerMenu {
             return before;
         }
 
-        ItemStack left = poured(stack);
+        ItemStack left = viewing == Peek.WHOLE
+                ? poured(stack)
+                : ItemHandlerHelper.insertItemStacked(contents, stack, false);
 
         if (left.getCount() == stack.getCount()) {
             return ItemStack.EMPTY;

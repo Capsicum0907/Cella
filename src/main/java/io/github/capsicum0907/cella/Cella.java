@@ -93,7 +93,7 @@ public class Cella {
         event.registrar("1").optional().playToServer(Into.TYPE, Into.STREAM_CODEC,
                 (into, context) -> {
                     if (context.player().containerMenu instanceof CellaMenu menu) {
-                        menu.carryInto(into.index());
+                        menu.into(into.index());
                     }
                 });
 

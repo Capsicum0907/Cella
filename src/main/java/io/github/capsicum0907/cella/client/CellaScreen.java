@@ -46,8 +46,6 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
 
     private static final int TITLE_X = 8;
 
-    private static final int EDGE = 4;
-
     private static final int SETTLES = 4;
 
     private static final int BUTTON = IconButton.SIZE;
@@ -72,8 +70,84 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
 
     private static final int TYPED = 0xFFFFFF;
 
+    private static final int CHIP = 8;
+
+    private static final int CHIP_GAP = 2;
+
+    private int chips;
+
     private boolean whole() {
         return menu.viewing() == Peek.WHOLE;
+    }
+
+    private int stripLeft() {
+        return leftPos + inventoryLabelX + font.width(playerInventoryTitle) + APART;
+    }
+
+    private int stripRight() {
+        return leftPos + movers - APART;
+    }
+
+    private int stripTop() {
+        return topPos + inventoryLabelY - 1;
+    }
+
+    private int fits() {
+        return Math.max(0, (stripRight() - stripLeft() + CHIP_GAP) / (CHIP + CHIP_GAP));
+    }
+
+    private int chipAt(double x, double y) {
+        Shelf shelf = ShelfHolder.latest();
+        if (!whole() || y < stripTop() || y >= stripTop() + CHIP) {
+            return Into.NONE;
+        }
+        int many = Math.min(fits(), shelf.slices().size() - chips);
+        for (int at = 0; at < many; at++) {
+            int left = stripLeft() + at * (CHIP + CHIP_GAP);
+            if (x >= left && x < left + CHIP) {
+                return chips + at;
+            }
+        }
+        return Into.NONE;
+    }
+
+    private void strip(GuiGraphics graphics, int mouseX, int mouseY) {
+        if (!whole()) {
+            return;
+        }
+        Shelf shelf = ShelfHolder.latest();
+        chips = Mth.clamp(chips, 0, Math.max(0, shelf.slices().size() - fits()));
+        int many = Math.min(fits(), shelf.slices().size() - chips);
+        for (int at = 0; at < many; at++) {
+            int index = chips + at;
+            int left = stripLeft() + at * (CHIP + CHIP_GAP);
+            boolean here = index == menu.into();
+            graphics.fill(left, stripTop(), left + CHIP, stripTop() + CHIP,
+                    here ? 0xFF000000 : 0xFF5B5B5B);
+            graphics.fill(left + 1, stripTop() + 1, left + CHIP - 1, stripTop() + CHIP - 1,
+                    0xFF000000 | shelf.slices().get(index).dye().getTextureDiffuseColor());
+            if (!here) {
+                graphics.fill(left + 1, stripTop() + 1, left + CHIP - 1, stripTop() + CHIP - 1,
+                        0x60000000);
+            }
+        }
+        if (menu.into() == Into.NONE && many > 0) {
+            graphics.drawString(font, Component.translatable("gui.cella.into.none"),
+                    stripLeft(), stripTop() + CHIP + 2, LABEL, false);
+        }
+    }
+
+    private void stripTip(GuiGraphics graphics, int mouseX, int mouseY) {
+        int at = chipAt(mouseX, mouseY);
+        if (at == Into.NONE) {
+            return;
+        }
+        Shelf.Slice slice = ShelfHolder.latest().slices().get(at);
+        Component name = slice.name().isEmpty()
+                ? Component.translatable("gui.cella.partition.unnamed")
+                : Component.literal(slice.name());
+        graphics.renderTooltip(font, Component.translatable("gui.cella.into.pick", name),
+                mouseX, mouseY);
     }
 
     private static final String ELLIPSIS = "...";
@@ -108,8 +182,7 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     }
 
     private int after(Component label, int width) {
-        return Math.min(menu.panel() + TITLE_X + font.width(label) + AFTER_TITLE,
-                imageWidth - TITLE_X - width);
+        return Math.min(TITLE_X + font.width(label) + AFTER_TITLE, imageWidth - TITLE_X - width);
     }
 
     @Override
@@ -129,7 +202,7 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
                     () -> send(Screen.hasShiftDown() ? wide : plain)));
         }
 
-        int left = menu.panel() + TITLE_X;
+        int left = TITLE_X;
         knob = divides() ? left : -1;
         if (knob >= 0) {
             left += BUTTON + SPACE;
@@ -219,8 +292,12 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     protected void containerTick() {
         super.containerTick();
         paging();
+        boolean list = listing();
+        if (ordering != null) {
+            ordering.visible = !list;
+        }
         if (back != null && on != null) {
-            boolean many = menu.pages() > 1;
+            boolean many = menu.pages() > 1 && !list;
             back.visible = many;
             on.visible = many;
         }
@@ -257,24 +334,43 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
         if (modal.open()) {
             return inModal(x, y, button);
         }
-        if (overKnob(x, y)) {
-            modal.open(true);
+        int chip = chipAt(x, y);
+        if (chip != Into.NONE) {
+            int wanted = chip == menu.into() ? Into.NONE : chip;
+            menu.into(wanted);
+            net.neoforged.neoforge.network.PacketDistributor.sendToServer(new Into(wanted));
             return true;
         }
-        if (panelled()) {
+        if (overKnob(x, y)) {
+            if (listing()) {
+                modal.open(true);
+                peek(Peek.LIST, false);
+            } else {
+                pane.forget();
+                peek(Peek.LIST, true);
+            }
+            return true;
+        }
+        if (listing()) {
             int at = pane.hit(ShelfHolder.latest(), x, y, paneLeft(), paneTop(),
                     paneWide(), paneTall());
             if (at == Peek.WHOLE) {
+                pane.unpick();
                 peek(Peek.WHOLE, true);
                 return true;
             }
             if (at != Peek.LIST) {
-                if (menu.getCarried().isEmpty()) {
+                if (pane.chosen() == at) {
                     peek(at, true);
                 } else {
-                    net.neoforged.neoforge.network.PacketDistributor.sendToServer(new Into(at));
+                    pane.choose(at);
+                    peek(at, false);
                 }
                 return true;
+            }
+            if (pane.chosen() != Peek.LIST) {
+                pane.unpick();
+                peek(Peek.LIST, false);
             }
         }
         boolean onBox = finding && looking != null && looking.isMouseOver(x, y);
@@ -389,8 +485,14 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
                 && modal.scrolled(ShelfHolder.latest(), scrollY, modalTall())) {
             return true;
         }
-        if (panelled() && scrollY != 0
+        if (listing() && scrollY != 0
                 && pane.scrolled(ShelfHolder.latest(), scrollY, paneTall())) {
+            return true;
+        }
+        if (whole() && scrollY != 0 && mouseY >= stripTop() && mouseY < stripTop() + CHIP
+                && ShelfHolder.latest().slices().size() > fits()) {
+            chips = Mth.clamp(chips - (int) scrollY, 0,
+                    ShelfHolder.latest().slices().size() - fits());
             return true;
         }
         if (menu.pages() > 1 && scrollY != 0 && overPanel(mouseX, mouseY)
@@ -465,7 +567,7 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
 
     private void knobs(GuiGraphics graphics) {
         if (knob >= 0) {
-            knob(graphics, knob, GEAR);
+            knob(graphics, knob, listing() ? GEAR : HOME);
         }
     }
 
@@ -540,17 +642,25 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
 
     @Override
     protected void renderTooltip(GuiGraphics graphics, int mouseX, int mouseY) {
-        if (panelled()) {
+        if (listing()) {
+            net.minecraft.world.item.ItemStack over = pane.over(ShelfHolder.latest(),
+                    mouseX, mouseY, paneLeft(), paneTop(), paneWide(), paneTall());
+            if (!over.isEmpty()) {
+                graphics.renderTooltip(font, net.minecraft.network.chat.Component.literal(
+                        ShelfPane.grouped(over.getCount()) + " ").append(over.getHoverName()),
+                        mouseX, mouseY);
+                return;
+            }
         }
         super.renderTooltip(graphics, mouseX, mouseY);
     }
 
-    private boolean panelled() {
-        return menu.panel() > 0 && !ShelfHolder.latest().slices().isEmpty();
+    private boolean listing() {
+        return menu.viewing() == Peek.LIST && !ShelfHolder.latest().slices().isEmpty();
     }
 
     private int paneLeft() {
-        return leftPos + EDGE;
+        return leftPos + TITLE_X;
     }
 
     private int paneTop() {
@@ -558,7 +668,7 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     }
 
     private int paneWide() {
-        return menu.panel() - 2 * EDGE;
+        return imageWidth - 2 * TITLE_X;
     }
 
     private int paneTall() {
@@ -579,12 +689,12 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     @Override
     protected void renderBg(GuiGraphics graphics, float partial, int mouseX, int mouseY) {
         panel(graphics, leftPos, topPos, imageWidth, imageHeight);
-        if (panelled()) {
-            pane.choose(menu.viewing());
+        if (listing()) {
             pane.draw(graphics, font, ShelfHolder.latest(), paneLeft(), paneTop(),
                     paneWide(), paneTall(), mouseX, mouseY);
         }
         knobs(graphics);
+        strip(graphics, mouseX, mouseY);
         for (net.minecraft.world.inventory.Slot slot : menu.slots) {
             if (slot.isActive()) {
                 graphics.blit(BACKGROUND, leftPos + slot.x - 1, topPos + slot.y - 1,
@@ -638,7 +748,7 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
                     LABEL, false);
         }
 
-        if (menu.nothingShown() && !panelled() && finding
+        if (menu.nothingShown() && !listing() && finding
                 && looking != null && !looking.getValue().isBlank()) {
             Component none = Component.translatable("gui.cella.find.none");
             int top = menu.slots.getFirst().y;
@@ -668,6 +778,9 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
         veil(modal.open());
         super.render(graphics, mouseX, mouseY, partial);
         renderTooltip(graphics, mouseX, mouseY);
+        if (!modal.open()) {
+            stripTip(graphics, mouseX, mouseY);
+        }
         overlay(graphics, mouseX, mouseY, partial);
     }
 }
