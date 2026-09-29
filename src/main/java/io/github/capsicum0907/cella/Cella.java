@@ -137,6 +137,13 @@ public class Cella {
                     }
                 });
 
+        event.registrar("1").optional().playToServer(Move.TYPE, Move.STREAM_CODEC,
+                (move, context) -> {
+                    if (context.player().containerMenu instanceof CellaMenu menu) {
+                        menu.move(move.into());
+                    }
+                });
+
         event.registrar("1").optional().playToServer(Assign.TYPE, Assign.STREAM_CODEC,
                 (assign, context) -> {
                     if (!(context.player().containerMenu instanceof CellaMenu menu)) {

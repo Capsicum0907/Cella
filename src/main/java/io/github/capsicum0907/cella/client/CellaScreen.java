@@ -102,8 +102,23 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
         return Math.max(0, (stripRight() - stripLeft() + CHIP_GAP) / (CHIP + CHIP_GAP));
     }
 
+    private boolean showingChips() {
+        return whole() || menu.selecting();
+    }
+
+    private java.util.List<Integer> chipList() {
+        java.util.List<Integer> list = new java.util.ArrayList<>();
+        int own = menu.selecting() ? menu.viewing() : Into.NONE;
+        for (int at = 0; at < ShelfHolder.latest().slices().size(); at++) {
+            if (at != own) {
+                list.add(at);
+            }
+        }
+        return list;
+    }
+
     private int shownChips() {
-        return Math.min(fits(), ShelfHolder.latest().slices().size() - chips);
+        return Math.min(fits(), chipList().size() - chips);
     }
 
     private int chipsLeft() {
@@ -118,30 +133,32 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     }
 
     private int chipAt(double x, double y) {
-        if (!whole() || y < stripTop() || y >= stripTop() + CHIP) {
+        if (!showingChips() || y < stripTop() || y >= stripTop() + CHIP) {
             return Into.NONE;
         }
+        java.util.List<Integer> list = chipList();
         int many = shownChips();
         for (int at = 0; at < many; at++) {
             int left = chipLeft(at);
             if (x >= left && x < left + CHIP) {
-                return chips + at;
+                return list.get(chips + at);
             }
         }
         return Into.NONE;
     }
 
     private void strip(GuiGraphics graphics, int mouseX, int mouseY) {
-        if (!whole()) {
+        if (!showingChips()) {
             return;
         }
         Shelf shelf = ShelfHolder.latest();
-        chips = Mth.clamp(chips, 0, Math.max(0, shelf.slices().size() - fits()));
+        java.util.List<Integer> list = chipList();
+        chips = Mth.clamp(chips, 0, Math.max(0, list.size() - fits()));
         int many = shownChips();
         for (int at = 0; at < many; at++) {
-            int index = chips + at;
+            int index = list.get(chips + at);
             int left = chipLeft(at);
-            boolean here = index == menu.into();
+            boolean here = !menu.selecting() && index == menu.into();
             graphics.fill(left, stripTop(), left + CHIP, stripTop() + CHIP,
                     here ? 0xFF000000 : 0xFF5B5B5B);
             graphics.fill(left + 1, stripTop() + 1, left + CHIP - 1, stripTop() + CHIP - 1,
@@ -162,8 +179,114 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
         Component name = slice.name().isEmpty()
                 ? Component.translatable("gui.cella.partition.unnamed")
                 : Component.literal(slice.name());
-        graphics.renderTooltip(font, Component.translatable("gui.cella.into.pick", name),
-                mouseX, mouseY);
+        graphics.renderTooltip(font, Component.translatable(menu.selecting()
+                ? "gui.cella.move.title"
+                : "gui.cella.into.pick", name), mouseX, mouseY);
+    }
+
+    private int moving = Into.NONE;
+
+    private static final int DIALOG_PAD = 6;
+
+    private static final int CHOICE_TALL = 14;
+
+    private static final int CHOICE_GAP = 6;
+
+    private static final int DIALOG_BACK = 0xFFC6C6C6;
+
+    private static final int DIALOG_EDGE = 0xFF000000;
+
+    private static final int CHOICE_FACE = 0xFF8B8B8B;
+
+    private static final int CHOICE_LIT = 0xFFA0A0A0;
+
+    private static final int CHOICE_TEXT = 0xFFFFFF;
+
+    private static final int DIALOG_ABOVE = 400;
+
+    private Component movingTitle() {
+        java.util.List<Shelf.Slice> slices = ShelfHolder.latest().slices();
+        if (moving < 0 || moving >= slices.size()) {
+            return Component.empty();
+        }
+        Shelf.Slice slice = slices.get(moving);
+        Component name = slice.name().isEmpty()
+                ? Component.translatable("gui.cella.partition.unnamed")
+                : Component.literal(slice.name());
+        return Component.translatable("gui.cella.move.title", name);
+    }
+
+    private final Component[] choices = {
+            Component.translatable("gui.cella.move.cancel"),
+            Component.translatable("gui.cella.move.go") };
+
+    private int choiceWide() {
+        int wide = 0;
+        for (Component choice : choices) {
+            wide = Math.max(wide, font.width(choice));
+        }
+        return wide + 2 * DIALOG_PAD;
+    }
+
+    private int dialogWide() {
+        int buttons = choices.length * choiceWide() + (choices.length - 1) * CHOICE_GAP;
+        return Math.max(font.width(movingTitle()), buttons) + 2 * DIALOG_PAD;
+    }
+
+    private int dialogTall() {
+        return DIALOG_PAD + font.lineHeight + DIALOG_PAD + CHOICE_TALL + DIALOG_PAD;
+    }
+
+    private int dialogLeft() {
+        return leftPos + (imageWidth - dialogWide()) / 2;
+    }
+
+    private int dialogTop() {
+        return topPos + (imageHeight - dialogTall()) / 2;
+    }
+
+    private int choiceLeft(int at) {
+        int buttons = choices.length * choiceWide() + (choices.length - 1) * CHOICE_GAP;
+        return dialogLeft() + (dialogWide() - buttons) / 2 + at * (choiceWide() + CHOICE_GAP);
+    }
+
+    private int choiceTop() {
+        return dialogTop() + DIALOG_PAD + font.lineHeight + DIALOG_PAD;
+    }
+
+    private int choiceAt(double x, double y) {
+        for (int at = 0; at < choices.length; at++) {
+            if (x >= choiceLeft(at) && x < choiceLeft(at) + choiceWide()
+                    && y >= choiceTop() && y < choiceTop() + CHOICE_TALL) {
+                return at;
+            }
+        }
+        return -1;
+    }
+
+    private void dialog(GuiGraphics graphics, int mouseX, int mouseY) {
+        if (moving < 0) {
+            return;
+        }
+        graphics.pose().pushPose();
+        graphics.pose().translate(0, 0, DIALOG_ABOVE);
+        int x = dialogLeft();
+        int y = dialogTop();
+        graphics.fill(x - 1, y - 1, x + dialogWide() + 1, y + dialogTall() + 1, DIALOG_EDGE);
+        graphics.fill(x, y, x + dialogWide(), y + dialogTall(), DIALOG_BACK);
+        Component title = movingTitle();
+        graphics.drawString(font, title, x + (dialogWide() - font.width(title)) / 2,
+                y + DIALOG_PAD, LABEL, false);
+        int over = choiceAt(mouseX, mouseY);
+        for (int at = 0; at < choices.length; at++) {
+            int left = choiceLeft(at);
+            graphics.fill(left, choiceTop(), left + choiceWide(), choiceTop() + CHOICE_TALL,
+                    at == over ? CHOICE_LIT : CHOICE_FACE);
+            graphics.drawString(font, choices[at],
+                    left + (choiceWide() - font.width(choices[at])) / 2,
+                    choiceTop() + (CHOICE_TALL - font.lineHeight) / 2 + 1, CHOICE_TEXT, false);
+        }
+        graphics.pose().popPose();
     }
 
     private static final String ELLIPSIS = "...";
@@ -324,6 +447,9 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
             back.visible = many;
             on.visible = many;
         }
+        if (!menu.selecting()) {
+            moving = Into.NONE;
+        }
         if (selector != null) {
             selector.visible = !list;
             selector.icon(Icons.of(menu.selecting() ? Icons.SELECTED : Icons.SELECT));
@@ -364,7 +490,22 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
         if (modal.open()) {
             return inModal(x, y, button);
         }
+        if (moving >= 0) {
+            int choice = choiceAt(x, y);
+            if (choice == 1) {
+                net.neoforged.neoforge.network.PacketDistributor.sendToServer(
+                        new io.github.capsicum0907.cella.Move(moving));
+            }
+            if (choice >= 0) {
+                moving = Into.NONE;
+            }
+            return true;
+        }
         int chip = chipAt(x, y);
+        if (chip != Into.NONE && menu.selecting()) {
+            moving = chip;
+            return true;
+        }
         if (chip != Into.NONE) {
             int wanted = chip == menu.into() ? Into.NONE : chip;
             menu.into(wanted);
@@ -481,6 +622,12 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
 
     @Override
     public boolean keyPressed(int key, int scan, int modifiers) {
+        if (moving >= 0) {
+            if (key == org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE) {
+                moving = Into.NONE;
+            }
+            return true;
+        }
         if (modal.open() && cell != null && cell.visible) {
             if (key == org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER
                     || key == org.lwjgl.glfw.GLFW.GLFW_KEY_KP_ENTER) {
@@ -522,10 +669,9 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
                 && pane.scrolled(ShelfHolder.latest(), scrollY, paneTall())) {
             return true;
         }
-        if (whole() && scrollY != 0 && mouseY >= stripTop() && mouseY < stripTop() + CHIP
-                && ShelfHolder.latest().slices().size() > fits()) {
-            chips = Mth.clamp(chips - (int) scrollY, 0,
-                    ShelfHolder.latest().slices().size() - fits());
+        if (showingChips() && scrollY != 0 && mouseY >= stripTop() && mouseY < stripTop() + CHIP
+                && chipList().size() > fits()) {
+            chips = Mth.clamp(chips - (int) scrollY, 0, chipList().size() - fits());
             return true;
         }
         if (menu.pages() > 1 && scrollY != 0 && overPanel(mouseX, mouseY)
@@ -919,9 +1065,10 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
         veil(modal.open());
         super.render(graphics, mouseX, mouseY, partial);
         renderTooltip(graphics, mouseX, mouseY);
-        if (!modal.open()) {
+        if (!modal.open() && moving < 0) {
             stripTip(graphics, mouseX, mouseY);
         }
         overlay(graphics, mouseX, mouseY, partial);
+        dialog(graphics, mouseX, mouseY);
     }
 }

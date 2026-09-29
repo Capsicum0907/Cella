@@ -471,6 +471,65 @@ public class CellaMenu extends AbstractContainerMenu {
         tellSelection();
     }
 
+    public boolean move(int into) {
+        CellaBlockEntity chest = chest();
+        if (!server || !selecting || chest == null) {
+            return false;
+        }
+        int slots = chest.contents().getSlots();
+        if (into < 0 || into >= chest.plan().count(slots)) {
+            return false;
+        }
+        java.util.List<Claim> moving = new java.util.ArrayList<>();
+        for (Claim claim : selectionClaims()) {
+            if (claim.part() != into) {
+                moving.add(claim);
+            }
+        }
+        for (Claim claim : moving) {
+            if (chest.contents().count(claim.part(), claim.kind()) < claim.count()) {
+                return false;
+            }
+        }
+        java.util.List<ItemStack> kinds = new java.util.ArrayList<>();
+        java.util.List<Integer> counts = new java.util.ArrayList<>();
+        for (Claim claim : moving) {
+            int at = -1;
+            for (int one = 0; one < kinds.size(); one++) {
+                if (ItemStack.isSameItemSameComponents(kinds.get(one), claim.kind())) {
+                    at = one;
+                }
+            }
+            if (at < 0) {
+                kinds.add(claim.kind());
+                counts.add(claim.count());
+            } else {
+                counts.set(at, counts.get(at) + claim.count());
+            }
+        }
+        Space target = new Space(partition(into));
+        if (!target.fits(kinds, counts)) {
+            if (who != null) {
+                who.sendSystemMessage(net.minecraft.network.chat.Component
+                        .translatable("gui.cella.move.full"));
+            }
+            return false;
+        }
+        chest.release(this);
+        chest.byHand(() -> chest.inOneGo(() -> {
+            for (Claim claim : moving) {
+                Space source = new Space(partition(claim.part()));
+                int taken = source.takeOut(claim.kind(), claim.count());
+                int put = target.put(claim.kind(), taken);
+                if (put < taken) {
+                    source.put(claim.kind(), taken - put);
+                }
+            }
+        }));
+        quit();
+        return true;
+    }
+
     public java.util.List<Claim> selectionClaims() {
         java.util.List<Claim> wanted = new java.util.ArrayList<>();
         if (!(contents instanceof Sorted sorted)) {

@@ -1482,6 +1482,66 @@ public final class CellaTests {
     }
 
     @GameTest(template = TestStructures.FLOOR)
+    public static void movingCarriesExactlyWhatWasPicked(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper);
+        Player player = helper.makeMockPlayer(GameType.SURVIVAL);
+        Sorted contents = chest.contents();
+        carve(chest, new Plan.Partition("front", DyeColor.RED, 1),
+                new Plan.Partition("back", DyeColor.BLUE, 1),
+                new Plan.Partition("spare", DyeColor.LIME, 2));
+        ItemStack stone = new ItemStack(Items.STONE);
+        contents.insertItem(0, new ItemStack(Items.STONE, 100), false);
+        contents.insertItem(Plan.LC, new ItemStack(Items.STONE, 30), false);
+        contents.insertItem(Plan.LC, new ItemStack(Items.APPLE, 7), false);
+
+        CellaMenu menu = CellaMenu.at(1, player.getInventory(), helper.absolutePos(WHERE),
+                contents.getSlots(), CellaConfig.rows(KIND), CellaConfig.columns(KIND));
+        menu.view(Peek.WHOLE);
+        menu.clickMenuButton(player, CellaMenu.SELECT);
+        int at = menu.slots.get(0).getItem().is(Items.APPLE) ? 1 : 0;
+        menu.pickKind(at);
+
+        check(menu.move(2), "the move goes ahead");
+        check(contents.count(2, stone) == 130, "all the stone lands in the third: "
+                + contents.count(2, stone));
+        check(contents.count(0, stone) == 0 && contents.count(1, stone) == 0,
+                "and none is left behind");
+        check(contents.count(1, new ItemStack(Items.APPLE)) == 7, "the apples stay put");
+        check(items(contents) == 137, "nothing is made or lost: " + items(contents));
+        check(!menu.selecting(), "moving ends selecting");
+        check(chest.reserved(2, stone) == 0 && chest.reserved(0, stone) == 0,
+                "and no claim is left over");
+        helper.succeed();
+    }
+
+    @GameTest(template = TestStructures.FLOOR)
+    public static void aMoveThatWillNotFitMovesNothing(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper);
+        Player player = helper.makeMockPlayer(GameType.SURVIVAL);
+        Sorted contents = chest.contents();
+        carve(chest, new Plan.Partition("from", DyeColor.RED, 1),
+                new Plan.Partition("into", DyeColor.BLUE, 1));
+        contents.insertItem(0, new ItemStack(Items.STONE, 64), false);
+        contents.insertItem(0, new ItemStack(Items.APPLE, 64), false);
+        contents.insertItem(Plan.LC, new ItemStack(Items.DIRT, 64 * (Plan.LC - 1)), false);
+
+        CellaMenu menu = CellaMenu.at(1, player.getInventory(), helper.absolutePos(WHERE),
+                contents.getSlots(), CellaConfig.rows(KIND), CellaConfig.columns(KIND));
+        menu.view(0);
+        menu.clickMenuButton(player, CellaMenu.SELECT);
+        menu.pick(0, true);
+        menu.pick(1, true);
+
+        check(!menu.move(1), "one empty slot cannot take two stacks, though it could take either");
+        check(contents.count(0, new ItemStack(Items.STONE)) == 64
+                        && contents.count(0, new ItemStack(Items.APPLE)) == 64,
+                "so nothing has moved");
+        check(menu.selecting() && menu.selected(0) && menu.selected(1),
+                "and the selection is still there to change");
+        helper.succeed();
+    }
+
+    @GameTest(template = TestStructures.FLOOR)
     public static void onlyWhatIsStillThereCanBePicked(GameTestHelper helper) {
         CellaBlockEntity chest = place(helper);
         Player player = helper.makeMockPlayer(GameType.SURVIVAL);

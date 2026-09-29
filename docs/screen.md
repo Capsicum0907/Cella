@@ -66,6 +66,24 @@ The edit button on the list opens the editor. Each row has:
 ⚠ Changing a size carries every partition after it along, contents and all. Nothing is lost
 or mixed.
 
+### Moving between partitions
+
+Inside a partition or in Everything, the checkbox beside the moving buttons starts
+selecting.
+
+- Click a square to pick it or let it go. Drag from one square to another to pick every
+  square between the two corners. Shift and click picks every square of that kind on show,
+  or lets them all go if every one is already picked.
+- Picking goes on across pages. Searching and taking things in and out wait until
+  selecting ends.
+- The squares on show stay as they were while selecting. What is picked stays in the chest
+  until it is moved: hoppers and other players cannot take it.
+- The coloured chips choose where to move to; a partition's own chip is not shown inside
+  it. Choosing one asks to confirm. Move carries everything picked there; Cancel keeps
+  selecting.
+- If it will not all fit, nothing moves and it says so.
+- Selecting ends after a move, from the checkbox, or on leaving the view.
+
 ### Hoppers and comparators
 
 Hoppers and redstone comparators reach one partition at most, the first by default. The
