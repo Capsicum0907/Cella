@@ -69,7 +69,7 @@ or mixed.
 ### Hoppers and comparators
 
 Hoppers and redstone comparators reach one partition at most, the first by default. The
-two-arrow button on a row in the editor gives them that partition instead; clicking it on
+Port button (two arrows) on a row in the editor gives them that partition instead; clicking it on
 the one they already reach leaves them reaching none. If that partition is deleted, they
 reach none.
 
