@@ -1181,6 +1181,28 @@ public final class CellaTests {
     }
 
     @GameTest(template = TestStructures.FLOOR)
+    public static void searchingTheListSearchesEverything(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper);
+        Player player = helper.makeMockPlayer(GameType.SURVIVAL);
+        Sorted contents = chest.contents();
+        carve(chest, new Plan.Partition("front", DyeColor.RED, 1),
+                new Plan.Partition("back", DyeColor.BLUE, 1));
+        contents.insertItem(0, new ItemStack(Items.STONE, 10), false);
+        contents.insertItem(Plan.LC, new ItemStack(Items.APPLE, 7), false);
+
+        CellaMenu menu = CellaMenu.at(1, player.getInventory(), helper.absolutePos(WHERE),
+                contents.getSlots(), CellaConfig.rows(KIND), CellaConfig.columns(KIND));
+        check(menu.viewing() == Peek.LIST, "two partitions open to the list");
+        menu.look("apple");
+        check(menu.viewing() == Peek.WHOLE, "a search from the list opens Everything: "
+                + menu.viewing());
+        check(menu.slots.get(0).getItem().is(Items.APPLE),
+                "with the answer on show: " + menu.slots.get(0).getItem());
+        check(!menu.slots.get(1).isActive(), "and only the answer");
+        helper.succeed();
+    }
+
+    @GameTest(template = TestStructures.FLOOR)
     public static void storingGoesWhereItIsPointed(GameTestHelper helper) {
         CellaBlockEntity chest = place(helper);
         Player player = helper.makeMockPlayer(GameType.SURVIVAL);

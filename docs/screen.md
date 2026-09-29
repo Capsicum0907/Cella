@@ -102,7 +102,8 @@ redstone comparator read the same slots as everybody else.
 ## Searching
 
 From Semi-Perfect up, a magnifier at the left of the title turns that row into a search
-box. The chest then shows only what matched, paged the same way.
+box. The chest then shows only what matched, paged the same way. Searching from the
+partition list opens Everything and searches the whole chest.
 
 The word is matched against the registry name and against the name on screen, and
 underscores read as spaces — so `diamond sword`, `diamond_sword` and `sword` all find one.

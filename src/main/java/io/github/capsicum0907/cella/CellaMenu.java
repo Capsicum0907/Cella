@@ -433,6 +433,9 @@ public class CellaMenu extends AbstractContainerMenu {
         if (!server) {
             return;
         }
+        if (viewing == Peek.LIST && !looking.isBlank()) {
+            view(Peek.WHOLE);
+        }
         window.search(looking);
         seen = revision();
         sendAllDataToRemote();
