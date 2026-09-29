@@ -1437,6 +1437,19 @@ public final class CellaTests {
     }
 
     @GameTest(template = TestStructures.FLOOR)
+    public static void sweepingOnlyAdds(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper);
+        Player player = helper.makeMockPlayer(GameType.SURVIVAL);
+        carveTwo(chest);
+        CellaMenu menu = selectingIn(helper, chest, player);
+        menu.pick(0, false);
+        check(menu.selected(0), "a sweep picks what it passes");
+        menu.pick(0, false);
+        check(menu.selected(0), "and passing again never lets go");
+        helper.succeed();
+    }
+
+    @GameTest(template = TestStructures.FLOOR)
     public static void onlyWhatIsStillThereCanBePicked(GameTestHelper helper) {
         CellaBlockEntity chest = place(helper);
         Player player = helper.makeMockPlayer(GameType.SURVIVAL);

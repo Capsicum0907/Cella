@@ -698,6 +698,9 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
             if (slot != null && slot.index < menu.pageSize()) {
                 net.neoforged.neoforge.network.PacketDistributor.sendToServer(new Pick(
                         menu.page() * menu.pageSize() + slot.index, true));
+                dragFrom = slot.index;
+                swept = false;
+                dragged.clear();
                 return;
             }
             if (type == net.minecraft.world.inventory.ClickType.QUICK_MOVE
@@ -706,6 +709,63 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
             }
         }
         super.slotClicked(slot, id, button, type);
+    }
+
+    private int dragFrom = -1;
+
+    private final java.util.Set<Integer> dragged = new java.util.HashSet<>();
+
+    private boolean swept;
+
+    private int chestSlotAt(double x, double y) {
+        for (int at = 0; at < menu.pageSize(); at++) {
+            net.minecraft.world.inventory.Slot slot = menu.slots.get(at);
+            if (slot.isActive() && isHovering(slot.x, slot.y, ITEM, ITEM, x, y)) {
+                return at;
+            }
+        }
+        return -1;
+    }
+
+    @Override
+    public boolean mouseDragged(double x, double y, int button, double dx, double dy) {
+        if (!menu.selecting() || dragFrom < 0 || button != 0) {
+            return super.mouseDragged(x, y, button, dx, dy);
+        }
+        int here = chestSlotAt(x, y);
+        if (here < 0 || (here == dragFrom && !swept)) {
+            return true;
+        }
+        swept = true;
+        int columns = menu.columns();
+        int top = Math.min(dragFrom / columns, here / columns);
+        int bottom = Math.max(dragFrom / columns, here / columns);
+        int left = Math.min(dragFrom % columns, here % columns);
+        int right = Math.max(dragFrom % columns, here % columns);
+        for (int row = top; row <= bottom; row++) {
+            for (int column = left; column <= right; column++) {
+                int at = row * columns + column;
+                int shown = menu.page() * menu.pageSize() + at;
+                if (at < menu.pageSize() && menu.slots.get(at).hasItem()
+                        && !menu.selected(shown) && dragged.add(shown)) {
+                    net.neoforged.neoforge.network.PacketDistributor.sendToServer(
+                            new Pick(shown, false));
+                }
+            }
+        }
+        return true;
+    }
+
+    @Override
+    public boolean mouseReleased(double x, double y, int button) {
+        if (dragFrom >= 0 && button == 0) {
+            dragFrom = -1;
+            dragged.clear();
+            if (menu.selecting()) {
+                return true;
+            }
+        }
+        return super.mouseReleased(x, y, button);
     }
 
     @Override
