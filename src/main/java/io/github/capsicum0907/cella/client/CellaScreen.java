@@ -34,6 +34,8 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     private static final int LID = 17;
     private static final int SLOT = 18;
 
+    private static final int ITEM = 16;
+
     private static final int SLOT_U = 7;
     private static final int SLOT_V = 17;
 
@@ -710,7 +712,10 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
             if (slot.isActive()) {
                 graphics.blit(BACKGROUND, leftPos + slot.x - 1, topPos + slot.y - 1,
                         SLOT_U, SLOT_V, SLOT, SLOT);
-                int owner = slot.index < menu.pageSize() ? menu.owner(slot.index) : -1;
+                int owner = slot.index < menu.pageSize()
+                        && isHovering(slot.x, slot.y, ITEM, ITEM, mouseX, mouseY)
+                        ? menu.owner(slot.index)
+                        : -1;
                 if (owner >= 0 && owner < slices.size()) {
                     graphics.renderOutline(leftPos + slot.x - 1, topPos + slot.y - 1, SLOT, SLOT,
                             0xFF000000 | slices.get(owner).dye().getTextureDiffuseColor());
