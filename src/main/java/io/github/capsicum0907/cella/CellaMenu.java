@@ -510,7 +510,7 @@ public class CellaMenu extends AbstractContainerMenu {
             seen = now;
             if (window.searching()) {
                 boolean moved = false;
-                if (since == null) {
+                if (since == null || window.whole()) {
                     moved = window.again();
                 } else {
                     for (int slot : since) {

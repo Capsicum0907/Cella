@@ -1065,13 +1065,13 @@ public final class CellaTests {
         menu.view(Peek.WHOLE);
         check(menu.viewing() == Peek.WHOLE, "the whole chest is on show: " + menu.viewing());
 
-        check(menu.slots.get(0).getItem().is(Items.STONE),
-                "the first partition's stone leads: " + menu.slots.get(0).getItem());
-        check(menu.slots.get(1).getItem().is(Items.APPLE),
-                "then the second one's apples, with no gap between: "
-                        + menu.slots.get(1).getItem());
-        check(menu.slots.get(2).getItem().is(Items.DIAMOND),
-                "and its diamonds: " + menu.slots.get(2).getItem());
+        check(menu.slots.get(0).getItem().is(Items.APPLE),
+                "the second one's apples lead, since the order is the chest's: "
+                        + menu.slots.get(0).getItem());
+        check(menu.slots.get(1).getItem().is(Items.DIAMOND),
+                "then its diamonds: " + menu.slots.get(1).getItem());
+        check(menu.slots.get(2).getItem().is(Items.STONE),
+                "then the first one's stone: " + menu.slots.get(2).getItem());
         check(!menu.slots.get(3).isActive(), "and nothing past what is there");
 
         int hand = menu.slots.size() - CellaConfig.PLAYER_COLUMNS;
@@ -1083,10 +1083,20 @@ public final class CellaTests {
         check(items(contents) == 20, "so the chest is unchanged: " + items(contents));
 
         menu.quickMoveStack(player, 0);
-        check(items(contents) == 10, "but taking out works: " + items(contents));
+        check(items(contents) == 13, "but taking out works: " + items(contents));
         menu.broadcastChanges();
-        check(menu.slots.get(0).getItem().is(Items.APPLE),
+        check(menu.slots.get(0).getItem().is(Items.DIAMOND),
                 "and the rest closes up: " + menu.slots.get(0).getItem());
+
+        contents.insertItem(0, new ItemStack(Items.DIAMOND, 2), false);
+        menu.broadcastChanges();
+        check(menu.slots.get(0).getItem().is(Items.DIAMOND)
+                        && menu.slots.get(1).getItem().is(Items.DIAMOND)
+                        && menu.slots.get(2).getItem().is(Items.STONE),
+                "diamonds put in the first land beside the second one's: "
+                        + menu.slots.get(0).getItem() + ", " + menu.slots.get(1).getItem());
+        check(menu.slots.get(0).getItem().getCount() == 2,
+                "the first one's before the second one's: " + menu.slots.get(0).getItem());
         helper.succeed();
     }
 
@@ -1156,9 +1166,9 @@ public final class CellaTests {
 
         menu.view(Peek.WHOLE);
         java.util.List<Integer> owners = menu.owners(chest);
-        check(owners.get(0) == 0, "the stone is the first one's: " + owners);
-        check(owners.get(1) == 2 && owners.get(2) == 2,
+        check(owners.get(0) == 2 && owners.get(1) == 2,
                 "the apples and diamonds are the third's, past the empty one: " + owners);
+        check(owners.get(2) == 0, "the stone is the first one's: " + owners);
         check(owners.get(3) == Plan.NONE, "and past them, no one's: " + owners);
 
         menu.look("diamond");

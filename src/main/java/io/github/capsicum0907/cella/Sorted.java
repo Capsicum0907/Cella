@@ -267,6 +267,10 @@ public class Sorted extends ItemStackHandler {
         return -1;
     }
 
+    public int firstOf(int part) {
+        return part < 0 ? -1 : carve.first(part);
+    }
+
     public int firstFree(int part) {
         return part < 0 ? -1 : carve.first(part) + used(part);
     }

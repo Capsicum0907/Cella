@@ -76,7 +76,15 @@ public final class Window implements IItemHandlerModifiable {
         return base;
     }
 
+    public boolean whole() {
+        return whole;
+    }
+
     private void rebuild() {
+        if (whole && held instanceof Sorted sorted) {
+            found = merged(sorted);
+            return;
+        }
         int end = Math.min(held.getSlots(), base + total);
         int[] hits = new int[Math.max(0, end - base)];
         int count = 0;
@@ -86,6 +94,43 @@ public final class Window implements IItemHandlerModifiable {
             }
         }
         found = java.util.Arrays.copyOf(hits, count);
+    }
+
+    private int[] merged(Sorted sorted) {
+        int parts = sorted.parts();
+        int[] at = new int[parts];
+        int[] end = new int[parts];
+        int many = 0;
+        for (int part = 0; part < parts; part++) {
+            at[part] = sorted.firstOf(part);
+            end[part] = sorted.firstFree(part);
+            many += Math.max(0, end[part] - at[part]);
+        }
+        java.util.Comparator<ItemStack> grouping = sorted.order().grouping();
+        java.util.PriorityQueue<Integer> heads = new java.util.PriorityQueue<>(
+                Math.max(1, parts), (one, other) -> {
+                    int by = grouping.compare(held.getStackInSlot(at[one]),
+                            held.getStackInSlot(at[other]));
+                    return by != 0 ? by : Integer.compare(one, other);
+                });
+        for (int part = 0; part < parts; part++) {
+            if (at[part] < end[part]) {
+                heads.add(part);
+            }
+        }
+        int[] hits = new int[many];
+        int count = 0;
+        while (!heads.isEmpty()) {
+            int part = heads.poll();
+            int slot = at[part]++;
+            if (matches(slot)) {
+                hits[count++] = slot;
+            }
+            if (at[part] < end[part]) {
+                heads.add(part);
+            }
+        }
+        return java.util.Arrays.copyOf(hits, count);
     }
 
     private boolean matches(int slot) {
@@ -105,6 +150,9 @@ public final class Window implements IItemHandlerModifiable {
     }
 
     public boolean changed(int slot) {
+        if (whole) {
+            return again();
+        }
         if (found == null || slot < 0 || slot >= held.getSlots()) {
             return false;
         }
