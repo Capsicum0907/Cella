@@ -46,6 +46,9 @@ Cella. The Cella in the middle is not consumed.
 Every Cella used in a recipe must be full of experience. Contents come across into what is
 made; experience does not.
 
+Partitions come across too. Every partition of every Cella used is kept, with its name,
+colour, size and contents, in the order of the crafting grid: left to right, top to bottom.
+
 ## Growing
 
 Feed a Cella with shift and right click. It takes what it needs in one go, and experience

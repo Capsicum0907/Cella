@@ -23,15 +23,15 @@ A Cella is fed experience with shift and right click. Two of the seven are not c
 Larval Cella that has been fed enough becomes an Imperfect on its own, and a Perfect Cella
 that has been fed enough and is then set off in the End comes back Super Perfect.
 
-The chest keeps itself sorted, can be searched across every page from Semi-Perfect up, and
-remembers what you moved in and out of it.
+The chest keeps itself sorted and remembers what you moved in and out of it. From
+Semi-Perfect up it can also be cut into partitions and searched across every page.
 
 ## Documents
 
 | | |
 |---|---|
 | [Forms](docs/forms.md) | Each form: capacity, recipe, what it takes to grow, what it survives |
-| [The screen](docs/screen.md) | Pages, searching, the order it is kept in, the buttons |
+| [The screen](docs/screen.md) | Pages, partitions, searching, the order it is kept in, the buttons |
 | [Config](docs/config.md) | Every setting |
 
 ## Requirements

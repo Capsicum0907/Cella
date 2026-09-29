@@ -15,9 +15,60 @@ How big a page is depends on the form and on your window. By default the client 
 page to the window, so a larger window or a smaller GUI scale shows more of the chest and
 fewer pages of it. That can be turned off in the [config](config.md).
 
+## Partitions
+
+From Semi-Perfect up, a chest can be cut into partitions. Each one is a store of its own:
+what goes into one stays in it, and a full partition takes nothing more even when another
+is empty.
+
+A chest starts as one partition that takes the whole of it. To give a second one room, take
+some back from the first.
+
+Sizes are counted in LC, one large chest of 54 slots. Partitions sit one after another in
+the order they are listed, and together they can be no bigger than the chest. How many LC a
+chest has is in the [forms](forms.md) table.
+
+### The list
+
+With two or more partitions, the chest opens to a list of them. Each row has the partition's
+colour down its left edge, its name, and how full it is. Click a row once to see what it
+holds on the right; click it again to open it. With only one partition, the chest opens
+straight into it, and the back button still leads to the list.
+
+The row at the top, Everything, opens every partition at once. The same item in two
+partitions shows as two squares. Taking out works as usual. Storing needs a partition picked
+first from the coloured chips; until one is picked, nothing goes in. Click a picked chip
+again to let it go.
+
+### Editing
+
+The edit button on the list opens the editor. Each row has:
+
+| | |
+|---|---|
+| Colour | One of the 16 dye colours |
+| Name | Up to 20 characters |
+| Share | How much of the chest it takes |
+| LC | Its size. Type a number |
+| Used | How full it is |
+
+- A size that would not hold what is already inside, or that would make the partitions add
+  up to more than the chest, is refused, and a message says which.
+- A button on the row gives back the room the partition is not using.
+- The + at the bottom adds an empty partition of 0 LC at the end.
+- The bin deletes a partition, but only an empty one. The last partition cannot be deleted.
+
+⚠ Changing a size carries every partition after it along, contents and all. Nothing is lost
+or mixed.
+
+### Hoppers and comparators
+
+Hoppers and redstone comparators reach one partition, the first by default. If that
+partition is deleted, they reach none.
+
 ## It is always in order
 
-The contents are kept sorted and merged at all times. Nothing has to be pressed for it,
+The contents are kept sorted and merged at all times, each partition on its own. Nothing has to be pressed for it,
 and there is nothing to keep tidy.
 
 ⚠ Putting an item into a particular square does not leave it in that square. Which slot a
@@ -38,8 +89,8 @@ player, or a world opened to LAN, that is your own game and your own language. O
 dedicated server, vanilla items come out in English and modded ones come out as
 translation keys. Leave a dedicated server's chests in item id order.
 
-The order is saved with the chest. A hopper and a redstone comparator read the same slots
-as everybody else.
+The order is saved with the chest and applies to every partition in it. A hopper and a
+redstone comparator read the same slots as everybody else.
 
 ## Searching
 
@@ -65,8 +116,9 @@ Beside your own inventory, pointing the way the items go.
 | ↑ | in: only kinds the chest already holds | in: everything except what is in your hand |
 | ↓ | out: only kinds you are carrying | out: as much as will fit |
 
-Both reach the whole chest, not the page on screen. Shift-clicking a stack into the chest
-does too.
+In a partition, both reach the whole of that partition, not just the page on screen, and
+"the chest" in the table means that partition. In Everything, ↑ stores into the picked
+partition and ↓ takes from all of them. Shift-clicking a stack in goes where ↑ would.
 
 What is in your hand is never taken. Armour, the off hand and anything Curios keeps are
 never touched.
