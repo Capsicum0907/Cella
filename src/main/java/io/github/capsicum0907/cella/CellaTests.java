@@ -1567,6 +1567,35 @@ public final class CellaTests {
     }
 
     @GameTest(template = TestStructures.FLOOR)
+    public static void storingCountsTheRoomBeforeMoving(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper);
+        Player player = helper.makeMockPlayer(GameType.SURVIVAL);
+        Sorted contents = chest.contents();
+        carve(chest, new Plan.Partition("full", DyeColor.RED, 1),
+                new Plan.Partition("other", DyeColor.BLUE, 1));
+        contents.insertItem(0, new ItemStack(Items.DIRT, 64 * (Plan.LC - 1)), false);
+        contents.insertItem(0, new ItemStack(Items.STONE, 60), false);
+        check(contents.used(0) == Plan.LC, "the first is down to one part-full slot");
+
+        var inventory = player.getInventory();
+        inventory.setItem(1, new ItemStack(Items.STONE, 10));
+        inventory.setItem(2, new ItemStack(Items.APPLE, 5));
+
+        CellaMenu menu = CellaMenu.at(1, player.getInventory(), helper.absolutePos(WHERE),
+                contents.getSlots(), CellaConfig.rows(KIND), CellaConfig.columns(KIND));
+        menu.view(0);
+        menu.clickMenuButton(player, CellaMenu.STOW);
+
+        check(inventory.getItem(1).getCount() == 6,
+                "four stone fit and six stay in hand: " + inventory.getItem(1));
+        check(inventory.getItem(2).getCount() == 5, "the apples have nowhere to go");
+        check(items(contents) == 64 * (Plan.LC - 1) + 64,
+                "and the chest holds exactly four more: " + items(contents));
+        check(contents.used(1) == 0, "none of it spilled into the other one");
+        helper.succeed();
+    }
+
+    @GameTest(template = TestStructures.FLOOR)
     public static void takingWhatMatchesLeavesTheRest(GameTestHelper helper) {
         CellaBlockEntity chest = place(helper);
         Player player = helper.makeMockPlayer(GameType.SURVIVAL);

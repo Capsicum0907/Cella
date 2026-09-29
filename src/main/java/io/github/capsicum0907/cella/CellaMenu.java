@@ -398,7 +398,16 @@ public class CellaMenu extends AbstractContainerMenu {
 
     private ItemStack poured(ItemStack stack) {
         IItemHandlerModifiable where = storing();
-        return where == null ? stack : ItemHandlerHelper.insertItemStacked(where, stack, false);
+        if (where == null || stack.isEmpty()) {
+            return stack;
+        }
+        int many = Math.min(stack.getCount(), new Space(where).room(stack));
+        if (many <= 0) {
+            return stack;
+        }
+        ItemStack over = ItemHandlerHelper.insertItemStacked(where, stack.copyWithCount(many), false);
+        int left = stack.getCount() - (many - over.getCount());
+        return left > 0 ? stack.copyWithCount(left) : ItemStack.EMPTY;
     }
 
     public Shelf shelf(int shown) {
@@ -594,7 +603,8 @@ public class CellaMenu extends AbstractContainerMenu {
         }
         Inventory inventory = player.getInventory();
         Set<ItemStack> carried = matchingOnly ? carried(inventory) : Set.of();
-        Pockets pockets = new Pockets(inventory);
+        Space pockets = new Space(
+                new net.neoforged.neoforge.items.wrapper.PlayerMainInvWrapper(inventory));
 
         for (int slot = 0; slot < from.getSlots() && !pockets.full(); slot++) {
             ItemStack stack = from.getStackInSlot(slot);
