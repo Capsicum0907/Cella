@@ -255,8 +255,8 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
         confirming = true;
     }
 
-    private void notice(String key) {
-        ask(Component.translatable(key),
+    private void notice(io.github.capsicum0907.cella.Notice told) {
+        ask(Component.translatable(told.key(), told.args().toArray()),
                 new Component[] { Component.translatable("gui.cella.ok") },
                 new Runnable[] { this::unask });
     }
@@ -494,7 +494,7 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
         if (!menu.selecting() && confirming) {
             unask();
         }
-        String told = menu.takeNotice();
+        io.github.capsicum0907.cella.Notice told = menu.takeNotice();
         if (told != null) {
             notice(told);
         }
@@ -534,15 +534,15 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
 
     @Override
     public boolean mouseClicked(double x, double y, int button) {
-        if (modal.open()) {
-            return inModal(x, y, button);
-        }
         if (asking()) {
             int choice = choiceAt(x, y);
             if (choice >= 0) {
                 answers[choice].run();
             }
             return true;
+        }
+        if (modal.open()) {
+            return inModal(x, y, button);
         }
         int chip = chipAt(x, y);
         if (chip != Into.NONE && menu.selecting()) {

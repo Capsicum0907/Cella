@@ -140,7 +140,7 @@ public class Cella {
         event.registrar("1").optional().playToClient(Notice.TYPE, Notice.STREAM_CODEC,
                 (notice, context) -> {
                     if (context.player().containerMenu instanceof CellaMenu menu) {
-                        menu.told(notice.key());
+                        menu.told(notice);
                     }
                 });
 

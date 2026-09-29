@@ -375,16 +375,16 @@ public class CellaMenu extends AbstractContainerMenu {
         return selecting;
     }
 
-    private String notice;
+    private Notice notice;
 
-    public void told(String key) {
-        notice = key;
+    public void told(Notice wanted) {
+        notice = wanted;
     }
 
-    public String takeNotice() {
-        String key = notice;
+    public Notice takeNotice() {
+        Notice taken = notice;
         notice = null;
-        return key;
+        return taken;
     }
 
     public boolean selected(int shown) {
@@ -547,7 +547,7 @@ public class CellaMenu extends AbstractContainerMenu {
         if (!target.fits(kinds, counts)) {
             if (who instanceof net.minecraft.server.level.ServerPlayer player) {
                 net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(player,
-                        new Notice("gui.cella.move.full"));
+                        Notice.of("gui.cella.move.full"));
             }
             return false;
         }
@@ -648,9 +648,9 @@ public class CellaMenu extends AbstractContainerMenu {
                         ? "gui.cella.edit.shrink"
                         : "gui.cella.edit.nofit";
             }
-            if (trouble != null && who != null) {
-                who.sendSystemMessage(net.minecraft.network.chat.Component
-                        .translatable(trouble, edit.wanted().length()));
+            if (trouble != null && who instanceof net.minecraft.server.level.ServerPlayer player) {
+                net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(player,
+                        Notice.of(trouble, edit.wanted().length()));
             }
             view(Peek.LIST);
         });
