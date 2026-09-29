@@ -23,9 +23,9 @@ public final class Icons {
     public static final String SELECT = "select";
 
     public static final int TICK_LEFT = 2;
-    public static final int TICK_TOP = 0;
-    public static final int TICK_WIDE = 8;
-    public static final int TICK_TALL = 8;
+    public static final int TICK_TOP = 3;
+    public static final int TICK_WIDE = 6;
+    public static final int TICK_TALL = 5;
 
     private Icons() {
     }

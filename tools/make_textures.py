@@ -168,7 +168,8 @@ def outlet_icon():
 
 
 TICK_LEFT = 2
-TICK_TOP = 0
+TICK_TOP = 3
+TICK_RIGHT = 8
 
 
 def select_icon():
@@ -177,7 +178,7 @@ def select_icon():
     cells = set()
     for x, y in corner + rising:
         for dy in (0, -1):
-            if 0 <= x < BUTTON and 0 <= y + dy < BUTTON:
+            if 0 <= x < TICK_RIGHT and 0 <= y + dy < BUTTON:
                 cells.add((x - TICK_LEFT, y + dy - TICK_TOP))
     wide = max(x for x, _ in cells) + 1
     tall = max(y for _, y in cells) + 1
