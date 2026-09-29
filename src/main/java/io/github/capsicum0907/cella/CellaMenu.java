@@ -186,7 +186,7 @@ public class CellaMenu extends AbstractContainerMenu {
 
             @Override
             public void set(int value) {
-                viewing = value;
+                looks(value);
             }
         });
 
@@ -312,9 +312,17 @@ public class CellaMenu extends AbstractContainerMenu {
                 int from = chest.plan().first(index, slots);
                 window.limit(from, chest.plan().past(index, slots) - from);
             }
+            looks(viewing);
             seen = revision();
             sendAllDataToRemote();
         });
+    }
+
+    private void looks(int value) {
+        viewing = value;
+        if (value != Peek.WHOLE) {
+            into = Into.NONE;
+        }
     }
 
     public void assign(int index) {

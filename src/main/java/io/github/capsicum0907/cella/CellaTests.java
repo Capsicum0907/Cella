@@ -1212,6 +1212,15 @@ public final class CellaTests {
         menu.quickMoveStack(player, hand);
         check(menu.slots.get(hand).getItem().getCount() == 4,
                 "and letting it go stops storing again: " + menu.slots.get(hand).getItem());
+
+        menu.into(1);
+        menu.view(Peek.LIST);
+        check(menu.into() == Into.NONE, "leaving Everything forgets where to store");
+        menu.view(Peek.WHOLE);
+        check(menu.into() == Into.NONE, "and coming back does not bring it back");
+        menu.into(1);
+        menu.view(0);
+        check(menu.into() == Into.NONE, "nor does opening one partition keep it");
         helper.succeed();
     }
 
