@@ -384,9 +384,11 @@ public class CellaMenu extends AbstractContainerMenu {
         return selection.cardinality();
     }
 
-    public void selectionFrom(java.util.List<Integer> indices) {
+    public void selectionFrom(java.util.List<Integer> runs) {
         selection.clear();
-        indices.forEach(selection::set);
+        for (int at = 0; at + 1 < runs.size(); at += 2) {
+            selection.set(runs.get(at), runs.get(at) + runs.get(at + 1));
+        }
     }
 
     private void select() {
@@ -458,15 +460,38 @@ public class CellaMenu extends AbstractContainerMenu {
         if (all) {
             alike.forEach(selection::clear);
             claimSelection();
-        } else {
-            for (int at : alike) {
-                if (!selection.get(at)) {
-                    selection.set(at);
-                    if (!claimSelection()) {
-                        selection.clear(at);
+            tellSelection();
+            return;
+        }
+        CellaBlockEntity chest = chest();
+        if (chest == null || !(contents instanceof Sorted sorted)) {
+            return;
+        }
+        java.util.BitSet before = (java.util.BitSet) selection.clone();
+        java.util.List<Claim> mine = selectionClaims();
+        java.util.Map<Integer, int[]> room = new java.util.HashMap<>();
+        for (int at : alike) {
+            int part = sorted.partOf(window.frozenAt(at));
+            int[] left = room.computeIfAbsent(part, key -> {
+                int own = 0;
+                for (Claim claim : mine) {
+                    if (claim.covers(key, kind)) {
+                        own += claim.count();
                     }
                 }
+                int others = chest.reserved(key, kind) - own;
+                return new int[] { sorted.count(key, kind) - others - own };
+            });
+            int many = window.frozenStack(at).getCount();
+            if (!selection.get(at) && many <= left[0]) {
+                selection.set(at);
+                left[0] -= many;
             }
+        }
+        if (!claimSelection()) {
+            selection.clear();
+            selection.or(before);
+            claimSelection();
         }
         tellSelection();
     }
@@ -561,10 +586,14 @@ public class CellaMenu extends AbstractContainerMenu {
 
     private void tellSelection() {
         if (who instanceof net.minecraft.server.level.ServerPlayer player) {
-            java.util.List<Integer> indices = new java.util.ArrayList<>();
-            selection.stream().forEach(indices::add);
+            java.util.List<Integer> runs = new java.util.ArrayList<>();
+            for (int from = selection.nextSetBit(0); from >= 0;
+                    from = selection.nextSetBit(selection.nextClearBit(from))) {
+                runs.add(from);
+                runs.add(selection.nextClearBit(from) - from);
+            }
             net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(player,
-                    new Picked(indices));
+                    new Picked(runs));
         }
     }
 

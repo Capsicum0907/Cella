@@ -133,7 +133,7 @@ public class Cella {
         event.registrar("1").optional().playToClient(Picked.TYPE, Picked.STREAM_CODEC,
                 (picked, context) -> {
                     if (context.player().containerMenu instanceof CellaMenu menu) {
-                        menu.selectionFrom(picked.indices());
+                        menu.selectionFrom(picked.runs());
                     }
                 });
 

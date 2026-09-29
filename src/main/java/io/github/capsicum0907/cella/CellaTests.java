@@ -1542,6 +1542,28 @@ public final class CellaTests {
     }
 
     @GameTest(template = TestStructures.FLOOR)
+    public static void shiftPicksAFullChestAtOnce(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper);
+        Player player = helper.makeMockPlayer(GameType.SURVIVAL);
+        Sorted contents = chest.contents();
+        int slots = contents.getSlots();
+        contents.insertItem(0, new ItemStack(Items.STONE, 64 * slots), false);
+        CellaMenu menu = CellaMenu.at(1, player.getInventory(), helper.absolutePos(WHERE),
+                slots, CellaConfig.rows(KIND), CellaConfig.columns(KIND));
+        menu.clickMenuButton(player, CellaMenu.SELECT);
+        check(menu.selecting(), "a full chest can be selected in");
+
+        long started = System.nanoTime();
+        menu.pickKind(0);
+        long took = (System.nanoTime() - started) / 1_000_000L;
+        check(menu.selectedCount() == slots, "every stack is picked: " + menu.selectedCount());
+        check(chest.reserved(0, new ItemStack(Items.STONE)) == 64 * slots,
+                "and all of it claimed: " + chest.reserved(0, new ItemStack(Items.STONE)));
+        check(took < 1000, "in well under a second: " + took + " ms");
+        helper.succeed();
+    }
+
+    @GameTest(template = TestStructures.FLOOR)
     public static void onlyWhatIsStillThereCanBePicked(GameTestHelper helper) {
         CellaBlockEntity chest = place(helper);
         Player player = helper.makeMockPlayer(GameType.SURVIVAL);

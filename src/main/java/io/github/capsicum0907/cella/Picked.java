@@ -9,12 +9,12 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 
-public record Picked(List<Integer> indices) implements CustomPacketPayload {
+public record Picked(List<Integer> runs) implements CustomPacketPayload {
     public static final Type<Picked> TYPE =
             new Type<>(ResourceLocation.fromNamespaceAndPath(Cella.MODID, "picked"));
 
     public static final StreamCodec<ByteBuf, Picked> STREAM_CODEC = StreamCodec.composite(
-            ByteBufCodecs.VAR_INT.apply(ByteBufCodecs.list()), Picked::indices,
+            ByteBufCodecs.VAR_INT.apply(ByteBufCodecs.list()), Picked::runs,
             Picked::new);
 
     @Override
