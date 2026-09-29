@@ -745,13 +745,22 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
         }
     }
 
+    private String openName() {
+        java.util.List<Shelf.Slice> slices = ShelfHolder.latest().slices();
+        int open = menu.viewing();
+        return open >= 0 && open < slices.size() ? slices.get(open).name() : "";
+    }
+
     @Override
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
         Component page = Component.literal((menu.page() + 1) + " / " + menu.pages());
         if (!finding) {
             int room = room(page);
             Component named = title;
-            if (menu.kind().grows()) {
+            String partition = openName();
+            if (!partition.isEmpty()) {
+                named = Component.literal(partition);
+            } else if (menu.kind().grows()) {
                 Component both = Component.translatable("container.cella.grown", title,
                         menu.grown());
                 if (font.width(both) <= room) {

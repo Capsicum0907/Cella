@@ -42,7 +42,8 @@ first from the coloured chips; until one is picked, nothing goes in. Click a pic
 again to let it go.
 
 Inside a partition and in Everything, the square under the mouse is outlined in the colour
-of the partition it belongs to.
+of the partition it belongs to. Inside a partition that has a name, the name is shown at the
+top in place of the chest's.
 
 ### Editing
 
