@@ -57,8 +57,7 @@ public final class EditModal {
     private static final int OVER = 0x30000000;
     private static final int SHADE = 0xA0101010;
     private static final int CROSS = 0xFFFFFF;
-    private static final int DELETE = 0xB03030;
-    private static final int OUTLET = 0xE02020;
+    private static final int RED = 0xB03030;
 
     public static final int NAME = 0;
     public static final int SIZE = 1;
@@ -371,7 +370,7 @@ public final class EditModal {
                 columnNumber(x, wide, 2), top + 3, FAINT);
 
         Icons.draw(graphics, Icons.OUTLET, outletLeft(x, wide) + Icons.inset(BIN),
-                top + Icons.inset(ROW), at == shelf.assigned() ? OUTLET : STOPPED);
+                top + Icons.inset(ROW), at == shelf.assigned() ? RED : STOPPED);
 
         boolean packed = slice.used() == slice.slots();
         Icons.draw(graphics, Icons.PACK, packLeft(x, wide) + Icons.inset(BIN),
@@ -379,7 +378,7 @@ public final class EditModal {
 
         boolean empty = slice.used() == 0;
         Icons.draw(graphics, Icons.BIN, binLeft(x, wide) + Icons.inset(BIN),
-                top + Icons.inset(ROW), empty ? DELETE : STOPPED);
+                top + Icons.inset(ROW), empty ? RED : STOPPED);
     }
 
     private static void centred(GuiGraphics graphics, Font font, String text, int left, int top,
