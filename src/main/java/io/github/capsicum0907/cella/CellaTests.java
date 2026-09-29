@@ -1496,6 +1496,37 @@ public final class CellaTests {
     }
 
     @GameTest(template = TestStructures.FLOOR)
+    public static void takingCountsTheRoomBeforeMoving(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper);
+        Player player = helper.makeMockPlayer(GameType.SURVIVAL);
+        var inventory = player.getInventory();
+        for (int slot = 0; slot < net.minecraft.world.entity.player.Inventory.INVENTORY_SIZE; slot++) {
+            inventory.setItem(slot, new ItemStack(Items.DIRT, 64));
+        }
+        inventory.setItem(3, ItemStack.EMPTY);
+        inventory.setItem(4, new ItemStack(Items.STONE, 60));
+        inventory.setItem(5, new ItemStack(Items.STONE, 64));
+        chest.contents().insertItem(0, new ItemStack(Items.STONE, 200), false);
+        chest.contents().insertItem(0, new ItemStack(Items.APPLE, 10), false);
+
+        CellaMenu menu = CellaMenu.at(1, player.getInventory(), helper.absolutePos(WHERE),
+                chest.contents().getSlots(),
+                CellaConfig.rows(KIND), CellaConfig.columns(KIND));
+        menu.clickMenuButton(player, CellaMenu.TAKE);
+
+        check(inventory.getItem(3).is(Items.APPLE) && inventory.getItem(3).getCount() == 10,
+                "the apples take the one empty slot: " + inventory.getItem(3));
+        check(inventory.getItem(4).getCount() == 64,
+                "the stone fills the part-full stack: " + inventory.getItem(4));
+        check(inventory.getItem(5).getCount() == 64, "leaves the full one alone");
+        check(items(chest.contents()) == 196,
+                "so exactly four stone left the chest, and nothing else: "
+                        + items(chest.contents()));
+        check(inventory.countItem(Items.DIRT) == 33 * 64, "and the dirt was not touched");
+        helper.succeed();
+    }
+
+    @GameTest(template = TestStructures.FLOOR)
     public static void takingWhatMatchesLeavesTheRest(GameTestHelper helper) {
         CellaBlockEntity chest = place(helper);
         Player player = helper.makeMockPlayer(GameType.SURVIVAL);

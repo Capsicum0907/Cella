@@ -575,19 +575,20 @@ public class CellaMenu extends AbstractContainerMenu {
         }
         Inventory inventory = player.getInventory();
         Set<ItemStack> carried = matchingOnly ? carried(inventory) : Set.of();
-        net.neoforged.neoforge.items.IItemHandler into =
-                new net.neoforged.neoforge.items.wrapper.PlayerMainInvWrapper(inventory);
+        Pockets pockets = new Pockets(inventory);
 
-        for (int slot = 0; slot < from.getSlots(); slot++) {
+        for (int slot = 0; slot < from.getSlots() && !pockets.full(); slot++) {
             ItemStack stack = from.getStackInSlot(slot);
             if (stack.isEmpty() || (matchingOnly && !carried.contains(stack))) {
                 continue;
             }
-            ItemStack moving = ItemHandlerHelper.insertItemStacked(into, stack.copy(), false);
-            from.setStackInSlot(slot, moving);
-            if (!moving.isEmpty()) {
-                break;
+            int many = Math.min(stack.getCount(), pockets.room(stack));
+            if (many <= 0) {
+                continue;
             }
+            int moved = pockets.put(stack, many);
+            int left = stack.getCount() - moved;
+            from.setStackInSlot(slot, left > 0 ? stack.copyWithCount(left) : ItemStack.EMPTY);
         }
         inventory.setChanged();
     }
