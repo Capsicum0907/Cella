@@ -24,3 +24,5 @@ runs
 run-data
 
 repo
+__pycache__
+*.pyc
