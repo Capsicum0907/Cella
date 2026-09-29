@@ -167,6 +167,16 @@ public final class Plan {
     private static final String CARVED = "Carved";
     private static final String ASSIGNED = "Assigned";
 
+    public static CompoundTag of(List<Partition> carved) {
+        CompoundTag tag = new CompoundTag();
+        ListTag list = new ListTag();
+        for (Partition one : carved) {
+            list.add(one.save());
+        }
+        tag.put(CARVED, list);
+        return tag;
+    }
+
     public CompoundTag save() {
         CompoundTag tag = new CompoundTag();
         ListTag list = new ListTag();

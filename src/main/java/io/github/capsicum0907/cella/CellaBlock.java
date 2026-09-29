@@ -260,7 +260,7 @@ public class CellaBlock extends BaseEntityBlock {
                 chest.restore(level.registryAccess(), filed.getFirst());
                 return;
             }
-            for (ItemStack over : chest.pour(level.registryAccess(), filed)) {
+            for (ItemStack over : chest.fuse(level.registryAccess(), filed)) {
                 Containers.dropItemStack(level, pos.getX(), pos.getY(), pos.getZ(), over);
             }
         });

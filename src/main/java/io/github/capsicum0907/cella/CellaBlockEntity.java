@@ -21,7 +21,7 @@ import net.neoforged.neoforge.items.ItemStackHandler;
 public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
     private static final String CONTENTS = "Contents";
     private static final String HISTORY = "History";
-    private static final String PLAN = "Plan";
+    static final String PLAN = "Plan";
     private static final String EXPERIENCE = "Experience";
 
     private final Sorted contents;
@@ -366,6 +366,57 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
 
     private int capped(int coming) {
         return Math.min(coming, kind().growth());
+    }
+
+    public java.util.List<ItemStack> fuse(HolderLookup.Provider registries,
+            java.util.List<Kept.Chest> filed) {
+        java.util.List<Plan.Partition> carved = new java.util.ArrayList<>();
+        java.util.List<java.util.List<ItemStack>> held = new java.util.ArrayList<>();
+        java.util.List<ItemStack> over = new java.util.ArrayList<>();
+
+        for (Kept.Chest one : filed) {
+            ItemStackHandler from = new ItemStackHandler();
+            from.deserializeNBT(registries, one.contents());
+            Plan was = new Plan();
+            was.load(one.contents().getCompound(PLAN), from.getSlots());
+            boolean[] claimed = new boolean[from.getSlots()];
+            for (int index = 0; index < was.count(from.getSlots()); index++) {
+                carved.add(was.at(index, from.getSlots()));
+                java.util.List<ItemStack> inside = new java.util.ArrayList<>();
+                for (int slot = was.first(index, from.getSlots());
+                        slot < was.past(index, from.getSlots()); slot++) {
+                    claimed[slot] = true;
+                    if (!from.getStackInSlot(slot).isEmpty()) {
+                        inside.add(from.getStackInSlot(slot));
+                    }
+                }
+                held.add(inside);
+            }
+            for (int slot = 0; slot < claimed.length; slot++) {
+                if (!claimed[slot] && !from.getStackInSlot(slot).isEmpty()) {
+                    over.add(from.getStackInSlot(slot));
+                }
+            }
+        }
+
+        replan(() -> plan.load(Plan.of(carved), contents.getSlots()));
+        inOneGo(() -> {
+            int slots = contents.getSlots();
+            for (int index = 0; index < held.size(); index++) {
+                boolean there = index < plan.count(slots);
+                int cursor = there ? plan.first(index, slots) : slots;
+                int end = there ? plan.past(index, slots) : slots;
+                for (ItemStack stack : held.get(index)) {
+                    if (cursor < end) {
+                        contents.setStackInSlot(cursor++, stack);
+                    } else {
+                        over.add(stack);
+                    }
+                }
+            }
+        });
+        setChanged();
+        return over;
     }
 
     public java.util.List<ItemStack> pour(HolderLookup.Provider registries,

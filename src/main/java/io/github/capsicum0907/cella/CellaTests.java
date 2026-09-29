@@ -437,6 +437,51 @@ public final class CellaTests {
     }
 
     @GameTest(template = TestStructures.FLOOR)
+    public static void fusingKeepsEveryPartition(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper, KIND);
+        var registries = helper.getLevel().registryAccess();
+        int lc = Plan.LC;
+        int each = Kind.SEMI_PERFECT.slots() / lc;
+
+        ItemStackHandler split = new ItemStackHandler(Kind.SEMI_PERFECT.slots());
+        split.setStackInSlot(0, new ItemStack(Items.GOLD_INGOT, 5));
+        split.setStackInSlot(2 * lc, new ItemStack(Items.DIAMOND, 7));
+        CompoundTag first = split.serializeNBT(registries);
+        first.put(CellaBlockEntity.PLAN, Plan.of(java.util.List.of(
+                new Plan.Partition("gold", DyeColor.YELLOW, 2),
+                new Plan.Partition("gems", DyeColor.CYAN, 3))));
+
+        ItemStackHandler whole = new ItemStackHandler(Kind.SEMI_PERFECT.slots());
+        whole.setStackInSlot(900, new ItemStack(Items.STONE, 9));
+        CompoundTag second = whole.serializeNBT(registries);
+
+        java.util.List<Kept.Chest> filed = java.util.List.of(
+                new Kept.Chest(first, 0), new Kept.Chest(second, 0));
+        check(chest.fuse(registries, filed).isEmpty(), "all of it should fit");
+
+        java.util.List<Plan.Partition> carved =
+                chest.plan().over(chest.contents().getSlots());
+        check(carved.size() == 3, "both of the first and the one of the second: " + carved);
+        check(carved.get(0).name().equals("gold") && carved.get(0).length() == 2
+                        && carved.get(0).colour() == DyeColor.YELLOW,
+                "the first keeps its name, colour and size: " + carved.get(0));
+        check(carved.get(1).name().equals("gems") && carved.get(1).length() == 3,
+                "and so does the second: " + carved.get(1));
+        check(carved.get(2).length() == each,
+                "the undivided one comes across whole: " + carved.get(2));
+
+        check(chest.contents().getStackInSlot(0).is(Items.GOLD_INGOT),
+                "the gold stays in its own: " + chest.contents().getStackInSlot(0));
+        check(chest.contents().getStackInSlot(2 * lc).is(Items.DIAMOND),
+                "the diamonds in theirs: " + chest.contents().getStackInSlot(2 * lc));
+        check(chest.contents().getStackInSlot(5 * lc).is(Items.STONE),
+                "and the stone at the head of the third, with no gap closed over: "
+                        + chest.contents().getStackInSlot(5 * lc));
+        check(chest.contents().used(2) == 1, "which holds just that: " + chest.contents().used(2));
+        helper.succeed();
+    }
+
+    @GameTest(template = TestStructures.FLOOR)
     public static void spawningLeavesTheContentsWithTheParent(GameTestHelper helper) {
         var recipes = helper.getLevel().getServer().getRecipeManager();
         var junior = recipes.byKey(ResourceLocation.fromNamespaceAndPath(Cella.MODID, "junior"))
