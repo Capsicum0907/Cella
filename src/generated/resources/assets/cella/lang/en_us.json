@@ -32,7 +32,7 @@
   "gui.cella.edit.full": "Empty it before deleting it",
   "gui.cella.edit.name": "Name",
   "gui.cella.edit.nofit": "%s LC does not fit there",
-  "gui.cella.edit.pack": "Give back the room it is not using",
+  "gui.cella.edit.pack": "Shrink",
   "gui.cella.edit.share": "Share",
   "gui.cella.edit.shrink": "It holds more than %s LC would",
   "gui.cella.edit.size": "LC",

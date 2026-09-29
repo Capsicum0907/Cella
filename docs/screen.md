@@ -59,7 +59,7 @@ The edit button on the list opens the editor. Each row has:
 
 - A size that would not hold what is already inside, or that would make the partitions add
   up to more than the chest, is refused, and a message says which.
-- A button on the row gives back the room the partition is not using.
+- The shrink button on the row makes the partition as small as its contents allow.
 - The + at the bottom adds an empty partition of 0 LC at the end.
 - The bin deletes a partition, but only an empty one. The last partition cannot be deleted.
 
