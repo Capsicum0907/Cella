@@ -10,7 +10,6 @@ import net.minecraft.world.inventory.ContainerLevelAccess;
 import net.minecraft.world.inventory.DataSlot;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.ItemStackLinkedSet;
 import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.items.IItemHandlerModifiable;
 import net.neoforged.neoforge.items.ItemHandlerHelper;
@@ -452,7 +451,7 @@ public class CellaMenu extends AbstractContainerMenu {
         java.util.List<Integer> alike = new java.util.ArrayList<>();
         boolean all = true;
         for (int at = 0; at < window.frozenSize(); at++) {
-            if (ItemStack.isSameItemSameComponents(window.frozenStack(at), kind)) {
+            if (Alike.same(window.frozenStack(at), kind)) {
                 alike.add(at);
                 all &= selection.get(at);
             }
@@ -521,7 +520,7 @@ public class CellaMenu extends AbstractContainerMenu {
         for (Claim claim : moving) {
             int at = -1;
             for (int one = 0; one < kinds.size(); one++) {
-                if (ItemStack.isSameItemSameComponents(kinds.get(one), claim.kind())) {
+                if (Alike.same(kinds.get(one), claim.kind())) {
                     at = one;
                 }
             }
@@ -940,7 +939,7 @@ public class CellaMenu extends AbstractContainerMenu {
     }
 
     private static Set<ItemStack> carried(Inventory inventory) {
-        Set<ItemStack> kinds = ItemStackLinkedSet.createTypeAndComponentsSet();
+        Set<ItemStack> kinds = Alike.set();
         for (int slot = 0; slot < Inventory.INVENTORY_SIZE; slot++) {
             ItemStack stack = inventory.getItem(slot);
             if (!stack.isEmpty()) {
@@ -1003,7 +1002,7 @@ public class CellaMenu extends AbstractContainerMenu {
     }
 
     private Set<ItemStack> kinds() {
-        Set<ItemStack> kept = ItemStackLinkedSet.createTypeAndComponentsSet();
+        Set<ItemStack> kept = Alike.set();
         IItemHandlerModifiable held = taking();
         for (int slot = 0; held != null && slot < held.getSlots(); slot++) {
             ItemStack stack = held.getStackInSlot(slot);

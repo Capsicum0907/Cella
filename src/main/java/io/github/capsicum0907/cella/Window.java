@@ -106,7 +106,7 @@ public final class Window implements IItemHandlerModifiable {
             end[part] = sorted.firstFree(part);
             many += Math.max(0, end[part] - at[part]);
         }
-        java.util.Comparator<ItemStack> grouping = sorted.order().grouping();
+        java.util.Comparator<ItemStack> grouping = sorted.order().kind();
         java.util.PriorityQueue<Integer> heads = new java.util.PriorityQueue<>(
                 Math.max(1, parts), (one, other) -> {
                     int by = grouping.compare(held.getStackInSlot(at[one]),

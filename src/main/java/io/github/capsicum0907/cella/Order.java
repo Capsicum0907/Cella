@@ -31,12 +31,12 @@ public enum Order {
         return id;
     }
 
-    public Comparator<ItemStack> grouping() {
-        return grouping;
+    public Comparator<ItemStack> kind() {
+        return grouping.thenComparing(Alike::rank);
     }
 
     public Comparator<ItemStack> full() {
-        return grouping.thenComparing(Comparator.comparingInt(ItemStack::getCount).reversed());
+        return kind().thenComparing(Comparator.comparingInt(ItemStack::getCount).reversed());
     }
 
     public Component label() {

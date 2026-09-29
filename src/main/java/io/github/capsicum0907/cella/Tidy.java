@@ -7,7 +7,6 @@ import java.util.Map;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenCustomHashMap;
 
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.ItemStackLinkedSet;
 import net.neoforged.neoforge.items.IItemHandlerModifiable;
 
 public final class Tidy {
@@ -52,7 +51,7 @@ public final class Tidy {
     private static List<ItemStack> merge(List<ItemStack> gathered) {
         List<ItemStack> merged = new ArrayList<>();
         Map<ItemStack, ItemStack> open =
-                new Object2ObjectOpenCustomHashMap<>(ItemStackLinkedSet.TYPE_AND_TAG);
+                new Object2ObjectOpenCustomHashMap<>(Alike.HASH);
 
         for (ItemStack stack : gathered) {
             ItemStack into = open.get(stack);

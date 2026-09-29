@@ -94,7 +94,8 @@ reach none.
 ## It is always in order
 
 The contents are kept sorted and merged at all times, each partition on its own. Nothing has to be pressed for it,
-and there is nothing to keep tidy.
+and there is nothing to keep tidy. Things are kept together only where they would stack: potions,
+enchanted books and the like are kept apart by what they are.
 
 ⚠ Putting an item into a particular square does not leave it in that square. Which slot a
 stack sits in is decided by what the stack is, so the screen is a list to take things from

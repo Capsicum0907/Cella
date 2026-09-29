@@ -4,6 +4,6 @@ import net.minecraft.world.item.ItemStack;
 
 public record Claim(int part, ItemStack kind, int count) {
     public boolean covers(int at, ItemStack stack) {
-        return part == at && ItemStack.isSameItemSameComponents(kind, stack);
+        return part == at && Alike.same(kind, stack);
     }
 }

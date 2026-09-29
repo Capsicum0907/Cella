@@ -21,7 +21,7 @@ public final class Space {
             ItemStack held = slots.getStackInSlot(slot);
             if (held.isEmpty()) {
                 room += limit(slot, kind);
-            } else if (ItemStack.isSameItemSameComponents(held, kind)) {
+            } else if (Alike.same(held, kind)) {
                 room += Math.max(0, limit(slot, kind) - held.getCount());
             }
         }
@@ -45,7 +45,7 @@ public final class Space {
             }
             for (int slot = 0; slot < slots.getSlots(); slot++) {
                 ItemStack held = slots.getStackInSlot(slot);
-                if (!held.isEmpty() && ItemStack.isSameItemSameComponents(held, kind)) {
+                if (!held.isEmpty() && Alike.same(held, kind)) {
                     topUp += Math.max(0, limit(slot, kind) - held.getCount());
                 }
             }
@@ -60,7 +60,7 @@ public final class Space {
         int left = many;
         for (int slot = from.getSlots() - 1; slot >= 0 && left > 0; slot--) {
             ItemStack held = from.getStackInSlot(slot);
-            if (!held.isEmpty() && ItemStack.isSameItemSameComponents(held, kind)) {
+            if (!held.isEmpty() && Alike.same(held, kind)) {
                 int moved = Math.min(left, held.getCount());
                 int rest = held.getCount() - moved;
                 from.setStackInSlot(slot, rest > 0 ? held.copyWithCount(rest) : ItemStack.EMPTY);
@@ -85,7 +85,7 @@ public final class Space {
         int left = many;
         for (int slot = 0; slot < into.getSlots() && left > 0; slot++) {
             ItemStack held = into.getStackInSlot(slot);
-            if (!held.isEmpty() && ItemStack.isSameItemSameComponents(held, kind)) {
+            if (!held.isEmpty() && Alike.same(held, kind)) {
                 int moved = Math.min(left, Math.max(0, limit(slot, kind) - held.getCount()));
                 into.setStackInSlot(slot, held.copyWithCount(held.getCount() + moved));
                 left -= moved;

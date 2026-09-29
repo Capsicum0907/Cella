@@ -1564,6 +1564,43 @@ public final class CellaTests {
     }
 
     @GameTest(template = TestStructures.FLOOR)
+    public static void aClickGivesTheVeryThingClicked(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper);
+        Sorted contents = chest.contents();
+        ItemStack healing = net.minecraft.world.item.alchemy.PotionContents.createItemStack(
+                Items.POTION, net.minecraft.world.item.alchemy.Potions.HEALING);
+        ItemStack swift = net.minecraft.world.item.alchemy.PotionContents.createItemStack(
+                Items.POTION, net.minecraft.world.item.alchemy.Potions.SWIFTNESS);
+        contents.insertItem(0, healing.copy(), false);
+        contents.insertItem(0, swift.copy(), false);
+        contents.insertItem(0, healing.copy(), false);
+
+        int first = -1;
+        for (int slot = 0; slot < 3; slot++) {
+            if (Alike.same(contents.getStackInSlot(slot), healing)) {
+                check(first < 0 || first == slot - 1, "the healing potions sit together");
+                first = slot;
+            }
+        }
+        check(contents.count(0, healing) == 2 && contents.count(0, swift) == 1,
+                "and are counted apart from the swiftness one");
+
+        for (int slot = 0; slot < 3; slot++) {
+            ItemStack asked = contents.getStackInSlot(slot).copy();
+            if (asked.isEmpty()) {
+                continue;
+            }
+            ItemStack simulated = contents.extractItem(slot, 1, true);
+            check(Alike.same(simulated, asked), "asking first names what was clicked");
+            ItemStack real = contents.extractItem(slot, 1, false);
+            check(Alike.same(real, asked), "and taking gives it: asked "
+                    + asked.getHoverName().getString() + ", got " + real.getHoverName().getString());
+            contents.insertItem(0, real, false);
+        }
+        helper.succeed();
+    }
+
+    @GameTest(template = TestStructures.FLOOR)
     public static void onlyWhatIsStillThereCanBePicked(GameTestHelper helper) {
         CellaBlockEntity chest = place(helper);
         Player player = helper.makeMockPlayer(GameType.SURVIVAL);

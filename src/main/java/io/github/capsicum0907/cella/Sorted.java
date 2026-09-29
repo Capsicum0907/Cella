@@ -6,7 +6,6 @@ import it.unimi.dsi.fastutil.objects.Object2IntOpenCustomHashMap;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.ItemStackLinkedSet;
 import net.neoforged.neoforge.items.ItemStackHandler;
 
 public class Sorted extends ItemStackHandler {
@@ -461,7 +460,7 @@ public class Sorted extends ItemStackHandler {
         int high = firstFree(part);
         while (low < high) {
             int middle = (low + high) >>> 1;
-            if (order.grouping().compare(stacks.get(middle), stack) < 0) {
+            if (order.kind().compare(stacks.get(middle), stack) < 0) {
                 low = middle + 1;
             } else {
                 high = middle;
@@ -477,7 +476,7 @@ public class Sorted extends ItemStackHandler {
         }
         ItemStack like = stacks.get(slot);
         int at = slot + 1;
-        while (at < end && order.grouping().compare(stacks.get(at), like) == 0) {
+        while (at < end && order.kind().compare(stacks.get(at), like) == 0) {
             at++;
         }
         return at;
@@ -516,7 +515,7 @@ public class Sorted extends ItemStackHandler {
         int at = start(like, part);
         int end = firstFree(part);
         int sum = 0;
-        while (at < end && order.grouping().compare(stacks.get(at), like) == 0) {
+        while (at < end && order.kind().compare(stacks.get(at), like) == 0) {
             if (same(stacks.get(at), like)) {
                 sum += stacks.get(at).getCount();
             }
@@ -530,7 +529,7 @@ public class Sorted extends ItemStackHandler {
     }
 
     private static boolean same(ItemStack one, ItemStack other) {
-        return ItemStack.isSameItemSameComponents(one, other);
+        return Alike.same(one, other);
     }
 
     private static ItemStack copyWith(ItemStack stack, int count) {
@@ -543,7 +542,7 @@ public class Sorted extends ItemStackHandler {
         java.util.List<Object2IntMap<ItemStack>> all = new java.util.ArrayList<>();
         for (int part = 0; part < carve.count(); part++) {
             Object2IntMap<ItemStack> counts =
-                    new Object2IntOpenCustomHashMap<>(ItemStackLinkedSet.TYPE_AND_TAG);
+                    new Object2IntOpenCustomHashMap<>(Alike.HASH);
             int end = firstFree(part);
             for (int at = carve.first(part); at < end; at++) {
                 ItemStack stack = stacks.get(at);

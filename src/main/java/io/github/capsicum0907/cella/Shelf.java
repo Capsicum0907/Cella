@@ -87,7 +87,7 @@ public record Shelf(List<Slice> slices, int assigned, int slots, int shown,
             if (stack.isEmpty()) {
                 break;
             }
-            if (!running.isEmpty() && ItemStack.isSameItemSameComponents(running, stack)) {
+            if (!running.isEmpty() && Alike.same(running, stack)) {
                 count += stack.getCount();
                 continue;
             }
