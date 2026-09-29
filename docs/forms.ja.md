@@ -56,6 +56,8 @@
 | Perfect Cella | 100レベル |
 | Super Perfect Cella | 200レベル |
 
+Cella Jr. と Cella Max は経験値を受け取りません。
+
 Larval Cella は満タンになるとその場で Imperfect Cella になります。
 
 満タンの Perfect Cella はネザースターで自爆させられます。全方向100ブロックを破壊して Super Perfect になって戻りますが、**ジ・エンドでのみ**です。他の場所では消えて終わりです。
@@ -77,8 +79,6 @@ Larval Cella は満タンになるとその場で Imperfect Cella になりま�
 | Cella Max | 中身を保持 | 3,600,000 | ネザライトのツルハシ | 燃えない |
 
 Imperfect 以降は壊しても中身を保持します。アイテムが預けた中身の名前を持っていて、設置し直すと中身が戻ります。
-
-経験値オーブは周囲から吸い込みます。範囲は Imperfect が4ブロック、Semi-Perfect・Perfect・Cella Jr. が8ブロック。Larval と上位2つは吸いません。
 
 Super Perfect Cella と Cella Max だけは、ウィザーに壊されず、アイテムの状態でも失われず（火・溶岩・サボテン・爆発・奈落のいずれでも）、死んでも手元に残ります。
 

@@ -9,14 +9,14 @@ import net.neoforged.neoforge.common.Tags;
 public enum Trait {
     LARVA(true, 2.5F, false, BlockTags.MINEABLE_WITH_AXE, null, 0, false, false, false, false),
 
-    IMPERFECT(false, 6.0F, false, BlockTags.MINEABLE_WITH_AXE, BlockTags.NEEDS_IRON_TOOL, 4, false,
+    IMPERFECT(false, 6.0F, false, BlockTags.MINEABLE_WITH_AXE, BlockTags.NEEDS_IRON_TOOL, 0, false,
             false, false, false),
 
     SEMI_PERFECT(false, 1200.0F, false, BlockTags.MINEABLE_WITH_AXE,
-            BlockTags.NEEDS_DIAMOND_TOOL, 8, false, true, false, true),
+            BlockTags.NEEDS_DIAMOND_TOOL, 0, false, true, false, true),
 
     PERFECT(false, 1200.0F, false, BlockTags.MINEABLE_WITH_PICKAXE,
-            BlockTags.NEEDS_DIAMOND_TOOL, 8, false, true, false, true),
+            BlockTags.NEEDS_DIAMOND_TOOL, 0, false, true, false, true),
 
     SUPER_PERFECT(false, 3600000.0F, true, BlockTags.MINEABLE_WITH_PICKAXE,
             Tags.Blocks.NEEDS_NETHERITE_TOOL, 0, true, true, true, true);

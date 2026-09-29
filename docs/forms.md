@@ -65,6 +65,8 @@ only ever goes into it.
 | Perfect Cella | 100 levels |
 | Super Perfect Cella | 200 levels |
 
+Cella Jr. and Cella Max take no experience.
+
 A Larval Cella that fills up becomes an Imperfect Cella where it stands.
 
 A Perfect Cella that is full can be set off with a Nether Star. It destroys a hundred
@@ -90,10 +92,6 @@ free. A Cella never divided stays undivided and takes the whole of its new size.
 
 Everything from Imperfect up hands its contents back when it is broken: the item carries
 the name of what was filed away, and putting it down again pours the contents back in.
-
-Experience orbs are pulled in from a distance by everything between Imperfect and Perfect:
-4 blocks for an Imperfect Cella, 8 for Semi-Perfect, Perfect and Cella Jr. A Larval Cella
-and the two top forms do not.
 
 Super Perfect Cella and Cella Max are the only ones a wither cannot break, the only ones
 that are not destroyed as items — not by fire, lava, cactus, explosions or the void — and
