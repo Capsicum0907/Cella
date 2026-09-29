@@ -167,22 +167,19 @@ def outlet_icon():
                   ".#....")
 
 
+TICK_LEFT = 2
+TICK_TOP = -1
+
+
 def select_icon():
-    return _drawn("######",
-                  "#....#",
-                  "#....#",
-                  "#....#",
-                  "#....#",
-                  "######")
-
-
-def selected_icon():
-    return _drawn("######",
-                  "#....#",
-                  "#.##.#",
-                  "#.##.#",
-                  "#....#",
-                  "######")
+    corner = [(2, 5), (3, 6), (4, 7)]
+    rising = [(4 + step, 7 - step) for step in range(1, 8)]
+    cells = set()
+    for x, y in corner + rising:
+        cells |= {(x - TICK_LEFT, y - TICK_TOP), (x - TICK_LEFT, y - 1 - TICK_TOP)}
+    wide = max(x for x, _ in cells) + 1
+    tall = max(y for _, y in cells) + 1
+    return [[INK if (x, y) in cells else CLEAR for x in range(wide)] for y in range(tall)]
 
 
 ICONS = {
@@ -199,7 +196,6 @@ ICONS = {
     "pack": pack_icon,
     "outlet": outlet_icon,
     "select": select_icon,
-    "selected": selected_icon,
 }
 
 BUTTON = 10
@@ -222,11 +218,15 @@ def preview(icons):
             for x in range(BUTTON):
                 rim = x in (0, BUTTON - 1) or y in (0, BUTTON - 1)
                 sheet[top + y][left + x] = RIM if rim else FACE
-        margin = (BUTTON - ICON) // 2
-        for y, row in enumerate(icons[name]()):
+        art = icons[name]()
+        if len(art) == ICON and len(art[0]) == ICON:
+            dx = dy = (BUTTON - ICON) // 2
+        else:
+            dx, dy = TICK_LEFT, TICK_TOP
+        for y, row in enumerate(art):
             for x, pixel in enumerate(row):
-                if pixel[3]:
-                    sheet[top + margin + y][left + margin + x] = pixel
+                if pixel[3] and 0 <= top + dy + y < len(sheet):
+                    sheet[top + dy + y][left + dx + x] = pixel
     return [[pixel for pixel in row for _ in range(ZOOM)] for row in sheet for _ in range(ZOOM)]
 
 

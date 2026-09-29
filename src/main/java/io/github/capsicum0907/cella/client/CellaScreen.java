@@ -94,6 +94,10 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
 
     private static final int PICKED = 0x8060A0FF;
 
+    private static final int TICK = 0xEEEEEE;
+
+    private static final int TICK_ON = 0x60D0FF;
+
     private int stripTop() {
         return topPos + inventoryLabelY - 1;
     }
@@ -381,7 +385,7 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
         if (divides()) {
             selector = addRenderableWidget(new IconButton(
                     leftPos + movers - SPACE - BUTTON, topPos + inventoryLabelY - 2,
-                    Icons.of(Icons.SELECT), Component.translatable("gui.cella.select"),
+                    null, Component.translatable("gui.cella.select"),
                     () -> send(CellaMenu.SELECT)));
         }
 
@@ -496,7 +500,6 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
         }
         if (selector != null) {
             selector.visible = !list;
-            selector.icon(Icons.of(menu.selecting() ? Icons.SELECTED : Icons.SELECT));
         }
         if (looking != null) {
             looking.setEditable(!menu.selecting());
@@ -1117,6 +1120,10 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
         int behindX = asking() ? NOWHERE : mouseX;
         int behindY = asking() ? NOWHERE : mouseY;
         super.render(graphics, behindX, behindY, partial);
+        if (selector != null && selector.visible) {
+            Icons.tick(graphics, selector.getX(), selector.getY(),
+                    menu.selecting() ? TICK_ON : TICK);
+        }
         renderTooltip(graphics, behindX, behindY);
         if (!modal.open() && !asking()) {
             stripTip(graphics, mouseX, mouseY);

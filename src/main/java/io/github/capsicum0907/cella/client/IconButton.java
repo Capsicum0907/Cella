@@ -53,6 +53,9 @@ public class IconButton extends AbstractWidget {
             graphics.fill(x + width - 1, y, x + width, y + height, DARK);
         }
 
+        if (icon == null) {
+            return;
+        }
         int inset = (width - art) / 2;
         graphics.blit(icon, x + inset, y + inset, 0, 0, art, art, art, art);
     }

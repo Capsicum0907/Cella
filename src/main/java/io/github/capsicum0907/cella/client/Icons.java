@@ -21,7 +21,11 @@ public final class Icons {
     public static final String PACK = "pack";
     public static final String OUTLET = "outlet";
     public static final String SELECT = "select";
-    public static final String SELECTED = "selected";
+
+    public static final int TICK_LEFT = 2;
+    public static final int TICK_TOP = -1;
+    public static final int TICK_WIDE = 10;
+    public static final int TICK_TALL = 9;
 
     private Icons() {
     }
@@ -34,6 +38,14 @@ public final class Icons {
         graphics.setColor(((rgb >> 16) & 0xFF) / 255.0F, ((rgb >> 8) & 0xFF) / 255.0F,
                 (rgb & 0xFF) / 255.0F, 1.0F);
         graphics.blit(of(name), x, y, 0, 0, SIZE, SIZE, SIZE, SIZE);
+        graphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
+    }
+
+    public static void tick(GuiGraphics graphics, int buttonX, int buttonY, int rgb) {
+        graphics.setColor(((rgb >> 16) & 0xFF) / 255.0F, ((rgb >> 8) & 0xFF) / 255.0F,
+                (rgb & 0xFF) / 255.0F, 1.0F);
+        graphics.blit(of(SELECT), buttonX + TICK_LEFT, buttonY + TICK_TOP, 0, 0,
+                TICK_WIDE, TICK_TALL, TICK_WIDE, TICK_TALL);
         graphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
     }
 
