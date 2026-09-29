@@ -641,9 +641,8 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
         if (row >= 0 && row < shelf.slices().size()
                 && modal.columnOf(shelf, mouseX, modalLeft(), modalWide())
                         == EditModal.OUTLET_COLUMN) {
-            graphics.renderTooltip(font, Component.translatable(row == shelf.assigned()
-                    ? "gui.cella.edit.outlet.on"
-                    : "gui.cella.edit.outlet.off"), mouseX, mouseY);
+            graphics.renderTooltip(font, Component.translatable("gui.cella.edit.outlet"),
+                    mouseX, mouseY);
         }
     }
 

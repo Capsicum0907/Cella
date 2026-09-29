@@ -190,8 +190,7 @@ public final class CellaDataGen {
             add("gui.cella.edit.used", "Used");
             add("gui.cella.edit.full", "Empty it before deleting it");
             add("gui.cella.edit.pack", "Shrink");
-            add("gui.cella.edit.outlet.on", "Hoppers and comparators reach this one");
-            add("gui.cella.edit.outlet.off", "Let hoppers and comparators reach this one");
+            add("gui.cella.edit.outlet", "Outlet");
             add("gui.cella.partition.unnamed", "Unnamed");
             add("gui.cella.partition.everything", "Everything");
             add("gui.cella.into.pick", "Store into %s");
