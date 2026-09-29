@@ -338,8 +338,8 @@ public final class EditModal {
                 nameLeft(x), top, FAINT, false);
         String[] keys = { "gui.cella.edit.share", "gui.cella.edit.size", "gui.cella.edit.used" };
         for (int at = 0; at < keys.length; at++) {
-            graphics.drawString(font, Component.translatable(keys[at]),
-                    columnNumber(x, wide, at), top, FAINT, false);
+            centred(graphics, font, Component.translatable(keys[at]).getString(),
+                    columnNumber(x, wide, at), top, FAINT);
         }
         graphics.fill(x + PAD, y + PAD + HEAD - 4, x + wide - PAD, y + PAD + HEAD - 3, WELL);
     }
@@ -362,13 +362,13 @@ public final class EditModal {
         }
 
         int share = shelf.slots() <= 0 ? 0 : Math.round(slice.slots() * 100.0F / shelf.slots());
-        graphics.drawString(font, share + "%", columnNumber(x, wide, 0), top + 3, FAINT, false);
+        centred(graphics, font, share + "%", columnNumber(x, wide, 0), top + 3, FAINT);
         if (editing != at || field != SIZE) {
-            graphics.drawString(font, Integer.toString(slice.length()),
-                    columnNumber(x, wide, 1), top + 3, TEXT, false);
+            centred(graphics, font, Integer.toString(slice.length()),
+                    columnNumber(x, wide, 1), top + 3, TEXT);
         }
-        graphics.drawString(font, Math.round(slice.filled() * 100.0F) + "%",
-                columnNumber(x, wide, 2), top + 3, FAINT, false);
+        centred(graphics, font, Math.round(slice.filled() * 100.0F) + "%",
+                columnNumber(x, wide, 2), top + 3, FAINT);
 
         Icons.draw(graphics, Icons.OUTLET, outletLeft(x, wide) + Icons.inset(BIN),
                 top + Icons.inset(ROW), at == shelf.assigned() ? OUTLET : STOPPED);
@@ -380,6 +380,12 @@ public final class EditModal {
         boolean empty = slice.used() == 0;
         Icons.draw(graphics, Icons.BIN, binLeft(x, wide) + Icons.inset(BIN),
                 top + Icons.inset(ROW), empty ? DELETE : STOPPED);
+    }
+
+    private static void centred(GuiGraphics graphics, Font font, String text, int left, int top,
+            int colour) {
+        graphics.drawString(font, text, left + (NUMBER - font.width(text)) / 2, top, colour,
+                false);
     }
 
     private void plus(GuiGraphics graphics, Font font, int x, int top, int wide,
