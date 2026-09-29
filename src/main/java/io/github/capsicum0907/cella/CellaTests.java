@@ -1389,6 +1389,106 @@ public final class CellaTests {
         helper.succeed();
     }
 
+    private static CellaMenu selectingIn(GameTestHelper helper, CellaBlockEntity chest,
+            Player player) {
+        chest.contents().insertItem(0, new ItemStack(Items.STONE, 10), false);
+        chest.contents().insertItem(Plan.LC, new ItemStack(Items.APPLE, 7), false);
+        CellaMenu menu = CellaMenu.at(1, player.getInventory(), helper.absolutePos(WHERE),
+                chest.contents().getSlots(), CellaConfig.rows(KIND), CellaConfig.columns(KIND));
+        menu.view(0);
+        menu.clickMenuButton(player, CellaMenu.SELECT);
+        check(menu.selecting(), "the checkbox starts selecting");
+        return menu;
+    }
+
+    private static void carveTwo(CellaBlockEntity chest) {
+        carve(chest, new Plan.Partition("front", DyeColor.RED, 1),
+                new Plan.Partition("back", DyeColor.BLUE, 1));
+    }
+
+    @GameTest(template = TestStructures.FLOOR)
+    public static void selectingHoldsTheViewStill(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper);
+        Player player = helper.makeMockPlayer(GameType.SURVIVAL);
+        carveTwo(chest);
+        CellaMenu menu = selectingIn(helper, chest, player);
+        ItemStack stone = new ItemStack(Items.STONE);
+
+        chest.contents().insertItem(0, new ItemStack(Items.DIAMOND, 3), false);
+        menu.broadcastChanges();
+        check(menu.slots.get(0).getItem().is(Items.STONE),
+                "diamonds sorting in ahead do not move what is on show: "
+                        + menu.slots.get(0).getItem());
+
+        menu.pick(0, true);
+        check(menu.selected(0), "picking the stone selects it");
+        check(chest.reserved(0, stone) == 10, "and claims all ten: " + chest.reserved(0, stone));
+        menu.pick(0, true);
+        check(!menu.selected(0) && chest.reserved(0, stone) == 0, "picking again lets it go");
+
+        menu.pick(0, true);
+        menu.clickMenuButton(player, 0);
+        check(menu.selecting() && menu.selected(0), "turning a page keeps it all");
+
+        menu.view(Peek.LIST);
+        check(!menu.selecting(), "leaving the partition ends selecting");
+        check(chest.reserved(0, stone) == 0, "and lets the claim go");
+        helper.succeed();
+    }
+
+    @GameTest(template = TestStructures.FLOOR)
+    public static void onlyWhatIsStillThereCanBePicked(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper);
+        Player player = helper.makeMockPlayer(GameType.SURVIVAL);
+        carveTwo(chest);
+        CellaMenu menu = selectingIn(helper, chest, player);
+
+        chest.contents().extractItem(0, 64, false);
+        menu.pick(0, true);
+        check(!menu.selected(0), "stone taken since the view was held cannot be picked");
+        check(chest.reserved(0, new ItemStack(Items.STONE)) == 0, "and nothing is claimed");
+        helper.succeed();
+    }
+
+    @GameTest(template = TestStructures.FLOOR)
+    public static void selectingTouchesNothing(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper);
+        Player player = helper.makeMockPlayer(GameType.SURVIVAL);
+        carveTwo(chest);
+        CellaMenu menu = selectingIn(helper, chest, player);
+        player.getInventory().setItem(0, new ItemStack(Items.DIRT, 5));
+
+        menu.clicked(0, 0, net.minecraft.world.inventory.ClickType.PICKUP, player);
+        menu.clicked(0, 0, net.minecraft.world.inventory.ClickType.THROW, player);
+        menu.clicked(0, 0, net.minecraft.world.inventory.ClickType.SWAP, player);
+        menu.clicked(0, 0, net.minecraft.world.inventory.ClickType.PICKUP_ALL, player);
+        menu.quickMoveStack(player, menu.slots.size() - CellaConfig.PLAYER_COLUMNS);
+        menu.clickMenuButton(player, CellaMenu.TAKE);
+        menu.clickMenuButton(player, CellaMenu.STOW);
+
+        check(menu.getCarried().isEmpty(), "nothing ends up in hand: " + menu.getCarried());
+        check(chest.contents().count(0, new ItemStack(Items.STONE)) == 10, "the stone stays");
+        check(items(chest.contents()) == 17, "and so does everything: " + items(chest.contents()));
+        check(player.getInventory().countItem(Items.DIRT) == 5
+                        && player.getInventory().countItem(Items.STONE) == 0,
+                "and the player has what they had");
+        helper.succeed();
+    }
+
+    @GameTest(template = TestStructures.FLOOR)
+    public static void carvingAgainEndsSelecting(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper);
+        Player player = helper.makeMockPlayer(GameType.SURVIVAL);
+        carveTwo(chest);
+        CellaMenu menu = selectingIn(helper, chest, player);
+        menu.pick(0, true);
+        check(chest.divide(new Plan.Partition("more", DyeColor.LIME, 1)), "someone carves more");
+        menu.broadcastChanges();
+        check(!menu.selecting(), "which ends selecting");
+        check(chest.reserved(0, new ItemStack(Items.STONE)) == 0, "and the claim with it");
+        helper.succeed();
+    }
+
     @GameTest(template = TestStructures.FLOOR)
     public static void theLastPartitionStays(GameTestHelper helper) {
         CellaBlockEntity chest = place(helper);

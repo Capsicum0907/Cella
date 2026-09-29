@@ -49,6 +49,7 @@
   "gui.cella.partition.share": "%s%% of chest",
   "gui.cella.partition.unnamed": "Unnamed",
   "gui.cella.prev": "Previous page",
+  "gui.cella.select": "Select",
   "gui.cella.sort": "order: %s",
   "gui.cella.sort.display": "name",
   "gui.cella.sort.registry": "item id",

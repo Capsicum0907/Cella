@@ -48,6 +48,7 @@ public class CellaMenu extends AbstractContainerMenu {
     public static final int MATCHING = -3;
     public static final int TAKE = -4;
     public static final int TAKING = -5;
+    public static final int SELECT = -6;
 
     private Player who;
 
@@ -115,7 +116,7 @@ public class CellaMenu extends AbstractContainerMenu {
         for (int index = 0; index < pageSize; index++) {
             addSlot(new PagedSlot(window, index,
                     chestLeft + (index % columns) * SLOT,
-                    FIRST_Y + (index / columns) * SLOT, this::replaceable));
+                    FIRST_Y + (index / columns) * SLOT, this::replaceable, () -> selecting));
         }
 
         int below = (rows() - 4) * SLOT;
@@ -187,6 +188,21 @@ public class CellaMenu extends AbstractContainerMenu {
             @Override
             public void set(int value) {
                 looks(value);
+            }
+        });
+
+        addDataSlot(new DataSlot() {
+            @Override
+            public int get() {
+                return selecting ? 1 : 0;
+            }
+
+            @Override
+            public void set(int value) {
+                selecting = value != 0;
+                if (!selecting) {
+                    selection.clear();
+                }
             }
         });
 
@@ -327,6 +343,7 @@ public class CellaMenu extends AbstractContainerMenu {
         if (!server) {
             return;
         }
+        quit();
         access.execute((level, pos) -> {
             if (!(level.getBlockEntity(pos) instanceof CellaBlockEntity chest)) {
                 return;
@@ -347,6 +364,116 @@ public class CellaMenu extends AbstractContainerMenu {
             seen = revision();
             sendAllDataToRemote();
         });
+    }
+
+    private boolean selecting;
+
+    private final java.util.BitSet selection = new java.util.BitSet();
+
+    private long plansAt;
+
+    public boolean selecting() {
+        return selecting;
+    }
+
+    public boolean selected(int shown) {
+        return selecting && selection.get(shown);
+    }
+
+    public int selectedCount() {
+        return selection.cardinality();
+    }
+
+    public void selectionFrom(java.util.List<Integer> indices) {
+        selection.clear();
+        indices.forEach(selection::set);
+    }
+
+    private void select() {
+        CellaBlockEntity chest = chest();
+        if (selecting || chest == null || !chest.divides()
+                || (viewing != Peek.WHOLE && viewing < 0)) {
+            return;
+        }
+        window.freeze();
+        selection.clear();
+        plansAt = chest.plans();
+        selecting = true;
+        tellSelection();
+        sendAllDataToRemote();
+    }
+
+    public void quit() {
+        if (!server || !selecting) {
+            return;
+        }
+        selecting = false;
+        selection.clear();
+        CellaBlockEntity chest = chest();
+        if (chest != null) {
+            chest.release(this);
+        }
+        window.thaw();
+        tellSelection();
+        sendAllDataToRemote();
+    }
+
+    public void pick(int index, boolean toggle) {
+        if (!server || !selecting) {
+            return;
+        }
+        if (!window.frozenStack(index).isEmpty()) {
+            if (selection.get(index)) {
+                if (toggle) {
+                    selection.clear(index);
+                    claimSelection();
+                }
+            } else {
+                selection.set(index);
+                if (!claimSelection()) {
+                    selection.clear(index);
+                }
+            }
+        }
+        tellSelection();
+    }
+
+    public java.util.List<Claim> selectionClaims() {
+        java.util.List<Claim> wanted = new java.util.ArrayList<>();
+        if (!(contents instanceof Sorted sorted)) {
+            return wanted;
+        }
+        for (int at = selection.nextSetBit(0); at >= 0; at = selection.nextSetBit(at + 1)) {
+            ItemStack kind = window.frozenStack(at);
+            int part = sorted.partOf(window.frozenAt(at));
+            boolean merged = false;
+            for (int one = 0; one < wanted.size(); one++) {
+                Claim claim = wanted.get(one);
+                if (claim.covers(part, kind)) {
+                    wanted.set(one, new Claim(part, claim.kind(), claim.count() + kind.getCount()));
+                    merged = true;
+                    break;
+                }
+            }
+            if (!merged) {
+                wanted.add(new Claim(part, kind.copyWithCount(1), kind.getCount()));
+            }
+        }
+        return wanted;
+    }
+
+    private boolean claimSelection() {
+        CellaBlockEntity chest = chest();
+        return chest != null && chest.tryClaim(this, selectionClaims());
+    }
+
+    private void tellSelection() {
+        if (who instanceof net.minecraft.server.level.ServerPlayer player) {
+            java.util.List<Integer> indices = new java.util.ArrayList<>();
+            selection.stream().forEach(indices::add);
+            net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(player,
+                    new Picked(indices));
+        }
     }
 
     private void looks(int value) {
@@ -461,7 +588,7 @@ public class CellaMenu extends AbstractContainerMenu {
     }
 
     public void look(String looking) {
-        if (!server) {
+        if (!server || selecting) {
             return;
         }
         if (viewing == Peek.LIST && !looking.isBlank()) {
@@ -484,6 +611,10 @@ public class CellaMenu extends AbstractContainerMenu {
     @Override
     public void broadcastChanges() {
         if (server) {
+            CellaBlockEntity chest = chest();
+            if (selecting && chest != null && chest.plans() != plansAt) {
+                quit();
+            }
             follow();
         }
         super.broadcastChanges();
@@ -600,6 +731,19 @@ public class CellaMenu extends AbstractContainerMenu {
             turnTo(id);
             return true;
         }
+        if (id == SELECT) {
+            if (server) {
+                if (selecting) {
+                    quit();
+                } else {
+                    select();
+                }
+            }
+            return true;
+        }
+        if (selecting) {
+            return true;
+        }
         if (id < TAKING) {
             return false;
         }
@@ -698,6 +842,11 @@ public class CellaMenu extends AbstractContainerMenu {
     @Override
     public void clicked(int id, int button, net.minecraft.world.inventory.ClickType type,
             Player player) {
+        if (selecting && ((id >= 0 && id < pageSize)
+                || type == net.minecraft.world.inventory.ClickType.QUICK_MOVE
+                || type == net.minecraft.world.inventory.ClickType.PICKUP_ALL)) {
+            return;
+        }
         if (!server) {
             super.clicked(id, button, type, player);
             return;
@@ -762,6 +911,9 @@ public class CellaMenu extends AbstractContainerMenu {
     }
 
     private ItemStack moved(Player player, int index) {
+        if (selecting) {
+            return ItemStack.EMPTY;
+        }
         Slot slot = slots.get(index);
         if (!slot.hasItem() || viewing == Peek.LIST) {
             return ItemStack.EMPTY;

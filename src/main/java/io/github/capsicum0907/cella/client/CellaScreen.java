@@ -6,6 +6,7 @@ import io.github.capsicum0907.cella.Into;
 import io.github.capsicum0907.cella.Peek;
 import io.github.capsicum0907.cella.Plan;
 import io.github.capsicum0907.cella.Shelf;
+import io.github.capsicum0907.cella.Pick;
 import io.github.capsicum0907.cella.ShelfHolder;
 import io.github.capsicum0907.cella.Look;
 import io.github.capsicum0907.cella.CellaMenu;
@@ -86,8 +87,12 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     }
 
     private int stripRight() {
-        return leftPos + movers - APART;
+        return leftPos + movers - APART - (selector != null ? BUTTON + SPACE : 0);
     }
+
+    private IconButton selector;
+
+    private static final int PICKED = 0x8060A0FF;
 
     private int stripTop() {
         return topPos + inventoryLabelY - 1;
@@ -210,6 +215,13 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
                     () -> send(Screen.hasShiftDown() ? wide : plain)));
         }
 
+        if (divides()) {
+            selector = addRenderableWidget(new IconButton(
+                    leftPos + movers - SPACE - BUTTON, topPos + inventoryLabelY - 2,
+                    Icons.of(Icons.SELECT), Component.translatable("gui.cella.select"),
+                    () -> send(CellaMenu.SELECT)));
+        }
+
         int left = TITLE_X;
         knob = divides() ? left : -1;
         if (knob >= 0) {
@@ -270,6 +282,9 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     private boolean grabbing;
 
     private void toggle() {
+        if (menu.selecting()) {
+            return;
+        }
         finding = !finding;
         looking.setVisible(finding);
         looking.setFocused(finding);
@@ -308,6 +323,13 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
             boolean many = menu.pages() > 1 && !list;
             back.visible = many;
             on.visible = many;
+        }
+        if (selector != null) {
+            selector.visible = !list;
+            selector.icon(Icons.of(menu.selecting() ? Icons.SELECTED : Icons.SELECT));
+        }
+        if (looking != null) {
+            looking.setEditable(!menu.selecting());
         }
         if (ordering != null && kept != menu.order()) {
             kept = menu.order();
@@ -667,6 +689,32 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
             }
         }
         super.renderTooltip(graphics, mouseX, mouseY);
+    }
+
+    @Override
+    protected void slotClicked(net.minecraft.world.inventory.Slot slot, int id, int button,
+            net.minecraft.world.inventory.ClickType type) {
+        if (menu.selecting()) {
+            if (slot != null && slot.index < menu.pageSize()) {
+                net.neoforged.neoforge.network.PacketDistributor.sendToServer(new Pick(
+                        menu.page() * menu.pageSize() + slot.index, true));
+                return;
+            }
+            if (type == net.minecraft.world.inventory.ClickType.QUICK_MOVE
+                    || type == net.minecraft.world.inventory.ClickType.PICKUP_ALL) {
+                return;
+            }
+        }
+        super.slotClicked(slot, id, button, type);
+    }
+
+    @Override
+    protected void renderSlot(GuiGraphics graphics, net.minecraft.world.inventory.Slot slot) {
+        super.renderSlot(graphics, slot);
+        if (menu.selecting() && slot.index < menu.pageSize()
+                && menu.selected(menu.page() * menu.pageSize() + slot.index)) {
+            renderSlotHighlight(graphics, slot.x, slot.y, 0, PICKED);
+        }
     }
 
     private boolean listing() {

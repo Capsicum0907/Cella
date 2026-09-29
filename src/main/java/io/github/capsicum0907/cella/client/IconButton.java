@@ -15,7 +15,7 @@ public class IconButton extends AbstractWidget {
     private static final int DARK = 0xFF373737;
     private static final int LIT = 0xFFA0A0A0;
 
-    private final ResourceLocation icon;
+    private ResourceLocation icon;
     private final Runnable pressed;
 
     private final int art;
@@ -34,6 +34,10 @@ public class IconButton extends AbstractWidget {
         this.plate = plate;
         this.pressed = pressed;
         setTooltip(net.minecraft.client.gui.components.Tooltip.create(tooltip));
+    }
+
+    public void icon(ResourceLocation wanted) {
+        icon = wanted;
     }
 
     @Override

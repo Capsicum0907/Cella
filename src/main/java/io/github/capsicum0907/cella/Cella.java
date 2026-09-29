@@ -119,6 +119,20 @@ public class Cella {
                             menu.shelf(shown));
                 });
 
+        event.registrar("1").optional().playToServer(Pick.TYPE, Pick.STREAM_CODEC,
+                (pick, context) -> {
+                    if (context.player().containerMenu instanceof CellaMenu menu) {
+                        menu.pick(pick.index(), pick.toggle());
+                    }
+                });
+
+        event.registrar("1").optional().playToClient(Picked.TYPE, Picked.STREAM_CODEC,
+                (picked, context) -> {
+                    if (context.player().containerMenu instanceof CellaMenu menu) {
+                        menu.selectionFrom(picked.indices());
+                    }
+                });
+
         event.registrar("1").optional().playToServer(Assign.TYPE, Assign.STREAM_CODEC,
                 (assign, context) -> {
                     if (!(context.player().containerMenu instanceof CellaMenu menu)) {

@@ -137,6 +137,24 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
         }
     }
 
+    public boolean tryClaim(Object who, java.util.List<Claim> wanted) {
+        java.util.List<Claim> own = claims.getOrDefault(who, java.util.List.of());
+        for (Claim claim : wanted) {
+            int mine = 0;
+            for (Claim held : own) {
+                if (held.covers(claim.part(), claim.kind())) {
+                    mine += held.count();
+                }
+            }
+            int others = reserved(claim.part(), claim.kind()) - mine;
+            if (contents.count(claim.part(), claim.kind()) - others < claim.count()) {
+                return false;
+            }
+        }
+        claim(who, wanted);
+        return true;
+    }
+
     public void release(Object who) {
         claims.remove(who);
     }

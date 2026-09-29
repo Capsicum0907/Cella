@@ -149,7 +149,54 @@ public final class Window implements IItemHandlerModifiable {
                         .toLowerCase(java.util.Locale.ROOT).contains(wanted);
     }
 
+    private ItemStack[] frozen;
+
+    private int[] frozenAt;
+
+    public void freeze() {
+        int many = viewed();
+        frozen = new ItemStack[many];
+        frozenAt = new int[many];
+        for (int at = 0; at < many; at++) {
+            int real = found != null ? found[at] : base + at;
+            frozenAt[at] = real;
+            frozen[at] = real < held.getSlots() ? held.getStackInSlot(real).copy() : ItemStack.EMPTY;
+        }
+    }
+
+    public void thaw() {
+        frozen = null;
+        frozenAt = null;
+        if (found != null) {
+            rebuild();
+        }
+        clamp();
+    }
+
+    public boolean frozen() {
+        return frozen != null;
+    }
+
+    public int frozenSize() {
+        return frozen == null ? 0 : frozen.length;
+    }
+
+    public ItemStack frozenStack(int index) {
+        return frozen != null && index >= 0 && index < frozen.length ? frozen[index] : ItemStack.EMPTY;
+    }
+
+    public int frozenAt(int index) {
+        return frozenAt != null && index >= 0 && index < frozenAt.length ? frozenAt[index] : -1;
+    }
+
+    public int shownIndex(int slot) {
+        return page * size + slot;
+    }
+
     public boolean changed(int slot) {
+        if (frozen != null) {
+            return false;
+        }
         if (whole) {
             return again();
         }
@@ -167,7 +214,7 @@ public final class Window implements IItemHandlerModifiable {
     }
 
     public boolean again() {
-        if (found == null) {
+        if (found == null || frozen != null) {
             return false;
         }
         rebuild();
@@ -257,6 +304,9 @@ public final class Window implements IItemHandlerModifiable {
     }
 
     public int real(int slot) {
+        if (frozen != null) {
+            return frozenAt(shownIndex(slot));
+        }
         return holds(slot) && there(slot) ? at(slot) : -1;
     }
 
@@ -286,12 +336,15 @@ public final class Window implements IItemHandlerModifiable {
 
     @Override
     public ItemStack getStackInSlot(int slot) {
+        if (frozen != null) {
+            return frozenStack(shownIndex(slot));
+        }
         return there(slot) ? held.getStackInSlot(at(slot)) : ItemStack.EMPTY;
     }
 
     @Override
     public void setStackInSlot(int slot, ItemStack stack) {
-        if (chest && !holds(slot)) {
+        if (frozen != null || chest && !holds(slot)) {
             return;
         }
         if (there(slot)) {
@@ -301,12 +354,14 @@ public final class Window implements IItemHandlerModifiable {
 
     @Override
     public ItemStack insertItem(int slot, ItemStack stack, boolean simulate) {
-        return holds(slot) ? held.insertItem(at(slot), stack, simulate) : stack;
+        return frozen == null && holds(slot) ? held.insertItem(at(slot), stack, simulate) : stack;
     }
 
     @Override
     public ItemStack extractItem(int slot, int amount, boolean simulate) {
-        return holds(slot) ? held.extractItem(at(slot), amount, simulate) : ItemStack.EMPTY;
+        return frozen == null && holds(slot)
+                ? held.extractItem(at(slot), amount, simulate)
+                : ItemStack.EMPTY;
     }
 
     @Override
@@ -316,6 +371,6 @@ public final class Window implements IItemHandlerModifiable {
 
     @Override
     public boolean isItemValid(int slot, ItemStack stack) {
-        return holds(slot) && held.isItemValid(at(slot), stack);
+        return frozen == null && holds(slot) && held.isItemValid(at(slot), stack);
     }
 }

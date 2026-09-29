@@ -20,6 +20,8 @@ public final class Icons {
     public static final String BIN = "bin";
     public static final String PACK = "pack";
     public static final String OUTLET = "outlet";
+    public static final String SELECT = "select";
+    public static final String SELECTED = "selected";
 
     private Icons() {
     }

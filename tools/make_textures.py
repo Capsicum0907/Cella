@@ -167,6 +167,24 @@ def outlet_icon():
                   ".#....")
 
 
+def select_icon():
+    return _drawn("######",
+                  "#....#",
+                  "#....#",
+                  "#....#",
+                  "#....#",
+                  "######")
+
+
+def selected_icon():
+    return _drawn("######",
+                  "#....#",
+                  "#.##.#",
+                  "#.##.#",
+                  "#....#",
+                  "######")
+
+
 ICONS = {
     "sort": sort_icon,
     "stow": stow_icon,
@@ -180,6 +198,8 @@ ICONS = {
     "bin": bin_icon,
     "pack": pack_icon,
     "outlet": outlet_icon,
+    "select": select_icon,
+    "selected": selected_icon,
 }
 
 BUTTON = 10
