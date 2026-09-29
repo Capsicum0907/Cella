@@ -1,15 +1,9 @@
 @echo off
-rem Compile the mod and launch a dev Minecraft client with it loaded.
-rem Safe to double-click: it runs from its own directory and pauses on failure.
-rem Extra arguments are passed straight to Gradle, e.g.  run.bat --info
-rem Versions and the mod id are not set here - they live in gradle.properties.
 
 setlocal
 cd /d "%~dp0"
 
-rem Java 18 and later emit UTF-8, while a Japanese console reads CP932 by
-rem default, which turns every non-ASCII log line into mojibake. Line the
-rem reader up with the writer. Scoped to this window only.
+rem Java 18+ writes UTF-8 but a Japanese console reads CP932.
 chcp 65001 >nul
 
 if defined JAVA_HOME goto :run
