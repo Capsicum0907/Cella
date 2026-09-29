@@ -33,7 +33,7 @@ public final class EditModal {
     private static final int SHOWN = 3;
 
     public static int least() {
-        return NAMED + SWATCH + 2 * BIN + 3 * NUMBER + 6 * PAD;
+        return NAMED + SWATCH + 3 * BIN + 3 * NUMBER + 7 * PAD;
     }
 
     public static int leastTall() {
@@ -59,6 +59,7 @@ public final class EditModal {
     public static final int SWATCH_COLUMN = -2;
     public static final int BIN_COLUMN = -3;
     public static final int PACK_COLUMN = -4;
+    public static final int OUTLET_COLUMN = -5;
 
     private boolean open;
 
@@ -122,8 +123,12 @@ public final class EditModal {
         return binLeft(x, wide) - PAD - BIN;
     }
 
+    private int outletLeft(int x, int wide) {
+        return packLeft(x, wide) - PAD - BIN;
+    }
+
     private int columnNumber(int x, int wide, int which) {
-        return packLeft(x, wide) - PAD - NUMBER * (3 - which);
+        return outletLeft(x, wide) - PAD - NUMBER * (3 - which);
     }
 
     private int nameLeft(int x) {
@@ -167,6 +172,9 @@ public final class EditModal {
         }
         if (mouseX >= packLeft(x, wide) && mouseX < packLeft(x, wide) + BIN) {
             return PACK_COLUMN;
+        }
+        if (mouseX >= outletLeft(x, wide) && mouseX < outletLeft(x, wide) + BIN) {
+            return OUTLET_COLUMN;
         }
         return -1;
     }
@@ -332,6 +340,9 @@ public final class EditModal {
         }
         graphics.drawString(font, Math.round(slice.filled() * 100.0F) + "%",
                 columnNumber(x, wide, 2), top + 3, FAINT, false);
+
+        Icons.draw(graphics, Icons.OUTLET, outletLeft(x, wide) + Icons.inset(BIN),
+                top + Icons.inset(ROW), at == shelf.assigned() ? TEXT : STOPPED);
 
         boolean packed = slice.used() == slice.slots();
         Icons.draw(graphics, Icons.PACK, packLeft(x, wide) + Icons.inset(BIN),

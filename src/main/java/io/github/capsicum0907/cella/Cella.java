@@ -119,6 +119,17 @@ public class Cella {
                             menu.shelf(shown));
                 });
 
+        event.registrar("1").optional().playToServer(Assign.TYPE, Assign.STREAM_CODEC,
+                (assign, context) -> {
+                    if (!(context.player().containerMenu instanceof CellaMenu menu)) {
+                        return;
+                    }
+                    menu.assign(assign.index());
+                    net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(
+                            (net.minecraft.server.level.ServerPlayer) context.player(),
+                            menu.shelf(Peek.LIST));
+                });
+
         event.registrar("1").optional().playToServer(Edit.TYPE, Edit.STREAM_CODEC,
                 (edit, context) -> {
                     if (!(context.player().containerMenu instanceof CellaMenu menu)) {

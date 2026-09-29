@@ -442,6 +442,9 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
                 net.neoforged.neoforge.network.PacketDistributor.sendToServer(
                         Edit.setting(row, slice.name(), slice.dye(), least));
             }
+        } else if (column == EditModal.OUTLET_COLUMN) {
+            net.neoforged.neoforge.network.PacketDistributor.sendToServer(
+                    io.github.capsicum0907.cella.Assign.toggled(row, shelf.assigned()));
         } else if (column == EditModal.BIN_COLUMN) {
             if (shelf.slices().get(row).used() == 0) {
                 net.neoforged.neoforge.network.PacketDistributor.sendToServer(
@@ -634,6 +637,13 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
                         == EditModal.PACK_COLUMN) {
             graphics.renderTooltip(font, Component.translatable("gui.cella.edit.pack"),
                     mouseX, mouseY);
+        }
+        if (row >= 0 && row < shelf.slices().size()
+                && modal.columnOf(shelf, mouseX, modalLeft(), modalWide())
+                        == EditModal.OUTLET_COLUMN) {
+            graphics.renderTooltip(font, Component.translatable(row == shelf.assigned()
+                    ? "gui.cella.edit.outlet.on"
+                    : "gui.cella.edit.outlet.off"), mouseX, mouseY);
         }
     }
 

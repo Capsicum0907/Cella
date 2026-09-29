@@ -180,6 +180,11 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
         return done[0];
     }
 
+    public void assign(int index) {
+        plan.assign(index);
+        filed();
+    }
+
     public int firstGap() {
         return plan.taken();
     }

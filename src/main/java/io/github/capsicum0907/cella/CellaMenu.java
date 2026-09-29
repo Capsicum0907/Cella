@@ -317,6 +317,17 @@ public class CellaMenu extends AbstractContainerMenu {
         });
     }
 
+    public void assign(int index) {
+        if (!server) {
+            return;
+        }
+        access.execute((level, pos) -> {
+            if (level.getBlockEntity(pos) instanceof CellaBlockEntity chest) {
+                chest.assign(index);
+            }
+        });
+    }
+
     public void edit(Edit edit, net.minecraft.world.entity.player.Player who) {
         if (!server) {
             return;

@@ -146,7 +146,7 @@ public final class KeptCommand {
             return 0;
         }
         int index = IntegerArgumentType.getInteger(context, "index");
-        chest.replan(() -> chest.plan().assign(index));
+        chest.assign(index);
         context.getSource().sendSuccess(() -> Component.literal(
                 "Outlet: " + chest.plan().assigned()), false);
         return 1;

@@ -1257,6 +1257,35 @@ public final class CellaTests {
     }
 
     @GameTest(template = TestStructures.FLOOR)
+    public static void theOutsideReachesOneOrNone(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper);
+        Player player = helper.makeMockPlayer(GameType.SURVIVAL);
+        Sorted contents = chest.contents();
+        check(chest.plan().assigned() == 0, "a new chest opens its one partition to the outside");
+
+        carve(chest, new Plan.Partition("front", DyeColor.RED, 1),
+                new Plan.Partition("back", DyeColor.BLUE, 2));
+        contents.insertItem(Plan.LC, new ItemStack(Items.APPLE, 5), false);
+
+        CellaMenu menu = CellaMenu.at(1, player.getInventory(), helper.absolutePos(WHERE),
+                contents.getSlots(), CellaConfig.rows(KIND), CellaConfig.columns(KIND));
+        menu.assign(Assign.toggled(1, chest.plan().assigned()).index());
+        check(chest.plan().assigned() == 1, "picking the second moves it there");
+        check(chest.outlet().getSlots() == 2 * Plan.LC,
+                "so the outside sees the second's slots: " + chest.outlet().getSlots());
+        check(chest.outlet().getStackInSlot(0).is(Items.APPLE),
+                "and what is in it: " + chest.outlet().getStackInSlot(0));
+
+        menu.assign(Assign.toggled(0, chest.plan().assigned()).index());
+        check(chest.plan().assigned() == 0, "picking the first moves it, never adds a second");
+
+        menu.assign(Assign.toggled(0, chest.plan().assigned()).index());
+        check(chest.plan().assigned() == Plan.NONE, "picking it again leaves none");
+        check(chest.outlet().getSlots() == 0, "and the outside sees nothing");
+        helper.succeed();
+    }
+
+    @GameTest(template = TestStructures.FLOOR)
     public static void theLastPartitionStays(GameTestHelper helper) {
         CellaBlockEntity chest = place(helper);
         check(!chest.undivide(0), "the only partition there is cannot be taken away");
