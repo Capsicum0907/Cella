@@ -46,8 +46,11 @@ Cella. The Cella in the middle is not consumed.
 Every Cella used in a recipe must be full of experience. Contents come across into what is
 made; experience does not.
 
-Partitions come across too. Every partition of every Cella used is kept, with its name,
-colour, size and contents, in the order of the crafting grid: left to right, top to bottom.
+Partitions come across too, with their names, colours, sizes and contents, in the order of
+the crafting grid: left to right, top to bottom. A Cella never divided — one partition, no
+name, the first colour, the whole chest — is not kept as a partition. The contents of all
+such Cellas go into one partition after the others. If none of the Cellas used was divided,
+what is made is not divided either.
 
 ## Growing
 
@@ -69,6 +72,9 @@ blocks in every direction and comes back Super Perfect — but only in the End. 
 else it is simply gone.
 
 The blast is not survivable. Stand well back.
+
+A Cella that grows keeps its partitions at the same sizes, and the room it grew by is left
+free. A Cella never divided stays undivided and takes the whole of its new size.
 
 ## What each form survives
 
