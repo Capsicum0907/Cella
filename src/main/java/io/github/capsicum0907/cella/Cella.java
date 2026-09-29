@@ -122,7 +122,11 @@ public class Cella {
         event.registrar("1").optional().playToServer(Pick.TYPE, Pick.STREAM_CODEC,
                 (pick, context) -> {
                     if (context.player().containerMenu instanceof CellaMenu menu) {
-                        menu.pick(pick.index(), pick.toggle());
+                        if (pick.how() == Pick.KIND) {
+                            menu.pickKind(pick.index());
+                        } else {
+                            menu.pick(pick.index(), pick.how() == Pick.TOGGLE);
+                        }
                     }
                 });
 

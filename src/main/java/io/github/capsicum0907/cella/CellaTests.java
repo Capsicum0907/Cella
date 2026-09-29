@@ -1450,6 +1450,38 @@ public final class CellaTests {
     }
 
     @GameTest(template = TestStructures.FLOOR)
+    public static void shiftPicksEveryOneOfAKind(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper);
+        Player player = helper.makeMockPlayer(GameType.SURVIVAL);
+        carveTwo(chest);
+        chest.contents().insertItem(0, new ItemStack(Items.STONE, 10), false);
+        chest.contents().insertItem(Plan.LC, new ItemStack(Items.STONE, 5), false);
+        chest.contents().insertItem(Plan.LC, new ItemStack(Items.APPLE, 7), false);
+        CellaMenu menu = CellaMenu.at(1, player.getInventory(), helper.absolutePos(WHERE),
+                chest.contents().getSlots(), CellaConfig.rows(KIND), CellaConfig.columns(KIND));
+        menu.view(Peek.WHOLE);
+        menu.clickMenuButton(player, CellaMenu.SELECT);
+        check(menu.slots.get(1).getItem().is(Items.STONE)
+                        && menu.slots.get(2).getItem().is(Items.STONE),
+                "the two stones sit after the apples");
+
+        menu.pickKind(1);
+        check(menu.selected(1) && menu.selected(2) && !menu.selected(0),
+                "shift picks both stones and not the apples");
+        check(chest.reserved(0, new ItemStack(Items.STONE)) == 10
+                        && chest.reserved(1, new ItemStack(Items.STONE)) == 5,
+                "each claimed in its own partition");
+
+        menu.pickKind(2);
+        check(!menu.selected(1) && !menu.selected(2), "with all of them picked, shift lets all go");
+
+        menu.pick(2, true);
+        menu.pickKind(1);
+        check(menu.selected(1) && menu.selected(2), "with any left out, shift picks them all");
+        helper.succeed();
+    }
+
+    @GameTest(template = TestStructures.FLOOR)
     public static void onlyWhatIsStillThereCanBePicked(GameTestHelper helper) {
         CellaBlockEntity chest = place(helper);
         Player player = helper.makeMockPlayer(GameType.SURVIVAL);

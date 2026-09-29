@@ -697,7 +697,8 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
         if (menu.selecting()) {
             if (slot != null && slot.index < menu.pageSize()) {
                 net.neoforged.neoforge.network.PacketDistributor.sendToServer(new Pick(
-                        menu.page() * menu.pageSize() + slot.index, true));
+                        menu.page() * menu.pageSize() + slot.index,
+                        hasShiftDown() ? Pick.KIND : Pick.TOGGLE));
                 dragFrom = slot.index;
                 swept = false;
                 dragged.clear();
@@ -749,7 +750,7 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
                 if (at < menu.pageSize() && menu.slots.get(at).hasItem()
                         && !menu.selected(shown) && dragged.add(shown)) {
                     net.neoforged.neoforge.network.PacketDistributor.sendToServer(
-                            new Pick(shown, false));
+                            new Pick(shown, Pick.ADD));
                 }
             }
         }

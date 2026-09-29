@@ -438,6 +438,39 @@ public class CellaMenu extends AbstractContainerMenu {
         tellSelection();
     }
 
+    public void pickKind(int index) {
+        if (!server || !selecting) {
+            return;
+        }
+        ItemStack kind = window.frozenStack(index);
+        if (kind.isEmpty()) {
+            tellSelection();
+            return;
+        }
+        java.util.List<Integer> alike = new java.util.ArrayList<>();
+        boolean all = true;
+        for (int at = 0; at < window.frozenSize(); at++) {
+            if (ItemStack.isSameItemSameComponents(window.frozenStack(at), kind)) {
+                alike.add(at);
+                all &= selection.get(at);
+            }
+        }
+        if (all) {
+            alike.forEach(selection::clear);
+            claimSelection();
+        } else {
+            for (int at : alike) {
+                if (!selection.get(at)) {
+                    selection.set(at);
+                    if (!claimSelection()) {
+                        selection.clear(at);
+                    }
+                }
+            }
+        }
+        tellSelection();
+    }
+
     public java.util.List<Claim> selectionClaims() {
         java.util.List<Claim> wanted = new java.util.ArrayList<>();
         if (!(contents instanceof Sorted sorted)) {
