@@ -145,10 +145,6 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
                         0x60000000);
             }
         }
-        if (menu.into() == Into.NONE && many > 0) {
-            graphics.drawString(font, Component.translatable("gui.cella.into.none"),
-                    stripLeft(), stripTop() + CHIP + 2, LABEL, false);
-        }
     }
 
     private void stripTip(GuiGraphics graphics, int mouseX, int mouseY) {
