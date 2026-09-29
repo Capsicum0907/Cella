@@ -1121,6 +1121,20 @@ public final class CellaTests {
     }
 
     @GameTest(template = TestStructures.FLOOR)
+    public static void loadingWithoutContentsKeepsTheSize(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper);
+        var registries = helper.getLevel().registryAccess();
+        CellaBlockEntity loaded = new CellaBlockEntity(chest.getBlockPos(), chest.getBlockState());
+        loaded.loadWithComponents(new CompoundTag(), registries);
+        check(loaded.contents().getSlots() == KIND.slots(),
+                "nothing said about contents leaves it its size: " + loaded.contents().getSlots());
+        check(loaded.plan().untouched(loaded.contents().getSlots()),
+                "and one partition over all of it: "
+                        + loaded.plan().over(loaded.contents().getSlots()));
+        helper.succeed();
+    }
+
+    @GameTest(template = TestStructures.FLOOR)
     public static void everythingSaysWhoseEachSquareIs(GameTestHelper helper) {
         CellaBlockEntity chest = place(helper);
         Player player = helper.makeMockPlayer(GameType.SURVIVAL);

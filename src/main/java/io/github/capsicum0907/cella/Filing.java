@@ -32,7 +32,8 @@ public final class Filing {
         ListTag parts = new ListTag();
         for (int index = 0; index < plan.count(slots); index++) {
             ListTag one = new ListTag();
-            for (int slot = plan.first(index, slots); slot < plan.past(index, slots); slot++) {
+            int end = plan.past(index, slots);
+            for (int slot = plan.first(index, slots); slot < end; slot++) {
                 claimed[slot] = true;
                 ItemStack stack = contents.getStackInSlot(slot);
                 if (!stack.isEmpty()) {
@@ -61,19 +62,19 @@ public final class Filing {
     }
 
     public static Opened read(CompoundTag tag, HolderLookup.Provider registries,
-            CompoundTag carvedElsewhere) {
+            CompoundTag carvedElsewhere, int sized) {
         Order order = Order.of(tag.getString(ORDER));
         CompoundTag carved = tag.contains(PLAN, Tag.TAG_COMPOUND)
                 ? tag.getCompound(PLAN)
                 : carvedElsewhere;
         return tag.contains(PARTS, Tag.TAG_LIST)
-                ? parted(tag, registries, order, carved)
-                : slotted(tag, registries, order, carved);
+                ? parted(tag, registries, order, carved, sized)
+                : slotted(tag, registries, order, carved, sized);
     }
 
     private static Opened parted(CompoundTag tag, HolderLookup.Provider registries, Order order,
-            CompoundTag carved) {
-        int size = tag.getInt(SIZE);
+            CompoundTag carved, int sized) {
+        int size = tag.contains(SIZE, Tag.TAG_INT) ? tag.getInt(SIZE) : sized;
         Plan plan = new Plan();
         plan.load(carved, size);
         int count = plan.count(size);
@@ -95,8 +96,8 @@ public final class Filing {
     }
 
     private static Opened slotted(CompoundTag tag, HolderLookup.Provider registries, Order order,
-            CompoundTag carved) {
-        ItemStackHandler from = new ItemStackHandler();
+            CompoundTag carved, int sized) {
+        ItemStackHandler from = new ItemStackHandler(sized);
         from.deserializeNBT(registries, tag);
         int size = from.getSlots();
         Plan plan = new Plan();
@@ -105,7 +106,8 @@ public final class Filing {
         List<List<ItemStack>> held = new ArrayList<>();
         for (int index = 0; index < plan.count(size); index++) {
             List<ItemStack> one = new ArrayList<>();
-            for (int slot = plan.first(index, size); slot < plan.past(index, size); slot++) {
+            int end = plan.past(index, size);
+            for (int slot = plan.first(index, size); slot < end; slot++) {
                 claimed[slot] = true;
                 if (!from.getStackInSlot(slot).isEmpty()) {
                     one.add(from.getStackInSlot(slot));

@@ -327,7 +327,8 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
     @Override
     protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.loadAdditional(tag, registries);
-        fill(Filing.read(tag.getCompound(CONTENTS), registries, tag.getCompound(PLAN)));
+        fill(Filing.read(tag.getCompound(CONTENTS), registries, tag.getCompound(PLAN),
+                contents.getSlots()));
         ledger.load(registries, tag.getList(HISTORY, Ledger.TAG));
 
         experience = tag.getInt(EXPERIENCE);
@@ -375,7 +376,7 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
     }
 
     public void restore(HolderLookup.Provider registries, Kept.Chest kept) {
-        fill(Filing.read(kept.contents(), registries, new CompoundTag()));
+        fill(Filing.read(kept.contents(), registries, new CompoundTag(), contents.getSlots()));
         filed();
         experience = capped(kept.experience());
         setChanged();
@@ -394,7 +395,8 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
         int restLength = 0;
 
         for (Kept.Chest one : filed) {
-            Filing.Opened opened = Filing.read(one.contents(), registries, new CompoundTag());
+            Filing.Opened opened = Filing.read(one.contents(), registries, new CompoundTag(),
+                    contents.getSlots());
             over.addAll(opened.loose());
             if (opened.plan().untouched(opened.size())) {
                 restLength += Plan.capacity(opened.size());
