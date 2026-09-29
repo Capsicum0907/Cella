@@ -32,7 +32,7 @@ public class Kept extends SavedData {
 
     private static final String HANDED = "Handed";
 
-    private static final String SIZE = "Size";
+    static final String SIZE = "Size";
     private static final String ITEMS = "Items";
 
     private static final long UNDATED = -1L;

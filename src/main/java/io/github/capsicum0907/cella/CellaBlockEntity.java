@@ -129,6 +129,13 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
         filed();
     }
 
+    private void fill(HolderLookup.Provider registries, CompoundTag filed, CompoundTag carved) {
+        int slots = filed.contains(Kept.SIZE) ? filed.getInt(Kept.SIZE) : contents.getSlots();
+        plan.load(carved, slots);
+        contents.deserializeNBT(registries, filed);
+        contents.adopt(carving());
+    }
+
     private void filed() {
         setChanged();
         if (level != null) {
@@ -306,10 +313,7 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
     @Override
     protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.loadAdditional(tag, registries);
-        contents.deserializeNBT(registries, tag.getCompound(CONTENTS));
-
-        plan.load(tag.getCompound(PLAN), contents.getSlots());
-        contents.adopt(carving());
+        fill(registries, tag.getCompound(CONTENTS), tag.getCompound(PLAN));
         ledger.load(registries, tag.getList(HISTORY, Ledger.TAG));
 
         experience = tag.getInt(EXPERIENCE);
@@ -358,8 +362,8 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
     }
 
     public void restore(HolderLookup.Provider registries, Kept.Chest kept) {
-        contents.deserializeNBT(registries, kept.contents());
-        replan(() -> plan.load(kept.contents().getCompound(PLAN), contents.getSlots()));
+        fill(registries, kept.contents(), kept.contents().getCompound(PLAN));
+        filed();
         experience = capped(kept.experience());
         setChanged();
     }

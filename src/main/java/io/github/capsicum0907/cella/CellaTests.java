@@ -1091,6 +1091,36 @@ public final class CellaTests {
     }
 
     @GameTest(template = TestStructures.FLOOR)
+    public static void loadingLeavesEachPartitionItsOwn(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper);
+        var registries = helper.getLevel().registryAccess();
+        int lc = Plan.LC;
+
+        carve(chest, new Plan.Partition("front", DyeColor.RED, 1),
+                new Plan.Partition("back", DyeColor.BLUE, 1));
+        chest.contents().insertItem(0, new ItemStack(Items.STONE, 10), false);
+        chest.contents().insertItem(lc, new ItemStack(Items.APPLE, 7), false);
+
+        CompoundTag saved = chest.saveWithoutMetadata(registries);
+        CellaBlockEntity loaded = new CellaBlockEntity(chest.getBlockPos(), chest.getBlockState());
+        loaded.loadWithComponents(saved, registries);
+        check(loaded.contents().getStackInSlot(0).is(Items.STONE),
+                "the stone is still the front one's: " + loaded.contents().getStackInSlot(0));
+        check(loaded.contents().getStackInSlot(lc).is(Items.APPLE),
+                "and the apples still the back one's: " + loaded.contents().getStackInSlot(lc));
+
+        CompoundTag filed = chest.contents().serializeNBT(registries);
+        filed.put(CellaBlockEntity.PLAN, chest.plan().save());
+        CellaBlockEntity placed = new CellaBlockEntity(chest.getBlockPos(), chest.getBlockState());
+        placed.restore(registries, new Kept.Chest(filed, 0));
+        check(placed.contents().getStackInSlot(0).is(Items.STONE)
+                        && placed.contents().getStackInSlot(lc).is(Items.APPLE),
+                "and the same when put back down after breaking: "
+                        + placed.contents().getStackInSlot(0));
+        helper.succeed();
+    }
+
+    @GameTest(template = TestStructures.FLOOR)
     public static void everythingSaysWhoseEachSquareIs(GameTestHelper helper) {
         CellaBlockEntity chest = place(helper);
         Player player = helper.makeMockPlayer(GameType.SURVIVAL);
