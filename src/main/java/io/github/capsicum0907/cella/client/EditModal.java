@@ -28,6 +28,12 @@ public final class EditModal {
 
     private static final int LINE = 9;
 
+    private static final int CLOSE = 10;
+
+    private static final int COLOURS_ACROSS = 8;
+
+    private static final int COLOUR_GAP = 1;
+
     private static final int NAMED = 70;
 
     private static final int SHOWN = 3;
@@ -206,17 +212,39 @@ public final class EditModal {
         if (palette < 0) {
             return null;
         }
-        int left = x + PAD;
-        int top = rowTop(palette, y) + ROW;
         DyeColor[] all = DyeColor.values();
         for (int at = 0; at < all.length; at++) {
-            int cx = left + (at % 8) * (SWATCH + 1);
-            int cy = top + (at / 8) * (SWATCH + 1);
+            int cx = colourLeft(x, at);
+            int cy = colourTop(y, at);
             if (mouseX >= cx && mouseX < cx + SWATCH && mouseY >= cy && mouseY < cy + SWATCH) {
                 return all[at];
             }
         }
         return null;
+    }
+
+    private int paletteLeft(int x) {
+        return x + PAD;
+    }
+
+    private int paletteTop(int y) {
+        return rowTop(palette, y) + ROW;
+    }
+
+    private static int colourRows() {
+        return (DyeColor.values().length + COLOURS_ACROSS - 1) / COLOURS_ACROSS;
+    }
+
+    private static int spread(int many) {
+        return many * SWATCH + (many + 1) * COLOUR_GAP;
+    }
+
+    private int colourLeft(int x, int at) {
+        return paletteLeft(x) + COLOUR_GAP + (at % COLOURS_ACROSS) * (SWATCH + COLOUR_GAP);
+    }
+
+    private int colourTop(int y, int at) {
+        return paletteTop(y) + COLOUR_GAP + (at / COLOURS_ACROSS) * (SWATCH + COLOUR_GAP);
     }
 
     public void place(EditBox box, Shelf shelf, int x, int y, int wide) {
@@ -267,9 +295,9 @@ public final class EditModal {
         graphics.fill(x, y, x + wide, y + tall, EDGE);
         graphics.fill(x + 1, y + 1, x + wide - 1, y + tall - 1, BACK);
 
-        graphics.fill(x + PAD, y + PAD, x + PAD + LINE, y + PAD + LINE, WELL);
-        Icons.draw(graphics, Icons.CLOSE, x + PAD + Icons.inset(LINE), y + PAD + Icons.inset(LINE),
-                CROSS);
+        graphics.fill(x + PAD, y + PAD, x + PAD + CLOSE, y + PAD + CLOSE, WELL);
+        Icons.draw(graphics, Icons.CLOSE, x + PAD + Icons.inset(CLOSE),
+                y + PAD + Icons.inset(CLOSE), CROSS);
 
         head(graphics, font, x, y, wide);
 
@@ -379,24 +407,24 @@ public final class EditModal {
     }
 
     private void swatches(GuiGraphics graphics, int x, int y) {
-        int left = x + PAD;
-        int top = rowTop(palette, y) + ROW;
+        int left = paletteLeft(x);
+        int top = paletteTop(y);
         DyeColor[] all = DyeColor.values();
-        int wide = 8 * (SWATCH + 1) + 1;
-        int tall = 2 * (SWATCH + 1) + 1;
-        graphics.fill(left - 1, top - 1, left + wide, top + tall, EDGE);
-        graphics.fill(left, top, left + wide - 1, top + tall - 1, TRACK);
+        int wide = spread(COLOURS_ACROSS);
+        int tall = spread(colourRows());
+        graphics.fill(left - 1, top - 1, left + wide + 1, top + tall + 1, EDGE);
+        graphics.fill(left, top, left + wide, top + tall, TRACK);
         for (int at = 0; at < all.length; at++) {
-            int cx = left + (at % 8) * (SWATCH + 1);
-            int cy = top + (at / 8) * (SWATCH + 1);
+            int cx = colourLeft(x, at);
+            int cy = colourTop(y, at);
             graphics.fill(cx, cy, cx + SWATCH, cy + SWATCH,
                     0xFF000000 | all[at].getTextureDiffuseColor());
         }
     }
 
     public boolean overClose(double mouseX, double mouseY, int x, int y) {
-        return mouseX >= x + PAD && mouseX < x + PAD + LINE
-                && mouseY >= y + PAD && mouseY < y + PAD + LINE;
+        return mouseX >= x + PAD && mouseX < x + PAD + CLOSE
+                && mouseY >= y + PAD && mouseY < y + PAD + CLOSE;
     }
 
     public boolean inside(double mouseX, double mouseY, int x, int y, int wide, int tall) {
