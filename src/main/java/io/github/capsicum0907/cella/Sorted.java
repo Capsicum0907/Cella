@@ -238,6 +238,10 @@ public class Sorted extends ItemStackHandler {
         moved(0);
     }
 
+    public void admit(java.util.List<ItemStack> loose) {
+        spill(offered(loose, carve));
+    }
+
     public int used() {
         int all = 0;
         for (int one : used) {
@@ -281,19 +285,17 @@ public class Sorted extends ItemStackHandler {
         used = new int[Math.max(1, used.length)];
     }
 
-    private static final String ORDER = "Order";
-
     @Override
     public CompoundTag serializeNBT(HolderLookup.Provider registries) {
         CompoundTag tag = super.serializeNBT(registries);
-        tag.putString(ORDER, order.id());
+        tag.putString(Filing.ORDER, order.id());
         return tag;
     }
 
     @Override
     public void deserializeNBT(HolderLookup.Provider registries, CompoundTag tag) {
         super.deserializeNBT(registries, tag);
-        order = Order.of(tag.getString(ORDER));
+        order = Order.of(tag.getString(Filing.ORDER));
         settle();
     }
 

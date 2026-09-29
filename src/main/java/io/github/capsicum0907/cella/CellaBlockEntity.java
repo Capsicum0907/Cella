@@ -16,12 +16,11 @@ import net.minecraft.world.level.block.entity.ChestLidController;
 import net.minecraft.world.level.block.entity.ContainerOpenersCounter;
 import net.minecraft.world.level.block.entity.LidBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.neoforge.items.ItemStackHandler;
 
 public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
-    private static final String CONTENTS = "Contents";
+    static final String CONTENTS = "Contents";
     private static final String HISTORY = "History";
-    static final String PLAN = "Plan";
+    static final String PLAN = Filing.PLAN;
     private static final String EXPERIENCE = "Experience";
 
     private final Sorted contents;
@@ -129,11 +128,27 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
         filed();
     }
 
-    private void fill(HolderLookup.Provider registries, CompoundTag filed, CompoundTag carved) {
-        int slots = filed.contains(Kept.SIZE) ? filed.getInt(Kept.SIZE) : contents.getSlots();
-        plan.load(carved, slots);
-        contents.deserializeNBT(registries, filed);
+    private void fill(Filing.Opened opened) {
+        contents.setSize(opened.size());
+        plan.load(opened.plan().save(), opened.size());
         contents.adopt(carving());
+        contents.order(opened.order());
+        java.util.List<ItemStack> over = new java.util.ArrayList<>(opened.loose());
+        contents.straight(() -> {
+            int slots = contents.getSlots();
+            for (int index = 0; index < opened.held().size(); index++) {
+                int cursor = plan.first(index, slots);
+                int end = plan.past(index, slots);
+                for (ItemStack stack : opened.held().get(index)) {
+                    if (cursor < end) {
+                        contents.setStackInSlot(cursor++, stack);
+                    } else {
+                        over.add(stack);
+                    }
+                }
+            }
+        });
+        contents.admit(over);
     }
 
     private void filed() {
@@ -300,11 +315,10 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
     @Override
     protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.saveAdditional(tag, registries);
-        tag.put(CONTENTS, contents.serializeNBT(registries));
+        tag.put(CONTENTS, Filing.write(contents, plan, registries));
         if (ledger.any()) {
             tag.put(HISTORY, ledger.save(registries));
         }
-        tag.put(PLAN, plan.save());
         tag.putInt(EXPERIENCE, experience);
 
         tag.putInt(FUSE, fuse);
@@ -313,7 +327,7 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
     @Override
     protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.loadAdditional(tag, registries);
-        fill(registries, tag.getCompound(CONTENTS), tag.getCompound(PLAN));
+        fill(Filing.read(tag.getCompound(CONTENTS), registries, tag.getCompound(PLAN)));
         ledger.load(registries, tag.getList(HISTORY, Ledger.TAG));
 
         experience = tag.getInt(EXPERIENCE);
@@ -346,8 +360,7 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
         int slots = contents.getSlots();
         int grown = experience;
         Kept.of(level).ifPresent(kept -> {
-            CompoundTag filed = contents.serializeNBT(level.registryAccess());
-            filed.put(PLAN, plan.save());
+            CompoundTag filed = Filing.write(contents, plan, level.registryAccess());
             java.util.UUID id = kept.put(filed, kind(), level.getGameTime(), grown);
 
             contents.setSize(contents.getSlots());
@@ -362,7 +375,7 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
     }
 
     public void restore(HolderLookup.Provider registries, Kept.Chest kept) {
-        fill(registries, kept.contents(), kept.contents().getCompound(PLAN));
+        fill(Filing.read(kept.contents(), registries, new CompoundTag()));
         filed();
         experience = capped(kept.experience());
         setChanged();
@@ -381,36 +394,16 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
         int restLength = 0;
 
         for (Kept.Chest one : filed) {
-            ItemStackHandler from = new ItemStackHandler();
-            from.deserializeNBT(registries, one.contents());
-            Plan was = new Plan();
-            was.load(one.contents().getCompound(PLAN), from.getSlots());
-            if (was.untouched(from.getSlots())) {
-                restLength += Plan.capacity(from.getSlots());
-                for (int slot = 0; slot < from.getSlots(); slot++) {
-                    if (!from.getStackInSlot(slot).isEmpty()) {
-                        rest.add(from.getStackInSlot(slot));
-                    }
-                }
+            Filing.Opened opened = Filing.read(one.contents(), registries, new CompoundTag());
+            over.addAll(opened.loose());
+            if (opened.plan().untouched(opened.size())) {
+                restLength += Plan.capacity(opened.size());
+                opened.held().forEach(rest::addAll);
                 continue;
             }
-            boolean[] claimed = new boolean[from.getSlots()];
-            for (int index = 0; index < was.count(from.getSlots()); index++) {
-                carved.add(was.at(index, from.getSlots()));
-                java.util.List<ItemStack> inside = new java.util.ArrayList<>();
-                for (int slot = was.first(index, from.getSlots());
-                        slot < was.past(index, from.getSlots()); slot++) {
-                    claimed[slot] = true;
-                    if (!from.getStackInSlot(slot).isEmpty()) {
-                        inside.add(from.getStackInSlot(slot));
-                    }
-                }
-                held.add(inside);
-            }
-            for (int slot = 0; slot < claimed.length; slot++) {
-                if (!claimed[slot] && !from.getStackInSlot(slot).isEmpty()) {
-                    over.add(from.getStackInSlot(slot));
-                }
+            for (int index = 0; index < opened.held().size(); index++) {
+                carved.add(opened.plan().at(index, opened.size()));
+                held.add(opened.held().get(index));
             }
         }
 
@@ -563,8 +556,7 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
             return false;
         }
         BlockPos pos = getBlockPos();
-        CompoundTag was = contents.serializeNBT(server.registryAccess());
-        was.put(PLAN, plan.save());
+        CompoundTag was = Filing.write(contents, plan, server.registryAccess());
 
         contents.setSize(contents.getSlots());
         experience = 0;

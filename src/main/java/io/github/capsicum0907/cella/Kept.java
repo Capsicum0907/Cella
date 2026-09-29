@@ -32,8 +32,6 @@ public class Kept extends SavedData {
 
     private static final String HANDED = "Handed";
 
-    static final String SIZE = "Size";
-    private static final String ITEMS = "Items";
 
     private static final long UNDATED = -1L;
 
@@ -163,11 +161,11 @@ public class Kept extends SavedData {
     }
 
     private static int usedIn(CompoundTag contents) {
-        return contents.getList(ITEMS, Tag.TAG_COMPOUND).size();
+        return Filing.used(contents);
     }
 
     private static int slotsIn(CompoundTag contents) {
-        return contents.getInt(SIZE);
+        return Filing.size(contents);
     }
 
     static Kept load(CompoundTag tag, HolderLookup.Provider registries) {

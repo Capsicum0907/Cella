@@ -1102,21 +1102,21 @@ public final class CellaTests {
         chest.contents().insertItem(lc, new ItemStack(Items.APPLE, 7), false);
 
         CompoundTag saved = chest.saveWithoutMetadata(registries);
-        CellaBlockEntity loaded = new CellaBlockEntity(chest.getBlockPos(), chest.getBlockState());
-        loaded.loadWithComponents(saved, registries);
-        check(loaded.contents().getStackInSlot(0).is(Items.STONE),
-                "the stone is still the front one's: " + loaded.contents().getStackInSlot(0));
-        check(loaded.contents().getStackInSlot(lc).is(Items.APPLE),
-                "and the apples still the back one's: " + loaded.contents().getStackInSlot(lc));
+        CompoundTag written = saved.getCompound(CellaBlockEntity.CONTENTS);
+        check(written.contains(Filing.PARTS),
+                "it is saved a partition at a time: " + written.getAllKeys());
+        whose(chest, saved, "reloaded");
 
-        CompoundTag filed = chest.contents().serializeNBT(registries);
-        filed.put(CellaBlockEntity.PLAN, chest.plan().save());
-        CellaBlockEntity placed = new CellaBlockEntity(chest.getBlockPos(), chest.getBlockState());
-        placed.restore(registries, new Kept.Chest(filed, 0));
-        check(placed.contents().getStackInSlot(0).is(Items.STONE)
-                        && placed.contents().getStackInSlot(lc).is(Items.APPLE),
-                "and the same when put back down after breaking: "
-                        + placed.contents().getStackInSlot(0));
+        CompoundTag old = saved.copy();
+        old.put(CellaBlockEntity.CONTENTS, chest.contents().serializeNBT(registries));
+        old.put(CellaBlockEntity.PLAN, chest.plan().save());
+        whose(chest, old, "reloaded from the old way of saving");
+
+        restored(chest, Filing.write(chest.contents(), chest.plan(), registries),
+                "put back down after breaking");
+        CompoundTag filedOld = chest.contents().serializeNBT(registries);
+        filedOld.put(CellaBlockEntity.PLAN, chest.plan().save());
+        restored(chest, filedOld, "put back down from the old way of filing");
         helper.succeed();
     }
 
@@ -2507,6 +2507,33 @@ public final class CellaTests {
             entry.putString("Kind", kind);
         }
         return entry;
+    }
+
+    private static void whose(CellaBlockEntity chest, CompoundTag saved, String how) {
+        var registries = chest.getLevel().registryAccess();
+        CellaBlockEntity loaded = new CellaBlockEntity(chest.getBlockPos(), chest.getBlockState());
+        loaded.loadWithComponents(saved, registries);
+        stillWhose(loaded, how);
+    }
+
+    private static void restored(CellaBlockEntity chest, CompoundTag filed, String how) {
+        var registries = chest.getLevel().registryAccess();
+        CellaBlockEntity placed = new CellaBlockEntity(chest.getBlockPos(), chest.getBlockState());
+        placed.restore(registries, new Kept.Chest(filed, 0));
+        stillWhose(placed, how);
+    }
+
+    private static void stillWhose(CellaBlockEntity chest, String how) {
+        int lc = Plan.LC;
+        check(chest.plan().over(chest.contents().getSlots()).size() == 2,
+                how + ", it keeps both partitions: " + chest.plan().over(chest.contents().getSlots()));
+        check(chest.contents().getStackInSlot(0).is(Items.STONE),
+                how + ", the stone is still the front one's: " + chest.contents().getStackInSlot(0));
+        check(chest.contents().getStackInSlot(lc).is(Items.APPLE)
+                        && chest.contents().getStackInSlot(lc).getCount() == 7,
+                how + ", the apples still the back one's: " + chest.contents().getStackInSlot(lc));
+        check(chest.contents().used(0) == 1 && chest.contents().used(1) == 1,
+                how + ", with nothing else anywhere");
     }
 
     private static void freed(CellaBlockEntity chest) {
