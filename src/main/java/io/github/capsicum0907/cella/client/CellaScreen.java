@@ -1,6 +1,5 @@
 package io.github.capsicum0907.cella.client;
 
-import io.github.capsicum0907.cella.Cella;
 import io.github.capsicum0907.cella.Order;
 import io.github.capsicum0907.cella.Edit;
 import io.github.capsicum0907.cella.Into;
@@ -167,6 +166,7 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     private static final int[] PLAIN = { CellaMenu.MATCHING, CellaMenu.TAKING };
     private static final int[] WIDE = { CellaMenu.STOW, CellaMenu.TAKE };
     private static final String[] NAMES = { "stow", "take" };
+    private static final String[] MOVERS = { Icons.STOW, Icons.TAKE };
 
     private final int rows;
 
@@ -189,10 +189,6 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
                         .withStyle(ChatFormatting.GRAY));
     }
 
-    private static ResourceLocation icon(String name) {
-        return ResourceLocation.fromNamespaceAndPath(Cella.MODID, "textures/gui/" + name + ".png");
-    }
-
     private int after(Component label, int width) {
         return Math.min(TITLE_X + font.width(label) + AFTER_TITLE, imageWidth - TITLE_X - width);
     }
@@ -210,7 +206,7 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
             int wide = WIDE[at];
             addRenderableWidget(new IconButton(
                     leftPos + movers + at * (BUTTON + SPACE), topPos + inventoryLabelY - 2,
-                    icon(NAMES[at]), told(NAMES[at]),
+                    Icons.of(MOVERS[at]), told(NAMES[at]),
                     () -> send(Screen.hasShiftDown() ? wide : plain)));
         }
 
@@ -222,7 +218,7 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
         int sort = imageWidth - TITLE_X - BUTTON;
 
         ordering = addRenderableWidget(new IconButton(leftPos + sort, topPos + BUTTON_Y,
-                icon("sort"), sorting(), () -> send(CellaMenu.SORT)));
+                Icons.of(Icons.SORT), sorting(), () -> send(CellaMenu.SORT)));
         kept = menu.order();
         peek(Peek.LIST, false);
         cell = new net.minecraft.client.gui.components.EditBox(font, 0, 0, 10, 12,
@@ -232,9 +228,9 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
         int next = sort - APART - BUTTON;
         controls = next - SPACE - BUTTON;
         back = addRenderableWidget(new IconButton(leftPos + controls, topPos + BUTTON_Y,
-                icon("prev"), Component.translatable("gui.cella.prev"), () -> turn(-1)));
+                Icons.of(Icons.PREV), Component.translatable("gui.cella.prev"), () -> turn(-1)));
         on = addRenderableWidget(new IconButton(leftPos + next, topPos + BUTTON_Y,
-                icon("next"), Component.translatable("gui.cella.next"), () -> turn(1)));
+                Icons.of(Icons.NEXT), Component.translatable("gui.cella.next"), () -> turn(1)));
 
         if (!menu.kind().trait().finds()) {
             this.titleLabelX = left;
@@ -524,10 +520,6 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
         send(Math.floorMod(menu.page() + by, menu.pages()));
     }
 
-    private static final String GEAR = "\u2261";
-
-    private static final String HOME = "\u25C0";
-
     private final ShelfPane pane = new ShelfPane();
 
     private final EditModal modal = new EditModal();
@@ -569,17 +561,18 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
         return at(knob, x, y);
     }
 
-    private void knob(GuiGraphics graphics, int slot, String glyph) {
+    private void knob(GuiGraphics graphics, int slot, String icon) {
         graphics.fill(leftPos + slot, gearY(), leftPos + slot + BUTTON, gearY() + BUTTON,
                 0xFF373737);
         graphics.fill(leftPos + slot + 1, gearY() + 1, leftPos + slot + BUTTON - 1,
                 gearY() + BUTTON - 1, 0xFF8B8B8B);
-        graphics.drawString(font, glyph, leftPos + slot + 3, gearY() + 2, LABEL, false);
+        Icons.draw(graphics, icon, leftPos + slot + Icons.inset(BUTTON),
+                gearY() + Icons.inset(BUTTON), LABEL);
     }
 
     private void knobs(GuiGraphics graphics) {
         if (knob >= 0) {
-            knob(graphics, knob, listing() ? GEAR : HOME);
+            knob(graphics, knob, listing() ? Icons.LIST : Icons.BACK);
         }
     }
 

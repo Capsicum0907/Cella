@@ -50,6 +50,8 @@ public final class EditModal {
     private static final int SPARE = 0xFF505050;
     private static final int OVER = 0x30000000;
     private static final int SHADE = 0xA0101010;
+    private static final int CROSS = 0xFFFFFF;
+    private static final int DELETE = 0xB03030;
 
     public static final int NAME = 0;
     public static final int SIZE = 1;
@@ -257,7 +259,8 @@ public final class EditModal {
         graphics.fill(x + 1, y + 1, x + wide - 1, y + tall - 1, BACK);
 
         graphics.fill(x + PAD, y + PAD, x + PAD + LINE, y + PAD + LINE, WELL);
-        graphics.drawString(font, "x", x + PAD + 2, y + PAD + 1, 0xFFFFFF, false);
+        Icons.draw(graphics, Icons.CLOSE, x + PAD + Icons.inset(LINE), y + PAD + Icons.inset(LINE),
+                CROSS);
 
         head(graphics, font, x, y, wide);
 
@@ -331,12 +334,12 @@ public final class EditModal {
                 columnNumber(x, wide, 2), top + 3, FAINT, false);
 
         boolean packed = slice.used() == slice.slots();
-        graphics.drawString(font, "»«", packLeft(x, wide), top + 3,
-                packed ? STOPPED : TEXT, false);
+        Icons.draw(graphics, Icons.PACK, packLeft(x, wide) + Icons.inset(BIN),
+                top + Icons.inset(ROW), packed ? STOPPED : TEXT);
 
         boolean empty = slice.used() == 0;
-        graphics.drawString(font, "✖", binLeft(x, wide), top + 3,
-                empty ? 0xB03030 : STOPPED, false);
+        Icons.draw(graphics, Icons.BIN, binLeft(x, wide) + Icons.inset(BIN),
+                top + Icons.inset(ROW), empty ? DELETE : STOPPED);
     }
 
     private void plus(GuiGraphics graphics, Font font, int x, int top, int wide,
@@ -344,7 +347,8 @@ public final class EditModal {
         if (mouseY >= top && mouseY < top + ROW && mouseX >= x && mouseX < x + wide) {
             graphics.fill(x + 1, top, x + wide - 1, top + ROW - 1, OVER);
         }
-        graphics.drawString(font, "+", x + PAD + 2, top + 3, TEXT, false);
+        Icons.draw(graphics, Icons.ADD, x + PAD + Icons.inset(SWATCH), top + Icons.inset(ROW),
+                TEXT);
     }
 
     private void bar(GuiGraphics graphics, Shelf shelf, int x, int y, int wide) {

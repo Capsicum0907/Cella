@@ -29,11 +29,7 @@ import zlib
 SIZE = 16  # the block texture; the gui icons are ICON square
 
 ASSETS = pathlib.Path(__file__).resolve().parents[1] / "src/main/resources/assets/cella/textures"
-SORT_OUT = ASSETS / "gui/sort.png"
-STOW_OUT = ASSETS / "gui/stow.png"
-TAKE_OUT = ASSETS / "gui/take.png"
-PREV_OUT = ASSETS / "gui/prev.png"
-NEXT_OUT = ASSETS / "gui/next.png"
+GUI = ASSETS / "gui"
 
 # One place for every colour. Body, and the two derived from it.
 WOOD = (0x8A, 0x66, 0x3C, 0xFF)
@@ -131,6 +127,89 @@ def next_icon():
     return _rows(_chevron(False))
 
 
+def list_icon():
+    return _rows({(0, y) for y in (0, 2, 4)} | {(x, y) for y in (0, 2, 4) for x in range(2, ICON)})
+
+
+def back_icon():
+    return _rows({(ICON - 1 - y, x) for (x, y) in _down()})
+
+
+def close_icon():
+    return _rows({(i, i) for i in range(ICON)} | {(i, ICON - 1 - i) for i in range(ICON)})
+
+
+def add_icon():
+    middle = {ICON // 2 - 1, ICON // 2}
+    return _rows({(x, y) for x in range(ICON) for y in range(ICON) if x in middle or y in middle})
+
+
+def bin_icon():
+    return _rows(_row(0, 2) | _row(1, 6)
+                 | {(x, y) for y in range(2, ICON) for x in (1, ICON - 2)}
+                 | _row(ICON - 1, 4))
+
+
+def pack_icon():
+    return _rows({(0, 1), (1, 2), (1, 3), (0, 4), (5, 1), (4, 2), (4, 3), (5, 4)})
+
+
+def _drawn(*lines):
+    return _rows({(x, y) for y, line in enumerate(lines) for x, mark in enumerate(line) if mark == "#"})
+
+
+def outlet_icon():
+    return _drawn("....#.",
+                  "######",
+                  "....#.",
+                  ".#....",
+                  "######",
+                  ".#....")
+
+
+ICONS = {
+    "sort": sort_icon,
+    "stow": stow_icon,
+    "take": take_icon,
+    "prev": prev_icon,
+    "next": next_icon,
+    "list": list_icon,
+    "back": back_icon,
+    "close": close_icon,
+    "add": add_icon,
+    "bin": bin_icon,
+    "pack": pack_icon,
+    "outlet": outlet_icon,
+}
+
+BUTTON = 10
+FACE = (0x8B, 0x8B, 0x8B, 0xFF)
+RIM = (0x37, 0x37, 0x37, 0xFF)
+PAPER = (0xC6, 0xC6, 0xC6, 0xFF)
+ZOOM = 8
+GAP = 4
+
+
+def preview(icons):
+    """Every icon in its button, side by side, blown up to be looked at."""
+    names = list(icons)
+    cell = BUTTON + GAP
+    sheet = [[PAPER] * (GAP + cell * len(names)) for _ in range(GAP * 2 + BUTTON)]
+    for at, name in enumerate(names):
+        left = GAP + at * cell
+        top = GAP
+        for y in range(BUTTON):
+            for x in range(BUTTON):
+                rim = x in (0, BUTTON - 1) or y in (0, BUTTON - 1)
+                sheet[top + y][left + x] = RIM if rim else FACE
+        margin = (BUTTON - ICON) // 2
+        for y, row in enumerate(icons[name]()):
+            for x, pixel in enumerate(row):
+                if pixel[3]:
+                    sheet[top + margin + y][left + margin + x] = pixel
+    return [[pixel for pixel in row for _ in range(ZOOM)] for row in sheet for _ in range(ZOOM)]
+
+
 # --- the chest, as the block entity renderer wants it -------------------------
 #
 # The renderer is vanilla's: three parts on a 64x64 sheet, laid out by the standard
@@ -176,8 +255,9 @@ def write(path: pathlib.Path, pixels) -> None:
 
 
 if __name__ == "__main__":
-    write(SORT_OUT, sort_icon())
-    write(STOW_OUT, stow_icon())
-    write(TAKE_OUT, take_icon())
-    write(PREV_OUT, prev_icon())
-    write(NEXT_OUT, next_icon())
+    import sys
+    if len(sys.argv) > 2 and sys.argv[1] == "--preview":
+        write(pathlib.Path(sys.argv[2]), preview(ICONS))
+        sys.exit(0)
+    for name, draw in ICONS.items():
+        write(GUI / f"{name}.png", draw())
