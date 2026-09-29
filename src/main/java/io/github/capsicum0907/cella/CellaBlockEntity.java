@@ -373,12 +373,23 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
         java.util.List<Plan.Partition> carved = new java.util.ArrayList<>();
         java.util.List<java.util.List<ItemStack>> held = new java.util.ArrayList<>();
         java.util.List<ItemStack> over = new java.util.ArrayList<>();
+        java.util.List<ItemStack> rest = new java.util.ArrayList<>();
+        int restLength = 0;
 
         for (Kept.Chest one : filed) {
             ItemStackHandler from = new ItemStackHandler();
             from.deserializeNBT(registries, one.contents());
             Plan was = new Plan();
             was.load(one.contents().getCompound(PLAN), from.getSlots());
+            if (was.untouched(from.getSlots())) {
+                restLength += Plan.capacity(from.getSlots());
+                for (int slot = 0; slot < from.getSlots(); slot++) {
+                    if (!from.getStackInSlot(slot).isEmpty()) {
+                        rest.add(from.getStackInSlot(slot));
+                    }
+                }
+                continue;
+            }
             boolean[] claimed = new boolean[from.getSlots()];
             for (int index = 0; index < was.count(from.getSlots()); index++) {
                 carved.add(was.at(index, from.getSlots()));
@@ -397,6 +408,13 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
                     over.add(from.getStackInSlot(slot));
                 }
             }
+        }
+
+        if (!rest.isEmpty() || restLength > 0) {
+            if (!carved.isEmpty()) {
+                carved.add(new Plan.Partition("", Plan.FIRST, restLength));
+            }
+            held.add(rest);
         }
 
         replan(() -> plan.load(Plan.of(carved), contents.getSlots()));
@@ -419,36 +437,6 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
         return over;
     }
 
-    public java.util.List<ItemStack> pour(HolderLookup.Provider registries,
-            java.util.List<Kept.Chest> filed) {
-        java.util.List<ItemStack> over = new java.util.ArrayList<>();
-
-        inOneGo(() -> {
-            int cursor = 0;
-
-            for (Kept.Chest one : filed) {
-                ItemStackHandler from = new ItemStackHandler();
-                from.deserializeNBT(registries, one.contents());
-                for (int slot = 0; slot < from.getSlots(); slot++) {
-                    ItemStack stack = from.getStackInSlot(slot);
-                    if (stack.isEmpty()) {
-                        continue;
-                    }
-                    while (cursor < contents.getSlots()
-                            && !contents.getStackInSlot(cursor).isEmpty()) {
-                        cursor++;
-                    }
-                    if (cursor >= contents.getSlots()) {
-                        over.add(stack);
-                    } else {
-                        contents.setStackInSlot(cursor++, stack);
-                    }
-                }
-            }
-        });
-        setChanged();
-        return over;
-    }
 
     public void spill(Level level, BlockPos pos) {
         for (int slot = 0; slot < contents.getSlots(); slot++) {
@@ -565,13 +553,14 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
         return true;
     }
 
-    private boolean become(net.minecraft.server.level.ServerLevel server) {
+    boolean become(net.minecraft.server.level.ServerLevel server) {
         Kind next = kind().becomes().orElse(null);
         if (next == null) {
             return false;
         }
         BlockPos pos = getBlockPos();
         CompoundTag was = contents.serializeNBT(server.registryAccess());
+        was.put(PLAN, plan.save());
 
         contents.setSize(contents.getSlots());
         experience = 0;
@@ -580,7 +569,7 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
                 .setValue(CellaBlock.FACING, getBlockState().getValue(CellaBlock.FACING));
         server.setBlockAndUpdate(pos, born);
         if (server.getBlockEntity(pos) instanceof CellaBlockEntity reborn) {
-            reborn.pour(server.registryAccess(), java.util.List.of(new Kept.Chest(was, 0)));
+            reborn.fuse(server.registryAccess(), java.util.List.of(new Kept.Chest(was, 0)));
         }
         return true;
     }

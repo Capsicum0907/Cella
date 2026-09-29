@@ -423,7 +423,10 @@ public final class CellaTests {
             filed.add(new Kept.Chest(one.serializeNBT(registries), 0));
         }
 
-        check(chest.pour(registries, filed).isEmpty(), "all of it should fit");
+        check(chest.fuse(registries, filed).isEmpty(), "all of it should fit");
+        check(chest.plan().untouched(chest.contents().getSlots()),
+                "two undivided ones make one undivided one: "
+                        + chest.plan().over(chest.contents().getSlots()));
 
         check(chest.contents().getStackInSlot(0).is(Items.DIAMOND)
                         && chest.contents().getStackInSlot(0).getCount() == 3,
@@ -455,29 +458,34 @@ public final class CellaTests {
         whole.setStackInSlot(900, new ItemStack(Items.STONE, 9));
         CompoundTag second = whole.serializeNBT(registries);
 
-        java.util.List<Kept.Chest> filed = java.util.List.of(
-                new Kept.Chest(first, 0), new Kept.Chest(second, 0));
+        ItemStackHandler another = new ItemStackHandler(Kind.SEMI_PERFECT.slots());
+        another.setStackInSlot(40, new ItemStack(Items.APPLE, 4));
+        CompoundTag third = another.serializeNBT(registries);
+
+        java.util.List<Kept.Chest> filed = java.util.List.of(new Kept.Chest(second, 0),
+                new Kept.Chest(first, 0), new Kept.Chest(third, 0));
         check(chest.fuse(registries, filed).isEmpty(), "all of it should fit");
 
         java.util.List<Plan.Partition> carved =
                 chest.plan().over(chest.contents().getSlots());
-        check(carved.size() == 3, "both of the first and the one of the second: " + carved);
+        check(carved.size() == 3, "both of the divided one and one for the rest: " + carved);
         check(carved.get(0).name().equals("gold") && carved.get(0).length() == 2
                         && carved.get(0).colour() == DyeColor.YELLOW,
                 "the first keeps its name, colour and size: " + carved.get(0));
         check(carved.get(1).name().equals("gems") && carved.get(1).length() == 3,
                 "and so does the second: " + carved.get(1));
-        check(carved.get(2).length() == each,
-                "the undivided one comes across whole: " + carved.get(2));
+        check(carved.get(2).length() == 2 * each && carved.get(2).name().isEmpty(),
+                "the two undivided ones become one, after it: " + carved.get(2));
 
         check(chest.contents().getStackInSlot(0).is(Items.GOLD_INGOT),
                 "the gold stays in its own: " + chest.contents().getStackInSlot(0));
         check(chest.contents().getStackInSlot(2 * lc).is(Items.DIAMOND),
                 "the diamonds in theirs: " + chest.contents().getStackInSlot(2 * lc));
-        check(chest.contents().getStackInSlot(5 * lc).is(Items.STONE),
-                "and the stone at the head of the third, with no gap closed over: "
+        check(chest.contents().getStackInSlot(5 * lc).is(Items.APPLE)
+                        && chest.contents().getStackInSlot(5 * lc + 1).is(Items.STONE),
+                "and the apples and stone together in the last: "
                         + chest.contents().getStackInSlot(5 * lc));
-        check(chest.contents().used(2) == 1, "which holds just that: " + chest.contents().used(2));
+        check(chest.contents().used(2) == 2, "which holds just those: " + chest.contents().used(2));
         helper.succeed();
     }
 
@@ -2056,6 +2064,44 @@ public final class CellaTests {
         check(grown.contents().getStackInSlot(0).getCount() == 9,
                 "with what was inside it, closed up to the front");
         check(grown.experience() == 0, "and the feeding spent");
+        check(grown.plan().untouched(grown.contents().getSlots()),
+                "and one partition across the whole of it: "
+                        + grown.plan().over(grown.contents().getSlots()));
+        helper.succeed();
+    }
+
+    @GameTest(template = TestStructures.FLOOR)
+    public static void growingKeepsWhatWasCarved(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper, Kind.PERFECT);
+        carve(chest, new Plan.Partition("gold", DyeColor.YELLOW, 2),
+                new Plan.Partition("gems", DyeColor.CYAN, 3));
+        chest.contents().insertItem(0, new ItemStack(Items.GOLD_INGOT, 5), false);
+        chest.contents().insertItem(2 * Plan.LC, new ItemStack(Items.DIAMOND, 7), false);
+
+        check(chest.become(helper.getLevel()), "it grows");
+        CellaBlockEntity grown = (CellaBlockEntity) helper.getBlockEntity(WHERE);
+        int slots = grown.contents().getSlots();
+        check(slots == Kind.SUPER_PERFECT.slots(), "into a Super Perfect: " + slots);
+
+        java.util.List<Plan.Partition> carved = grown.plan().over(slots);
+        check(carved.size() == 2 && carved.get(0).name().equals("gold")
+                        && carved.get(0).length() == 2 && carved.get(1).name().equals("gems")
+                        && carved.get(1).length() == 3,
+                "with the same partitions at the same sizes: " + carved);
+        check(grown.spare() == Plan.capacity(slots) - 5,
+                "and what it grew by left free: " + grown.spare());
+        check(grown.contents().getStackInSlot(0).is(Items.GOLD_INGOT)
+                        && grown.contents().getStackInSlot(2 * Plan.LC).is(Items.DIAMOND),
+                "each thing still in its own");
+
+        CellaBlockEntity plain = place(helper, Kind.PERFECT);
+        plain.contents().insertItem(0, new ItemStack(Items.STONE, 9), false);
+        check(plain.become(helper.getLevel()), "an undivided one grows too");
+        CellaBlockEntity whole = (CellaBlockEntity) helper.getBlockEntity(WHERE);
+        check(whole.plan().untouched(whole.contents().getSlots()),
+                "and stays one partition across all of it: "
+                        + whole.plan().over(whole.contents().getSlots()));
+        check(whole.contents().getStackInSlot(0).is(Items.STONE), "with the stone in it");
         helper.succeed();
     }
 

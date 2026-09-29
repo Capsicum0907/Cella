@@ -66,6 +66,10 @@ public final class Plan {
         }
     }
 
+    public boolean untouched(int slots) {
+        return carved.size() == 1 && carved.getFirst().equals(new Partition("", FIRST, capacity(slots)));
+    }
+
     public boolean split() {
         return carved.size() > 1;
     }
