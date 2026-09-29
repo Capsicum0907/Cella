@@ -1106,8 +1106,9 @@ public final class CellaTests {
 
         CellaMenu menu = CellaMenu.at(1, player.getInventory(), helper.absolutePos(WHERE),
                 contents.getSlots(), CellaConfig.rows(KIND), CellaConfig.columns(KIND));
-        menu.view(0);
-        check(menu.owners(chest).isEmpty(), "one partition open says nothing");
+        menu.view(2);
+        check(menu.owners(chest).isEmpty(), "one partition open needs nothing sent");
+        check(menu.owner(0) == 2, "since every square is the open one's: " + menu.owner(0));
 
         menu.view(Peek.WHOLE);
         java.util.List<Integer> owners = menu.owners(chest);

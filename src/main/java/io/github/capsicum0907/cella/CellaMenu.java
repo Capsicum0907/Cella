@@ -489,6 +489,9 @@ public class CellaMenu extends AbstractContainerMenu {
     }
 
     public int owner(int shown) {
+        if (viewing >= 0) {
+            return viewing;
+        }
         return viewing == Peek.WHOLE && shown >= 0 && shown < owning.size()
                 ? owning.get(shown)
                 : Plan.NONE;

@@ -35,11 +35,13 @@ colour down its left edge, its name, and how full it is. Click a row once to see
 holds on the right; click it again to open it. With only one partition, the chest opens
 straight into it, and the back button still leads to the list.
 
-The row at the top, Everything, opens every partition at once. The square under the mouse is
-outlined in the colour of the partition it belongs to, and the same item in two partitions shows as two
-squares. Taking out works as usual. Storing needs a partition picked
+The row at the top, Everything, opens every partition at once. The same item in two
+partitions shows as two squares. Taking out works as usual. Storing needs a partition picked
 first from the coloured chips; until one is picked, nothing goes in. Click a picked chip
 again to let it go.
+
+Inside a partition and in Everything, the square under the mouse is outlined in the colour
+of the partition it belongs to.
 
 ### Editing
 
