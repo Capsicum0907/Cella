@@ -96,14 +96,28 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
         return Math.max(0, (stripRight() - stripLeft() + CHIP_GAP) / (CHIP + CHIP_GAP));
     }
 
+    private int shownChips() {
+        return Math.min(fits(), ShelfHolder.latest().slices().size() - chips);
+    }
+
+    private int chipsLeft() {
+        int many = shownChips();
+        int span = Math.max(0, many * (CHIP + CHIP_GAP) - CHIP_GAP);
+        int centred = leftPos + imageWidth / 2 - span / 2;
+        return Mth.clamp(centred, stripLeft(), Math.max(stripLeft(), stripRight() - span));
+    }
+
+    private int chipLeft(int at) {
+        return chipsLeft() + at * (CHIP + CHIP_GAP);
+    }
+
     private int chipAt(double x, double y) {
-        Shelf shelf = ShelfHolder.latest();
         if (!whole() || y < stripTop() || y >= stripTop() + CHIP) {
             return Into.NONE;
         }
-        int many = Math.min(fits(), shelf.slices().size() - chips);
+        int many = shownChips();
         for (int at = 0; at < many; at++) {
-            int left = stripLeft() + at * (CHIP + CHIP_GAP);
+            int left = chipLeft(at);
             if (x >= left && x < left + CHIP) {
                 return chips + at;
             }
@@ -117,10 +131,10 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
         }
         Shelf shelf = ShelfHolder.latest();
         chips = Mth.clamp(chips, 0, Math.max(0, shelf.slices().size() - fits()));
-        int many = Math.min(fits(), shelf.slices().size() - chips);
+        int many = shownChips();
         for (int at = 0; at < many; at++) {
             int index = chips + at;
-            int left = stripLeft() + at * (CHIP + CHIP_GAP);
+            int left = chipLeft(at);
             boolean here = index == menu.into();
             graphics.fill(left, stripTop(), left + CHIP, stripTop() + CHIP,
                     here ? 0xFF000000 : 0xFF5B5B5B);
