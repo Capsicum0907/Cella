@@ -423,7 +423,7 @@ public final class CellaTests {
             filed.add(new Kept.Chest(one.serializeNBT(registries), 0));
         }
 
-        check(chest.fuse(registries, filed).isEmpty(), "all of it should fit");
+        check(chest.fuse(registries, filed, Plan.NONE).isEmpty(), "all of it should fit");
         check(chest.plan().untouched(chest.contents().getSlots()),
                 "two undivided ones make one undivided one: "
                         + chest.plan().over(chest.contents().getSlots()));
@@ -464,7 +464,7 @@ public final class CellaTests {
 
         java.util.List<Kept.Chest> filed = java.util.List.of(new Kept.Chest(second, 0),
                 new Kept.Chest(first, 0), new Kept.Chest(third, 0));
-        check(chest.fuse(registries, filed).isEmpty(), "all of it should fit");
+        check(chest.fuse(registries, filed, Plan.NONE).isEmpty(), "all of it should fit");
 
         java.util.List<Plan.Partition> carved =
                 chest.plan().over(chest.contents().getSlots());
@@ -486,6 +486,8 @@ public final class CellaTests {
                 "and the apples and stone together in the last: "
                         + chest.contents().getStackInSlot(5 * lc));
         check(chest.contents().used(2) == 2, "which holds just those: " + chest.contents().used(2));
+        check(chest.plan().assigned() == Plan.NONE,
+                "and nothing made is open to the outside: " + chest.plan().assigned());
         helper.succeed();
     }
 
@@ -2265,6 +2267,7 @@ public final class CellaTests {
         chest.contents().insertItem(0, new ItemStack(Items.GOLD_INGOT, 5), false);
         chest.contents().insertItem(2 * Plan.LC, new ItemStack(Items.DIAMOND, 7), false);
 
+        chest.assign(1);
         check(chest.become(helper.getLevel()), "it grows");
         CellaBlockEntity grown = (CellaBlockEntity) helper.getBlockEntity(WHERE);
         int slots = grown.contents().getSlots();
@@ -2280,6 +2283,8 @@ public final class CellaTests {
         check(grown.contents().getStackInSlot(0).is(Items.GOLD_INGOT)
                         && grown.contents().getStackInSlot(2 * Plan.LC).is(Items.DIAMOND),
                 "each thing still in its own");
+        check(grown.plan().assigned() == 1,
+                "and the outside still reaches the same one: " + grown.plan().assigned());
 
         CellaBlockEntity plain = place(helper, Kind.PERFECT);
         plain.contents().insertItem(0, new ItemStack(Items.STONE, 9), false);

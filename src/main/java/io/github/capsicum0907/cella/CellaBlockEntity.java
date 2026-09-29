@@ -392,7 +392,7 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
     }
 
     public java.util.List<ItemStack> fuse(HolderLookup.Provider registries,
-            java.util.List<Kept.Chest> filed) {
+            java.util.List<Kept.Chest> filed, int port) {
         java.util.List<Plan.Partition> carved = new java.util.ArrayList<>();
         java.util.List<java.util.List<ItemStack>> held = new java.util.ArrayList<>();
         java.util.List<ItemStack> over = new java.util.ArrayList<>();
@@ -421,7 +421,10 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
             held.add(rest);
         }
 
-        replan(() -> plan.load(Plan.of(carved), contents.getSlots()));
+        replan(() -> {
+            plan.load(Plan.of(carved), contents.getSlots());
+            plan.assign(port);
+        });
         inOneGo(() -> {
             int slots = contents.getSlots();
             for (int index = 0; index < held.size(); index++) {
@@ -564,6 +567,7 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
         }
         BlockPos pos = getBlockPos();
         CompoundTag was = Filing.write(contents, plan, server.registryAccess());
+        int port = plan.assigned();
 
         contents.setSize(contents.getSlots());
         experience = 0;
@@ -572,7 +576,7 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
                 .setValue(CellaBlock.FACING, getBlockState().getValue(CellaBlock.FACING));
         server.setBlockAndUpdate(pos, born);
         if (server.getBlockEntity(pos) instanceof CellaBlockEntity reborn) {
-            reborn.fuse(server.registryAccess(), java.util.List.of(new Kept.Chest(was, 0)));
+            reborn.fuse(server.registryAccess(), java.util.List.of(new Kept.Chest(was, 0)), port);
         }
         return true;
     }

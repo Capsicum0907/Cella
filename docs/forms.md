@@ -50,7 +50,8 @@ Partitions come across too, with their names, colours, sizes and contents, in th
 the crafting grid: left to right, top to bottom. A Cella never divided — one partition, no
 name, the first colour, the whole chest — is not kept as a partition. The contents of all
 such Cellas go into one partition after the others. If none of the Cellas used was divided,
-what is made is not divided either.
+what is made is not divided either. What is made has no partition open to hoppers and
+comparators until one is chosen.
 
 ## Growing
 
@@ -76,7 +77,7 @@ else it is simply gone.
 The blast is not survivable. Stand well back.
 
 A Cella that grows keeps its partitions at the same sizes, and the room it grew by is left
-free. A Cella never divided stays undivided and takes the whole of its new size.
+free. Hoppers and comparators keep reaching the same partition. A Cella never divided stays undivided and takes the whole of its new size.
 
 ## What each form survives
 
