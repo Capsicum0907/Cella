@@ -705,10 +705,16 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
         }
         knobs(graphics);
         strip(graphics, mouseX, mouseY);
+        java.util.List<Shelf.Slice> slices = ShelfHolder.latest().slices();
         for (net.minecraft.world.inventory.Slot slot : menu.slots) {
             if (slot.isActive()) {
                 graphics.blit(BACKGROUND, leftPos + slot.x - 1, topPos + slot.y - 1,
                         SLOT_U, SLOT_V, SLOT, SLOT);
+                int owner = slot.index < menu.pageSize() ? menu.owner(slot.index) : -1;
+                if (owner >= 0 && owner < slices.size()) {
+                    graphics.renderOutline(leftPos + slot.x - 1, topPos + slot.y - 1, SLOT, SLOT,
+                            0xFF000000 | slices.get(owner).dye().getTextureDiffuseColor());
+                }
             }
         }
     }

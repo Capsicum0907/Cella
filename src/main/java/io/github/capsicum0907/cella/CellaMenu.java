@@ -425,6 +425,73 @@ public class CellaMenu extends AbstractContainerMenu {
             follow();
         }
         super.broadcastChanges();
+        if (server) {
+            mark();
+        }
+    }
+
+    private java.util.List<Integer> marked = java.util.List.of();
+
+    private void mark() {
+        java.util.List<Integer> now = access.evaluate((level, pos) ->
+                level.getBlockEntity(pos) instanceof CellaBlockEntity chest
+                        ? owners(chest)
+                        : java.util.List.<Integer>of()).orElse(java.util.List.of());
+        if (now.equals(marked)) {
+            return;
+        }
+        marked = now;
+        if (who instanceof net.minecraft.server.level.ServerPlayer player) {
+            net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(player,
+                    new Owners(now));
+        }
+    }
+
+    public java.util.List<Integer> owners(CellaBlockEntity chest) {
+        if (viewing != Peek.WHOLE) {
+            return java.util.List.of();
+        }
+        int slots = chest.contents().getSlots();
+        java.util.List<Plan.Partition> carved = chest.plan().over(slots);
+        int[] ends = new int[carved.size()];
+        int end = 0;
+        for (int part = 0; part < ends.length; part++) {
+            end = Math.min(slots, end + carved.get(part).slots());
+            ends[part] = end;
+        }
+        java.util.List<Integer> out = new java.util.ArrayList<>(pageSize);
+        for (int shown = 0; shown < pageSize; shown++) {
+            int real = window.real(shown);
+            int part = real < 0 ? ends.length : after(ends, real);
+            out.add(part < ends.length ? part : Plan.NONE);
+        }
+        return out;
+    }
+
+    private static int after(int[] ends, int slot) {
+        int low = 0;
+        int high = ends.length;
+        while (low < high) {
+            int middle = (low + high) >>> 1;
+            if (ends[middle] <= slot) {
+                low = middle + 1;
+            } else {
+                high = middle;
+            }
+        }
+        return low;
+    }
+
+    private java.util.List<Integer> owning = java.util.List.of();
+
+    public void owned(java.util.List<Integer> parts) {
+        owning = parts;
+    }
+
+    public int owner(int shown) {
+        return viewing == Peek.WHOLE && shown >= 0 && shown < owning.size()
+                ? owning.get(shown)
+                : Plan.NONE;
     }
 
     private void follow() {

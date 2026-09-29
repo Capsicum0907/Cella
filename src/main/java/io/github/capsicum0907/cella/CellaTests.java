@@ -1091,6 +1091,39 @@ public final class CellaTests {
     }
 
     @GameTest(template = TestStructures.FLOOR)
+    public static void everythingSaysWhoseEachSquareIs(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper);
+        Player player = helper.makeMockPlayer(GameType.SURVIVAL);
+        Sorted contents = chest.contents();
+        int lc = Plan.LC;
+
+        carve(chest, new Plan.Partition("front", DyeColor.RED, 1),
+                new Plan.Partition("none", DyeColor.GRAY, 0),
+                new Plan.Partition("back", DyeColor.BLUE, 1));
+        contents.insertItem(0, new ItemStack(Items.STONE, 10), false);
+        contents.insertItem(lc, new ItemStack(Items.APPLE, 7), false);
+        contents.insertItem(lc, new ItemStack(Items.DIAMOND, 3), false);
+
+        CellaMenu menu = CellaMenu.at(1, player.getInventory(), helper.absolutePos(WHERE),
+                contents.getSlots(), CellaConfig.rows(KIND), CellaConfig.columns(KIND));
+        menu.view(0);
+        check(menu.owners(chest).isEmpty(), "one partition open says nothing");
+
+        menu.view(Peek.WHOLE);
+        java.util.List<Integer> owners = menu.owners(chest);
+        check(owners.get(0) == 0, "the stone is the first one's: " + owners);
+        check(owners.get(1) == 2 && owners.get(2) == 2,
+                "the apples and diamonds are the third's, past the empty one: " + owners);
+        check(owners.get(3) == Plan.NONE, "and past them, no one's: " + owners);
+
+        menu.look("diamond");
+        owners = menu.owners(chest);
+        check(owners.get(0) == 2, "a search keeps saying whose: " + owners);
+        check(owners.get(1) == Plan.NONE, "and nothing after the one it found: " + owners);
+        helper.succeed();
+    }
+
+    @GameTest(template = TestStructures.FLOOR)
     public static void storingGoesWhereItIsPointed(GameTestHelper helper) {
         CellaBlockEntity chest = place(helper);
         Player player = helper.makeMockPlayer(GameType.SURVIVAL);

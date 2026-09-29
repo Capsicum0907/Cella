@@ -208,6 +208,10 @@ public final class Window implements IItemHandlerModifiable {
         return slot < (chest ? onThisPage() : onThisPage);
     }
 
+    public int real(int slot) {
+        return holds(slot) && there(slot) ? at(slot) : -1;
+    }
+
     private boolean there(int slot) {
         return at(slot) < held.getSlots();
     }
