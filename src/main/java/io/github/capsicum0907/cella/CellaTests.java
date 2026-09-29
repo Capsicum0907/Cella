@@ -1075,6 +1075,47 @@ public final class CellaTests {
     }
 
     @GameTest(template = TestStructures.FLOOR)
+    public static void anOpenPartitionIsWhereThingsGo(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper);
+        Player player = helper.makeMockPlayer(GameType.SURVIVAL);
+        Sorted contents = chest.contents();
+        int lc = Plan.LC;
+
+        carve(chest, new Plan.Partition("front", DyeColor.RED, 1),
+                new Plan.Partition("back", DyeColor.BLUE, 1));
+        contents.insertItem(0, new ItemStack(Items.STONE, 10), false);
+        contents.insertItem(lc, new ItemStack(Items.DIAMOND, 3), false);
+
+        CellaMenu menu = CellaMenu.at(1, player.getInventory(), helper.absolutePos(WHERE),
+                contents.getSlots(), CellaConfig.rows(KIND), CellaConfig.columns(KIND));
+        menu.view(1);
+
+        int hand = menu.slots.size() - CellaConfig.PLAYER_COLUMNS;
+        menu.slots.get(hand).set(new ItemStack(Items.COAL, 32));
+        menu.quickMoveStack(player, hand);
+        check(contents.used(0) == 1, "shift-clicking passes the first by: " + contents.used(0));
+        check(contents.used(1) == 2, "and lands in the one that is open: " + contents.used(1));
+
+        player.getInventory().setItem(1, new ItemStack(Items.APPLE, 5));
+        menu.clickMenuButton(player, CellaMenu.STOW);
+        check(contents.used(0) == 1, "storing passes the first by too: " + contents.used(0));
+        check(contents.used(1) == 3, "and fills the open one: " + contents.used(1));
+
+        menu.clickMenuButton(player, CellaMenu.TAKE);
+        check(contents.used(1) == 0, "taking empties the open one: " + contents.used(1));
+        check(contents.getStackInSlot(0).is(Items.STONE) && contents.used(0) == 1,
+                "and leaves the other alone: " + contents.getStackInSlot(0));
+        check(player.getInventory().countItem(Items.STONE) == 0,
+                "so no stone reached the player");
+
+        player.getInventory().setItem(1, new ItemStack(Items.STONE, 4));
+        menu.clickMenuButton(player, CellaMenu.MATCHING);
+        check(player.getInventory().countItem(Items.STONE) == 4,
+                "stone is not a kind the open one holds, so it stays out");
+        helper.succeed();
+    }
+
+    @GameTest(template = TestStructures.FLOOR)
     public static void theLastPartitionStays(GameTestHelper helper) {
         CellaBlockEntity chest = place(helper);
         check(!chest.undivide(0), "the only partition there is cannot be taken away");

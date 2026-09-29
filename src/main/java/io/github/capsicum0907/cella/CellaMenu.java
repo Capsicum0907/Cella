@@ -354,23 +354,31 @@ public class CellaMenu extends AbstractContainerMenu {
                 .orElse(false);
     }
 
-    private net.neoforged.neoforge.items.IItemHandler chosen() {
+    private IItemHandlerModifiable partition(int index) {
         return access.evaluate((level, pos) -> {
             if (!(level.getBlockEntity(pos) instanceof CellaBlockEntity chest)) {
                 return null;
             }
             int slots = chest.contents().getSlots();
-            if (into < 0 || into >= chest.plan().count(slots)) {
+            if (index < 0 || index >= chest.plan().count(slots)) {
                 return null;
             }
-            int from = chest.plan().first(into, slots);
-            return (net.neoforged.neoforge.items.IItemHandler)
-                    new Outlet(chest.contents(), from, chest.plan().past(into, slots) - from);
+            int from = chest.plan().first(index, slots);
+            return (IItemHandlerModifiable)
+                    new Outlet(chest.contents(), from, chest.plan().past(index, slots) - from);
         }).orElse(null);
     }
 
+    private IItemHandlerModifiable storing() {
+        return viewing == Peek.WHOLE ? partition(into) : partition(viewing);
+    }
+
+    private IItemHandlerModifiable taking() {
+        return viewing == Peek.WHOLE ? contents : partition(viewing);
+    }
+
     private ItemStack poured(ItemStack stack) {
-        net.neoforged.neoforge.items.IItemHandler where = chosen();
+        IItemHandlerModifiable where = storing();
         return where == null ? stack : ItemHandlerHelper.insertItemStacked(where, stack, false);
     }
 
@@ -491,17 +499,21 @@ public class CellaMenu extends AbstractContainerMenu {
     }
 
     private void take(Player player, boolean matchingOnly) {
+        IItemHandlerModifiable from = taking();
+        if (from == null) {
+            return;
+        }
         Inventory inventory = player.getInventory();
         Set<ItemStack> carried = matchingOnly ? carried(inventory) : Set.of();
 
-        for (int slot = 0; slot < contents.getSlots(); slot++) {
-            ItemStack stack = contents.getStackInSlot(slot);
+        for (int slot = 0; slot < from.getSlots(); slot++) {
+            ItemStack stack = from.getStackInSlot(slot);
             if (stack.isEmpty() || (matchingOnly && !carried.contains(stack))) {
                 continue;
             }
             ItemStack moving = stack.copy();
             inventory.add(moving);
-            contents.setStackInSlot(slot, moving);
+            from.setStackInSlot(slot, moving);
             if (!moving.isEmpty()) {
                 break;
             }
@@ -562,17 +574,16 @@ public class CellaMenu extends AbstractContainerMenu {
             if (stack.isEmpty() || (matchingOnly && !kept.contains(stack))) {
                 continue;
             }
-            inventory.setItem(slot, viewing == Peek.WHOLE
-                    ? poured(stack)
-                    : ItemHandlerHelper.insertItemStacked(contents, stack, false));
+            inventory.setItem(slot, poured(stack));
         }
         inventory.setChanged();
     }
 
     private Set<ItemStack> kinds() {
         Set<ItemStack> kept = ItemStackLinkedSet.createTypeAndComponentsSet();
-        for (int slot = 0; slot < contents.getSlots(); slot++) {
-            ItemStack stack = contents.getStackInSlot(slot);
+        IItemHandlerModifiable held = taking();
+        for (int slot = 0; held != null && slot < held.getSlots(); slot++) {
+            ItemStack stack = held.getStackInSlot(slot);
             if (!stack.isEmpty()) {
                 kept.add(stack);
             }
@@ -620,9 +631,7 @@ public class CellaMenu extends AbstractContainerMenu {
             return before;
         }
 
-        ItemStack left = viewing == Peek.WHOLE
-                ? poured(stack)
-                : ItemHandlerHelper.insertItemStacked(contents, stack, false);
+        ItemStack left = poured(stack);
 
         if (left.getCount() == stack.getCount()) {
             return ItemStack.EMPTY;
