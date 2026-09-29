@@ -47,6 +47,7 @@
   "gui.cella.move.go": "Move",
   "gui.cella.move.title": "Move to %s",
   "gui.cella.next": "Next page",
+  "gui.cella.ok": "OK",
   "gui.cella.partition.edit": "Edit partitions",
   "gui.cella.partition.everything": "Everything",
   "gui.cella.partition.none": "Pick one to see what is in it",

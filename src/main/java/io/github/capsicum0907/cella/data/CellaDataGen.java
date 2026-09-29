@@ -196,6 +196,7 @@ public final class CellaDataGen {
             add("gui.cella.move.cancel", "Cancel");
             add("gui.cella.move.go", "Move");
             add("gui.cella.move.full", "Not enough room");
+            add("gui.cella.ok", "OK");
             add("gui.cella.partition.unnamed", "Unnamed");
             add("gui.cella.partition.everything", "Everything");
             add("gui.cella.into.pick", "Store into %s");

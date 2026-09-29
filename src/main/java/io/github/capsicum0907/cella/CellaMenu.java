@@ -20,7 +20,7 @@ public class CellaMenu extends AbstractContainerMenu {
     private static final int HOTBAR = CellaConfig.PLAYER_COLUMNS;
     public static final int SLOT = 18;
 
-    private static final int FIRST_Y = 18;
+    public static final int FIRST_Y = 18;
 
     private static final int MARGIN = 7;
 
@@ -375,6 +375,18 @@ public class CellaMenu extends AbstractContainerMenu {
         return selecting;
     }
 
+    private String notice;
+
+    public void told(String key) {
+        notice = key;
+    }
+
+    public String takeNotice() {
+        String key = notice;
+        notice = null;
+        return key;
+    }
+
     public boolean selected(int shown) {
         return selecting && selection.get(shown);
     }
@@ -533,9 +545,9 @@ public class CellaMenu extends AbstractContainerMenu {
         }
         Space target = new Space(partition(into));
         if (!target.fits(kinds, counts)) {
-            if (who != null) {
-                who.sendSystemMessage(net.minecraft.network.chat.Component
-                        .translatable("gui.cella.move.full"));
+            if (who instanceof net.minecraft.server.level.ServerPlayer player) {
+                net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(player,
+                        new Notice("gui.cella.move.full"));
             }
             return false;
         }

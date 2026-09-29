@@ -184,7 +184,13 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
                 : "gui.cella.into.pick", name), mouseX, mouseY);
     }
 
-    private int moving = Into.NONE;
+    private Component question;
+
+    private Component[] choices = {};
+
+    private Runnable[] answers = {};
+
+    private boolean confirming;
 
     private static final int DIALOG_PAD = 6;
 
@@ -196,6 +202,8 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
 
     private static final int DIALOG_EDGE = 0xFF000000;
 
+    private static final int DIALOG_SHADE = 0xA0101010;
+
     private static final int CHOICE_FACE = 0xFF8B8B8B;
 
     private static final int CHOICE_LIT = 0xFFA0A0A0;
@@ -204,21 +212,50 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
 
     private static final int DIALOG_ABOVE = 400;
 
-    private Component movingTitle() {
+    private static final int NOWHERE = -1;
+
+    private boolean asking() {
+        return question != null;
+    }
+
+    private void ask(Component text, Component[] labels, Runnable[] actions) {
+        question = text;
+        choices = labels;
+        answers = actions;
+    }
+
+    private void unask() {
+        question = null;
+        choices = new Component[0];
+        answers = new Runnable[0];
+        confirming = false;
+    }
+
+    private void confirmMove(int into) {
         java.util.List<Shelf.Slice> slices = ShelfHolder.latest().slices();
-        if (moving < 0 || moving >= slices.size()) {
-            return Component.empty();
+        if (into < 0 || into >= slices.size()) {
+            return;
         }
-        Shelf.Slice slice = slices.get(moving);
+        Shelf.Slice slice = slices.get(into);
         Component name = slice.name().isEmpty()
                 ? Component.translatable("gui.cella.partition.unnamed")
                 : Component.literal(slice.name());
-        return Component.translatable("gui.cella.move.title", name);
+        ask(Component.translatable("gui.cella.move.title", name),
+                new Component[] { Component.translatable("gui.cella.move.cancel"),
+                        Component.translatable("gui.cella.move.go") },
+                new Runnable[] { this::unask, () -> {
+                    unask();
+                    net.neoforged.neoforge.network.PacketDistributor.sendToServer(
+                            new io.github.capsicum0907.cella.Move(into));
+                } });
+        confirming = true;
     }
 
-    private final Component[] choices = {
-            Component.translatable("gui.cella.move.cancel"),
-            Component.translatable("gui.cella.move.go") };
+    private void notice(String key) {
+        ask(Component.translatable(key),
+                new Component[] { Component.translatable("gui.cella.ok") },
+                new Runnable[] { this::unask });
+    }
 
     private int choiceWide() {
         int wide = 0;
@@ -228,9 +265,12 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
         return wide + 2 * DIALOG_PAD;
     }
 
+    private int choicesWide() {
+        return choices.length * choiceWide() + Math.max(0, choices.length - 1) * CHOICE_GAP;
+    }
+
     private int dialogWide() {
-        int buttons = choices.length * choiceWide() + (choices.length - 1) * CHOICE_GAP;
-        return Math.max(font.width(movingTitle()), buttons) + 2 * DIALOG_PAD;
+        return Math.max(font.width(question), choicesWide()) + 2 * DIALOG_PAD;
     }
 
     private int dialogTall() {
@@ -242,12 +282,12 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     }
 
     private int dialogTop() {
-        return topPos + (imageHeight - dialogTall()) / 2;
+        return topPos + CellaMenu.FIRST_Y
+                + (menu.rows() * CellaMenu.SLOT - dialogTall()) / 2;
     }
 
     private int choiceLeft(int at) {
-        int buttons = choices.length * choiceWide() + (choices.length - 1) * CHOICE_GAP;
-        return dialogLeft() + (dialogWide() - buttons) / 2 + at * (choiceWide() + CHOICE_GAP);
+        return dialogLeft() + (dialogWide() - choicesWide()) / 2 + at * (choiceWide() + CHOICE_GAP);
     }
 
     private int choiceTop() {
@@ -265,17 +305,17 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
     }
 
     private void dialog(GuiGraphics graphics, int mouseX, int mouseY) {
-        if (moving < 0) {
+        if (!asking()) {
             return;
         }
         graphics.pose().pushPose();
         graphics.pose().translate(0, 0, DIALOG_ABOVE);
+        graphics.fill(0, 0, width, height, DIALOG_SHADE);
         int x = dialogLeft();
         int y = dialogTop();
         graphics.fill(x - 1, y - 1, x + dialogWide() + 1, y + dialogTall() + 1, DIALOG_EDGE);
         graphics.fill(x, y, x + dialogWide(), y + dialogTall(), DIALOG_BACK);
-        Component title = movingTitle();
-        graphics.drawString(font, title, x + (dialogWide() - font.width(title)) / 2,
+        graphics.drawString(font, question, x + (dialogWide() - font.width(question)) / 2,
                 y + DIALOG_PAD, LABEL, false);
         int over = choiceAt(mouseX, mouseY);
         for (int at = 0; at < choices.length; at++) {
@@ -447,8 +487,12 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
             back.visible = many;
             on.visible = many;
         }
-        if (!menu.selecting()) {
-            moving = Into.NONE;
+        if (!menu.selecting() && confirming) {
+            unask();
+        }
+        String told = menu.takeNotice();
+        if (told != null) {
+            notice(told);
         }
         if (selector != null) {
             selector.visible = !list;
@@ -490,20 +534,16 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
         if (modal.open()) {
             return inModal(x, y, button);
         }
-        if (moving >= 0) {
+        if (asking()) {
             int choice = choiceAt(x, y);
-            if (choice == 1) {
-                net.neoforged.neoforge.network.PacketDistributor.sendToServer(
-                        new io.github.capsicum0907.cella.Move(moving));
-            }
             if (choice >= 0) {
-                moving = Into.NONE;
+                answers[choice].run();
             }
             return true;
         }
         int chip = chipAt(x, y);
         if (chip != Into.NONE && menu.selecting()) {
-            moving = chip;
+            confirmMove(chip);
             return true;
         }
         if (chip != Into.NONE) {
@@ -622,9 +662,9 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
 
     @Override
     public boolean keyPressed(int key, int scan, int modifiers) {
-        if (moving >= 0) {
+        if (asking()) {
             if (key == org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE) {
-                moving = Into.NONE;
+                unask();
             }
             return true;
         }
@@ -658,6 +698,9 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        if (asking()) {
+            return true;
+        }
         if (modal.open() && cell != null && cell.visible) {
             return true;
         }
@@ -876,6 +919,9 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
 
     @Override
     public boolean mouseDragged(double x, double y, int button, double dx, double dy) {
+        if (asking()) {
+            return true;
+        }
         if (!menu.selecting() || dragFrom < 0 || button != 0) {
             return super.mouseDragged(x, y, button, dx, dy);
         }
@@ -905,6 +951,11 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
 
     @Override
     public boolean mouseReleased(double x, double y, int button) {
+        if (asking()) {
+            dragFrom = -1;
+            dragged.clear();
+            return true;
+        }
         if (dragFrom >= 0 && button == 0) {
             dragFrom = -1;
             dragged.clear();
@@ -1062,13 +1113,15 @@ public class CellaScreen extends AbstractContainerScreen<CellaMenu> {
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partial) {
-        veil(modal.open());
-        super.render(graphics, mouseX, mouseY, partial);
-        renderTooltip(graphics, mouseX, mouseY);
-        if (!modal.open() && moving < 0) {
+        veil(modal.open() || asking());
+        int behindX = asking() ? NOWHERE : mouseX;
+        int behindY = asking() ? NOWHERE : mouseY;
+        super.render(graphics, behindX, behindY, partial);
+        renderTooltip(graphics, behindX, behindY);
+        if (!modal.open() && !asking()) {
             stripTip(graphics, mouseX, mouseY);
         }
-        overlay(graphics, mouseX, mouseY, partial);
+        overlay(graphics, behindX, behindY, partial);
         dialog(graphics, mouseX, mouseY);
     }
 }
