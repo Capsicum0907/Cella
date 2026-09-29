@@ -115,7 +115,7 @@ public class CellaMenu extends AbstractContainerMenu {
         for (int index = 0; index < pageSize; index++) {
             addSlot(new PagedSlot(window, index,
                     chestLeft + (index % columns) * SLOT,
-                    FIRST_Y + (index / columns) * SLOT));
+                    FIRST_Y + (index / columns) * SLOT, this::replaceable));
         }
 
         int below = (rows() - 4) * SLOT;
@@ -253,9 +253,40 @@ public class CellaMenu extends AbstractContainerMenu {
         super.removed(player);
         access.execute((level, pos) -> {
             if (level.getBlockEntity(pos) instanceof CellaBlockEntity chest) {
+                chest.release(this);
                 chest.closed(player);
             }
         });
+    }
+
+    private CellaBlockEntity chest() {
+        return access.evaluate((level, pos) ->
+                level.getBlockEntity(pos) instanceof CellaBlockEntity chest ? chest : null)
+                .orElse(null);
+    }
+
+    private int partOfShown(int real) {
+        if (viewing >= 0) {
+            return viewing;
+        }
+        return contents instanceof Sorted sorted ? sorted.partOf(real) : Plan.NONE;
+    }
+
+    private boolean replaceable(int shown, ItemStack incoming) {
+        if (!server) {
+            return true;
+        }
+        int real = window.real(shown);
+        CellaBlockEntity chest = chest();
+        if (real < 0 || chest == null) {
+            return true;
+        }
+        ItemStack there = contents.getStackInSlot(real);
+        if (there.isEmpty()) {
+            return true;
+        }
+        int part = chest.contents().partOf(real);
+        return chest.reserved(part, there) == 0 || chest.spare(part, there) >= there.getCount();
     }
 
     public int pageSize() {
@@ -608,6 +639,12 @@ public class CellaMenu extends AbstractContainerMenu {
         Set<ItemStack> carried = matchingOnly ? carried(inventory) : Set.of();
         Space pockets = new Space(
                 new net.neoforged.neoforge.items.wrapper.PlayerMainInvWrapper(inventory));
+        CellaBlockEntity chest = chest();
+        java.util.List<Claim> held = chest == null ? java.util.List.of() : chest.claimed();
+        int[] spare = new int[held.size()];
+        for (int at = 0; at < held.size(); at++) {
+            spare[at] = chest.spare(held.get(at).part(), held.get(at).kind());
+        }
 
         for (int slot = 0; slot < from.getSlots() && !pockets.full(); slot++) {
             ItemStack stack = from.getStackInSlot(slot);
@@ -615,10 +652,22 @@ public class CellaMenu extends AbstractContainerMenu {
                 continue;
             }
             int many = Math.min(stack.getCount(), pockets.room(stack));
+            int capped = -1;
+            int part = partOfShown(slot);
+            for (int at = 0; at < held.size(); at++) {
+                if (held.get(at).covers(part, stack)) {
+                    capped = at;
+                    many = Math.min(many, spare[at]);
+                    break;
+                }
+            }
             if (many <= 0) {
                 continue;
             }
             int moved = pockets.put(stack, many);
+            if (capped >= 0) {
+                spare[capped] -= moved;
+            }
             int left = stack.getCount() - moved;
             from.setStackInSlot(slot, left > 0 ? stack.copyWithCount(left) : ItemStack.EMPTY);
         }

@@ -1319,6 +1319,77 @@ public final class CellaTests {
     }
 
     @GameTest(template = TestStructures.FLOOR)
+    public static void aClaimHoldsAgainstTheOutside(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper);
+        Sorted contents = chest.contents();
+        contents.insertItem(0, new ItemStack(Items.STONE, 160), false);
+        Object who = new Object();
+        chest.claim(who, java.util.List.of(new Claim(0, new ItemStack(Items.STONE), 100)));
+
+        var outside = chest.outlet();
+        int offered = 0;
+        for (int slot = 0; slot < 3; slot++) {
+            offered += outside.extractItem(slot, 64, true).getCount();
+        }
+        check(offered <= 60 * 3, "a hopper asking first is told no more than is spare");
+        int taken = 0;
+        for (int round = 0; round < 10; round++) {
+            taken += outside.extractItem(0, 64, false).getCount();
+        }
+        check(taken == 60, "and can take only the sixty that are not claimed: " + taken);
+        check(contents.count(0, new ItemStack(Items.STONE)) == 100, "the hundred stay");
+        check(outside.extractItem(0, 1, true).isEmpty(), "and even asking for one is refused");
+
+        check(outside.insertItem(0, new ItemStack(Items.STONE, 20), false).isEmpty(),
+                "putting more in is never stopped");
+        check(outside.extractItem(0, 64, false).getCount() == 20,
+                "and what came in after is free to go again");
+
+        chest.release(who);
+        int freed = 0;
+        for (int round = 0; round < 10; round++) {
+            freed += outside.extractItem(0, 64, false).getCount();
+        }
+        check(freed == 100, "letting go frees the rest: " + freed);
+        helper.succeed();
+    }
+
+    @GameTest(template = TestStructures.FLOOR)
+    public static void aClaimHoldsAgainstAnotherPlayer(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper);
+        Player player = helper.makeMockPlayer(GameType.SURVIVAL);
+        Sorted contents = chest.contents();
+        contents.insertItem(0, new ItemStack(Items.STONE, 160), false);
+        chest.claim(new Object(), java.util.List.of(new Claim(0, new ItemStack(Items.STONE), 100)));
+
+        CellaMenu menu = CellaMenu.at(1, player.getInventory(), helper.absolutePos(WHERE),
+                contents.getSlots(), CellaConfig.rows(KIND), CellaConfig.columns(KIND));
+        menu.clickMenuButton(player, CellaMenu.TAKE);
+        check(player.getInventory().countItem(Items.STONE) == 60,
+                "taking out stops at what is claimed: " + player.getInventory().countItem(Items.STONE));
+        check(contents.count(0, new ItemStack(Items.STONE)) == 100, "and leaves the hundred");
+
+        check(!menu.slots.get(0).mayPlace(new ItemStack(Items.DIRT)),
+                "a claimed stack cannot be swapped out from under the claim");
+        chest.claim(new Object(), java.util.List.of());
+        helper.succeed();
+    }
+
+    @GameTest(template = TestStructures.FLOOR)
+    public static void carvingAgainDropsEveryClaim(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper);
+        chest.contents().insertItem(0, new ItemStack(Items.STONE, 64), false);
+        chest.claim(new Object(), java.util.List.of(new Claim(0, new ItemStack(Items.STONE), 64)));
+        check(chest.reserved(0, new ItemStack(Items.STONE)) == 64, "the claim is there");
+        long before = chest.plans();
+        check(chest.resize(0, new Plan.Partition("", Plan.FIRST, 128)), "carve it smaller");
+        check(chest.reserved(0, new ItemStack(Items.STONE)) == 0,
+                "changing the partitions drops it, since the numbers may now mean others");
+        check(chest.plans() > before, "and says so");
+        helper.succeed();
+    }
+
+    @GameTest(template = TestStructures.FLOOR)
     public static void theLastPartitionStays(GameTestHelper helper) {
         CellaBlockEntity chest = place(helper);
         check(!chest.undivide(0), "the only partition there is cannot be taken away");

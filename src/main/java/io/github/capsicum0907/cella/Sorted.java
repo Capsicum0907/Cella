@@ -383,13 +383,17 @@ public class Sorted extends ItemStackHandler {
         ItemStack asked = stacks.get(slot);
         int last = endOf(slot, part) - 1;
         ItemStack from = stacks.get(last);
-        int taken = Math.min(amount, from.getCount());
+        ItemStack kind = copyWith(from, 1);
+        int had = total(kind, part);
+        int taken = Math.min(Math.min(amount, from.getCount()),
+                Math.max(0, had - reserved(part, kind)));
+        if (taken <= 0) {
+            return ItemStack.EMPTY;
+        }
         if (simulate) {
             return copyWith(asked, taken);
         }
         ItemStack out = copyWith(from, taken);
-        ItemStack kind = copyWith(from, 1);
-        int had = total(kind, part);
         if (taken >= from.getCount()) {
             pull(last, part);
             moved(last);
@@ -568,6 +572,14 @@ public class Sorted extends ItemStackHandler {
     }
 
     protected void poured(int part, ItemStack kind, int before, int after) {
+    }
+
+    protected int reserved(int part, ItemStack kind) {
+        return 0;
+    }
+
+    public int count(int part, ItemStack kind) {
+        return part < 0 || part >= parts() || kind.isEmpty() ? 0 : total(copyWith(kind, 1), part);
     }
 
     protected void moved(int from) {

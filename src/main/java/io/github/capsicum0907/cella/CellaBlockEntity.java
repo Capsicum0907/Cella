@@ -75,6 +75,11 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
             }
 
             @Override
+            protected int reserved(int part, ItemStack kind) {
+                return CellaBlockEntity.this.reserved(part, kind);
+            }
+
+            @Override
             protected void poured(int part, ItemStack kind, int before, int after) {
                 if (watching) {
                     ledger.put(part, kind, before, after);
@@ -115,13 +120,63 @@ public class CellaBlockEntity extends BlockEntity implements LidBlockEntity {
         };
     }
 
+    private final java.util.Map<Object, java.util.List<Claim>> claims =
+            new java.util.IdentityHashMap<>();
+
+    private long plans;
+
+    public long plans() {
+        return plans;
+    }
+
+    public void claim(Object who, java.util.List<Claim> wanted) {
+        if (wanted.isEmpty()) {
+            claims.remove(who);
+        } else {
+            claims.put(who, java.util.List.copyOf(wanted));
+        }
+    }
+
+    public void release(Object who) {
+        claims.remove(who);
+    }
+
+    public int reserved(int part, ItemStack kind) {
+        int held = 0;
+        for (java.util.List<Claim> one : claims.values()) {
+            for (Claim claim : one) {
+                if (claim.covers(part, kind)) {
+                    held += claim.count();
+                }
+            }
+        }
+        return held;
+    }
+
+    public java.util.List<Claim> claimed() {
+        java.util.List<Claim> all = new java.util.ArrayList<>();
+        claims.values().forEach(all::addAll);
+        return all;
+    }
+
+    public int spare(int part, ItemStack kind) {
+        return Math.max(0, contents.count(part, kind) - reserved(part, kind));
+    }
+
+    private void unclaim() {
+        claims.clear();
+        plans++;
+    }
+
     public void replan(Runnable change) {
+        unclaim();
         change.run();
         contents.adopt(carving());
         filed();
     }
 
     public void replan(Runnable change, java.util.function.IntUnaryOperator where) {
+        unclaim();
         Sorted.Carve was = contents.frozen();
         change.run();
         contents.carve(was, carving(), where);
