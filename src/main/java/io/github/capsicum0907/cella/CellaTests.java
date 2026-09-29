@@ -1466,6 +1466,36 @@ public final class CellaTests {
     }
 
     @GameTest(template = TestStructures.FLOOR)
+    public static void takingIntoAFullCreativeHandLosesNothing(GameTestHelper helper) {
+        CellaBlockEntity chest = place(helper);
+        Player player = helper.makeMockPlayer(GameType.CREATIVE);
+        player.getAbilities().instabuild = true;
+        check(player.hasInfiniteMaterials(), "the player is creative where it counts");
+        for (int slot = 0; slot < net.minecraft.world.entity.player.Inventory.INVENTORY_SIZE; slot++) {
+            player.getInventory().setItem(slot, new ItemStack(Items.DIRT, 64));
+        }
+        chest.contents().insertItem(0, new ItemStack(Items.STONE, 64 * 3), false);
+        chest.contents().insertItem(0, new ItemStack(Items.APPLE, 10), false);
+
+        CellaMenu menu = CellaMenu.at(1, player.getInventory(), helper.absolutePos(WHERE),
+                chest.contents().getSlots(),
+                CellaConfig.rows(KIND), CellaConfig.columns(KIND));
+        menu.clickMenuButton(player, CellaMenu.TAKE);
+
+        check(items(chest.contents()) == 64 * 3 + 10,
+                "nothing fits, so everything stays in the chest: " + items(chest.contents()));
+
+        player.getInventory().setItem(5, ItemStack.EMPTY);
+        menu.clickMenuButton(player, CellaMenu.TAKE);
+        check(player.getInventory().getItem(5).is(Items.APPLE)
+                        && player.getInventory().getItem(5).getCount() == 10,
+                "one free slot takes the apples: " + player.getInventory().getItem(5));
+        check(items(chest.contents()) == 64 * 3,
+                "and the stone that had nowhere to go stays: " + items(chest.contents()));
+        helper.succeed();
+    }
+
+    @GameTest(template = TestStructures.FLOOR)
     public static void takingWhatMatchesLeavesTheRest(GameTestHelper helper) {
         CellaBlockEntity chest = place(helper);
         Player player = helper.makeMockPlayer(GameType.SURVIVAL);
